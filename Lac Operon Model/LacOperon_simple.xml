@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
-  <model id="biocrnpyler_141816" name="biocrnpyler_141816" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
+  <model id="biocrnpyler_6377" name="biocrnpyler_6377" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
     <listOfUnitDefinitions>
       <unitDefinition id="square_metre">
         <listOfUnits>
@@ -15,13 +15,13 @@
       <species id="rna_M" name="M" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="monomer_betaGal" name="betaGal" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="protein_betaGal" name="betaGal" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
-      <species id="Lactose_external" name="Lactose" compartment="default" initialConcentration="5000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="Lactose_external" name="Lactose" compartment="default" initialConcentration="1000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="Lactose_internal" name="Lactose" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
-      <species id="Glucose_external" name="Glucose" compartment="default" initialConcentration="5000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="Glucose_external" name="Glucose" compartment="default" initialConcentration="1000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="Glucose_internal" name="Glucose" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="protein_Lactose_Permease" name="Lactose_Permease" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="dna_Lac_Operon" name="Lac_Operon" compartment="default" initialConcentration="3.2e-06" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
-      <species id="protein_Biomass" name="Biomass" compartment="default" initialConcentration="0.00166" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="Biomass" name="Biomass" compartment="default" initialConcentration="0.00166" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="Lactose_consumed" name="Lactose" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
     </listOfSpecies>
     <listOfParameters>
@@ -226,7 +226,7 @@
           <speciesReference species="Glucose_internal" stoichiometry="1" constant="false"/>
         </listOfProducts>
         <listOfModifiers>
-          <modifierSpeciesReference species="protein_Biomass"/>
+          <modifierSpeciesReference species="Biomass"/>
         </listOfModifiers>
         <kineticLaw>
           <math xmlns="http://www.w3.org/1998/Math/MathML">
@@ -235,7 +235,7 @@
               <apply>
                 <times/>
                 <ci> GluPermease_vmax__ </ci>
-                <ci> protein_Biomass </ci>
+                <ci> Biomass </ci>
                 <apply>
                   <power/>
                   <ci> Glucose_external </ci>
