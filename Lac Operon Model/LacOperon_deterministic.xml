@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
-  <model id="biocrnpyler_50411" name="biocrnpyler_50411" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
+  <model id="biocrnpyler_865354" name="biocrnpyler_865354" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
     <listOfUnitDefinitions>
       <unitDefinition id="square_metre">
         <listOfUnits>
@@ -118,9 +118,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r1" name="r1" reversible="false">
-        <annotation>
-          <PropensityType> k=k_tl_beta_Gal__ type=massaction</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="rna_M" stoichiometry="1" constant="false"/>
         </listOfReactants>
@@ -139,9 +136,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r2" name="r2" reversible="false">
-        <annotation>
-          <PropensityType> k=k_tl_lacP__ type=massaction</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="rna_M" stoichiometry="1" constant="false"/>
         </listOfReactants>
@@ -160,9 +154,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r3" name="r3" reversible="false">
-        <annotation>
-          <PropensityType> k=BGal_tetramerization__ type=massaction</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="monomer_betaGal" stoichiometry="4" constant="false"/>
         </listOfReactants>
@@ -184,9 +175,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r4" name="r4" reversible="false">
-        <annotation>
-          <PropensityType> k=BGal_vmax__ K=Bgal_Kd__ n=n s1=Lactose_internal d=protein_betaGal type=proportionalhillpositive</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="Lactose_internal" stoichiometry="1" constant="false"/>
         </listOfReactants>
@@ -231,9 +219,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r5" name="r5" reversible="false">
-        <annotation>
-          <PropensityType> k=GluPermease_vmax__ K=GluPermease_Kd__ n=n s1=Glucose_external d=Biomass type=proportionalhillpositive</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="Glucose_external" stoichiometry="1" constant="false"/>
         </listOfReactants>
@@ -334,9 +319,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r7" name="r7" reversible="false">
-        <annotation>
-          <PropensityType> k=LacPermease_reverse_vmax__ K=LacPermease_Kd__ n=n s1=Lactose_internal d=protein_Lactose_Permease type=proportionalhillpositive</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="Lactose_internal" stoichiometry="1" constant="false"/>
         </listOfReactants>
@@ -381,9 +363,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r8" name="r8" reversible="false">
-        <annotation>
-          <PropensityType> k=kdeg_mRNA__ type=massaction</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="rna_M" stoichiometry="1" constant="false"/>
         </listOfReactants>
@@ -398,9 +377,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r9" name="r9" reversible="false">
-        <annotation>
-          <PropensityType> k=kdeg_prot__ type=massaction</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="protein_betaGal" stoichiometry="1" constant="false"/>
         </listOfReactants>
@@ -415,9 +391,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r10" name="r10" reversible="false">
-        <annotation>
-          <PropensityType> k=kdeg_prot__ type=massaction</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="protein_Lactose_Permease" stoichiometry="1" constant="false"/>
         </listOfReactants>
@@ -432,9 +405,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r11" name="r11" reversible="false">
-        <annotation>
-          <PropensityType> k=k_dilution__ type=massaction</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="protein_Lactose_Permease" stoichiometry="1" constant="false"/>
         </listOfReactants>
@@ -449,9 +419,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r12" name="r12" reversible="false">
-        <annotation>
-          <PropensityType> k=k_dilution__ type=massaction</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="monomer_betaGal" stoichiometry="1" constant="false"/>
         </listOfReactants>
@@ -466,9 +433,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r13" name="r13" reversible="false">
-        <annotation>
-          <PropensityType> k=k_dilution__ type=massaction</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="protein_betaGal" stoichiometry="1" constant="false"/>
         </listOfReactants>
@@ -483,9 +447,6 @@
         </kineticLaw>
       </reaction>
       <reaction id="r14" name="r14" reversible="false">
-        <annotation>
-          <PropensityType> k=k_dilution__ type=massaction</PropensityType>
-        </annotation>
         <listOfReactants>
           <speciesReference species="rna_M" stoichiometry="1" constant="false"/>
         </listOfReactants>
