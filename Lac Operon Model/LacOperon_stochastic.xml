@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
-  <model id="biocrnpyler_560367" name="biocrnpyler_560367" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
+  <model id="biocrnpyler_382349" name="biocrnpyler_382349" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
     <listOfUnitDefinitions>
       <unitDefinition id="square_metre">
         <listOfUnits>
@@ -15,9 +15,9 @@
       <species id="rna_M" name="M" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="monomer_betaGal" name="betaGal" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="protein_betaGal" name="betaGal" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
-      <species id="Lactose_external" name="Lactose" compartment="default" initialConcentration="1000000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="Lactose_external" name="Lactose" compartment="default" initialConcentration="5000000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="Lactose_internal" name="Lactose" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
-      <species id="Glucose_external" name="Glucose" compartment="default" initialConcentration="2000000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="Glucose_external" name="Glucose" compartment="default" initialConcentration="5000000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="Glucose_internal" name="Glucose" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="protein_Lactose_Permease" name="Lactose_Permease" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="dna_Lac_Operon" name="Lac_Operon" compartment="default" initialConcentration="2" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
@@ -30,10 +30,10 @@
       <parameter id="BGal_tetramerization__" value="1000" constant="true"/>
       <parameter id="BGal_vmax__" value="30" constant="true"/>
       <parameter id="Bgal_Kd__" value="700000" constant="true"/>
-      <parameter id="GluPermease_vmax__" value="2005" constant="true"/>
-      <parameter id="GluPermease_Kd__" value="0.015" constant="true"/>
+      <parameter id="GluPermease_vmax__" value="301" constant="true"/>
+      <parameter id="GluPermease_Kd__" value="9033" constant="true"/>
       <parameter id="LacPermease_reverse_vmax__" value="1.18966666666667" constant="true"/>
-      <parameter id="LacPermease_Kd__" value="14.62" constant="true"/>
+      <parameter id="LacPermease_Kd__" value="8800000" constant="true"/>
       <parameter id="kdeg_mRNA__" value="0.00783333333333333" constant="true"/>
       <parameter id="kdeg_prot__" value="0.000166666666666667" constant="true"/>
     </listOfParameters>
@@ -109,8 +109,8 @@
           <listOfLocalParameters>
             <localParameter id="Vtx" value="0.003"/>
             <localParameter id="n_L" value="4"/>
-            <localParameter id="K_L" value="4.8155"/>
-            <localParameter id="K_G" value="0.0025"/>
+            <localParameter id="K_L" value="2900000"/>
+            <localParameter id="K_G" value="15055"/>
             <localParameter id="n_G" value="2"/>
             <localParameter id="k_leak" value="0.0003"/>
           </listOfLocalParameters>
@@ -310,9 +310,9 @@
             </apply>
           </math>
           <listOfLocalParameters>
-            <localParameter id="GluPermease_Kd" value="0.015"/>
+            <localParameter id="GluPermease_Kd" value="9033"/>
             <localParameter id="LacPermease_vmax" value="35.8"/>
-            <localParameter id="LacPermease_Kd" value="0.26"/>
+            <localParameter id="LacPermease_Kd" value="156576"/>
             <localParameter id="phi_G" value="0.35"/>
           </listOfLocalParameters>
         </kineticLaw>
