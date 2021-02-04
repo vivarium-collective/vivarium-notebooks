@@ -397,9 +397,13 @@ def run_bioscrape_cobra():
 
         # multigen plots
         plot_settings = {
+            'skip_paths': [
+                ('external',),
+                ('internal_counts',),
+            ],
             'remove_zeros': True}
         plot_agents_multigen(
-            output, plot_settings, out_dir, 'bioCOBRA_lattice_multigen')
+            output, plot_settings, out_dir, 'spatial_multigen')
 
         agents, fields = format_snapshot_data(output)
         plot_snapshots(
@@ -408,7 +412,7 @@ def run_bioscrape_cobra():
             fields=fields,
             include_fields=['glc__D_e', 'lcts_e'],
             out_dir=out_dir,
-            filename='bioCOBRA_lattice_snapshots')
+            filename='spatial_snapshots')
 
         tags_data = {'agents': agents, 'fields': fields, 'config': {'bounds': BOUNDS}}
         tags_config = {
@@ -416,7 +420,7 @@ def run_bioscrape_cobra():
                 ('species', 'protein_Lactose_Permease',),
             ],
             'out_dir': out_dir,
-            'filename': 'bioCOBRA_tags'}
+            'filename': 'spatial_tags'}
         plot_tags(
             data=tags_data,
             plot_config=tags_config
@@ -433,7 +437,7 @@ def run_bioscrape_cobra():
             ],
             'remove_zeros': True}
         plot_agents_multigen(
-            output, plot_settings, out_dir, 'bioCOBRA_division_multigen')
+            output, plot_settings, out_dir, 'division_multigen')
 
 
     else:
@@ -441,7 +445,7 @@ def run_bioscrape_cobra():
 
         # plot output
         variables_plot_config = {
-            'filename': 'bioCOBRA_composite_alone_variables',
+            'filename': 'composite_alone_variables',
             'row_height': 2,
             'row_padding': 0.2,
             'column_width': 10,
@@ -456,7 +460,7 @@ def run_bioscrape_cobra():
         plot_variables(output, **variables_plot_config)
         plot_simulation_output(output,
                                out_dir=out_dir,
-                               filename='bioCOBRA_composite_alone',
+                               filename='composite_alone',
                                )
 
 
