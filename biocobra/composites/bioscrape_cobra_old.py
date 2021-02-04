@@ -1,7 +1,5 @@
 import os
-import sys
 import numpy as np
-import argparse
 
 # vivarium imports
 from vivarium import TreeMass, DivideCondition, MetaDivision
@@ -23,8 +21,8 @@ from vivarium_cobra.processes.local_field import LocalField
 from vivarium_multibody.composites.lattice import Lattice, make_lattice_config
 
 # local import
-from biocobra.processes.flux_deriver import FluxDeriver, DilutionFluxDeriver, AverageFluxDeriver
-from biocobra.processes.biomass_adaptor import mass_to_concentration, mass_to_count
+from biocobra.processes.flux_deriver import FluxDeriver
+from biocobra.processes.biomass_adaptor import BiomassAdaptor
 
 # plots
 from vivarium.plots.agents_multigen import plot_agents_multigen
@@ -36,12 +34,11 @@ from vivarium_multibody.plots.snapshots import plot_tags
 
 
 NAME = 'BioscrapeCOBRA'
-SBML_FILE_DETERMINISTIC = 'lac_operon/LacOperon_deterministic.xml'
 
 
 #choose the SBML file and set other bioscrape parameters
 deterministic_bioscrape_config = {
-            'sbml_file': SBML_FILE_DETERMINISTIC,
+            'sbml_file': 'biocobra/data/LacOperon_deterministic.xml',
             'stochastic': False,
             'initial_volume': 1,
             'internal_dt': 0.01,}
@@ -52,18 +49,13 @@ cobra_config.update({'time_step': 10})
 
 #set up the config for the FluxDeriver
 flux_config = {
-    'flux_keys': {
-        'Lactose_consumed': {}, #No options specified
-        'Glucose_internal': {},  #No options specified
-    },
-}
-
-dilution_rate_flux_config = {
-    'time_step': cobra_config['time_step'],
-    'flux_keys': {
-        'biomass': {
-            'input_type': 'amount'
-        }
+    'flux_keys': [ #there are three fluxes keys, one for each flux computed
+        'Lactose_consumed', 'Glucose_internal', 'biomass',
+        ],
+    'flux_options' : { #many options are toggled to get the correct biomass --> diluton rate conversion
+        'biomass': [
+            'amount', 'percent', 'positive', 'ignore zeros',
+        ]
     }
 }
 
@@ -77,9 +69,9 @@ schema_override = {
             }
         },
         'rates':{
-            'k_dilution__': {
-                '_emit': True,  #k_dilution should be emitted so it can be plotted
-                '_updater':'set',
+            'k_dilution__':{
+                '_emit':True, #k_dilution should be emitted so it can be plotted
+                '_updater':'set'
             }
         }
     }
@@ -87,51 +79,43 @@ schema_override = {
 
 
 class BioscrapeCOBRA(Composite):
+    name = NAME
     defaults = {
         'bioscrape': deterministic_bioscrape_config,
         'cobra': cobra_config,
         'flux_deriver': flux_config,
-        'dilution_rate_flux': dilution_rate_flux_config,
         'divide_on': False,  # is division turned on?
         'agent_id': np.random.randint(0, 100),
         'divide_condition': {
             'threshold': 2000 * units.fg},
+        'boundary_path': ('boundary',),
         'agents_path': ('..', '..', 'agents',),
+        'fields_path': ('..', '..', 'fields',),
+        'dimensions_path': ('..', '..', 'dimensions',),
         'daughter_path': tuple(),
         '_schema': schema_override,
-        'stochastic': False
+        'stochastic': False,
     }
 
     def generate_processes(self, config):
+
+        bioscrape_process = Bioscrape(config['bioscrape'])
+        cobra_process = DynamicFBA(config['cobra'])
+        flux_deriver = FluxDeriver(config['flux_deriver'])
+
+        # logic for counts/concentrations if stochastic/deterministic
+        if config['bioscrape']['stochastic']:
+            pass
+
         processes = {
-            'bioscrape': Bioscrape(config['bioscrape']),
-            'cobra': DynamicFBA(config['cobra']),
+            'bioscrape': bioscrape_process,
+            'cobra': cobra_process,
             'mass_deriver': TreeMass(),
             'volume_deriver': Volume(),
+            'flux_deriver': flux_deriver,
+            'biomass_adaptor': BiomassAdaptor(),
+            'local_field': LocalField(),
         }
-
-        # Process Logic for different kinds of simulations
-
-        # Deterministic case
-        if not config['bioscrape']['stochastic']:
-            # deterministic simulations have a variable dilution rate
-            processes['dilution_rate_adaptor'] = DilutionFluxDeriver(config["dilution_rate_flux"])
-
-            # flux is computed as an instaneous flux
-            processes['flux_deriver'] = FluxDeriver(config['flux_deriver'])
-
-            # biomass is converted to a concentration
-            processes['biomass_adaptor'] = mass_to_concentration()
-
-        # Stochastic Case
-        else:
-            # flux is computed as an average flux
-            processes['flux_deriver'] = AverageFluxDeriver(config['flux_deriver'])
-
-            # biomass is converted to a molecular count
-            processes['biomass_adaptor'] = mass_to_count()
-
-        # Division Logic
         if config['divide_on']:
             # division config
             daughter_path = config['daughter_path']
@@ -149,6 +133,10 @@ class BioscrapeCOBRA(Composite):
         return processes
 
     def generate_topology(self, config):
+        agents_path = config['agents_path']
+        fields_path = config['fields_path']
+        dimensions_path = config['dimensions_path']
+        boundary_path = config['boundary_path']
 
         topology = {
             'bioscrape': {
@@ -156,112 +144,79 @@ class BioscrapeCOBRA(Composite):
                 # except Biomass, which goes to the 'globals' store, with variable 'biomass'
                 'species': {
                     '_path': ('species',),
-                    'Biomass': ('..', 'globals', 'biomass'),
+                    'Biomass': ('..',) + boundary_path + ('biomass',),
+                    # TODO (Eran) connect external molecules with boundary_path + ('external',)
                 },
                 'delta_species': ('delta_species',),
                 'rates': {
                     '_path': ('rates',),
+                    # 'k_dilution__': ('..', 'flux_bounds', 'k_dilution__'),
                 },
-                'globals': ('globals',),
+                'globals': boundary_path,
             },
             'cobra': {
                 'internal_counts': ('internal_counts',),
-                'external': ('external',),
-                'exchanges': ('exchanges',),
+                'external': boundary_path + ('external',),
+                'exchanges': boundary_path + ('exchange',),
                 'reactions': ('reactions',),
                 'flux_bounds': ('flux_bounds',),
-                'global': ('globals',),
+                'global': boundary_path,
             },
             'flux_deriver': {
-                'inputs': ('delta_species',),
-                # 'amounts': ('globals',),
+                'deltas': ('delta_species',),
+                'amounts': boundary_path,
                 # connect Bioscrape deltas 'Lactose_consumed' and 'Glucose_internal'
                 # to COBRA flux bounds 'EX_lac__D_e' and 'EX_glc__D_e'
 
-                'fluxes': {
-                    '_path': ('flux_bounds',),
-                    'Lactose_consumed': ('EX_lac__D_e',),
-                    'Glucose_internal': ('EX_glc__D_e',),
-                }
+                'fluxes':
+                    {
+                        '_path': ('flux_bounds',),
+                        'Lactose_consumed': ('EX_lac__D_e',),
+                        'Glucose_internal': ('EX_glc__D_e',),
+                        'biomass': ('k_dilution__',)
+                    }
             },
-
             'mass_deriver': {
-                'global': ('globals',),
+                'global': boundary_path,
             },
             'volume_deriver': {
-                'global': ('globals',),
+                'global': boundary_path,
             },
             'biomass_adaptor': {
-                'input': ('globals',),
-                'output': ('globals',),
-            }
+                'input': boundary_path,
+                'output': boundary_path,
+            },
+            'local_field': {
+                'exchanges': boundary_path + ('exchange',),
+                'location': boundary_path + ('location',),
+                'fields': fields_path,
+                'dimensions': dimensions_path,
+            },
         }
 
         # Ports added only in the deterministic case
         if not config['stochastic']:
-            # Create port biomass flux to the dilution rate computed by the dilution_rate_adaptor process
-            topology['dilution_rate_adaptor'] = {
-                'inputs': ('globals',),
-                'fluxes': {
-                    '_path': ('rates',),
-                    'biomass': ('k_dilution__',)
-                }
-            }
+            # connect biomass flux to the dilution rate
+            topology['flux_deriver']['fluxes'].update({'biomass': ('k_dilution__',)})
+            topology['bioscrape']['rates'].update({'k_dilution__': ('..', 'flux_bounds', 'k_dilution__')})
 
         # Ports added only in the stochastic case
         else:
             pass
 
         if config['divide_on']:
-            agents_path = config['agents_path']
-
             # connect divide_condition to the mass variable
             topology.update({
                 'divide_condition': {
-                    'variable': ('globals', 'mass',),
-                    'divide': ('globals', 'divide',),
+                    'variable': boundary_path + ('mass',),
+                    'divide': boundary_path + ('divide',),
                 },
                 'division': {
-                    'global': ('globals',),
+                    'global': boundary_path,
                     'agents': agents_path,
                 },
             })
         return topology
-
-
-
-
-
-
-
-
-
-def test_bioscrape_cobra(total_time=1000):
-
-    bioscrape_composer = BioscrapeCOBRA({})
-
-    initial_state = bioscrape_composer.initial_state()
-    initial_state['external']['glc__D_e'] = 10
-    initial_state['external']['lcts_e'] = 10
-    initial_state = {
-        'agents': {
-            agent_id: initial_state}}
-
-    # make experiment
-    bioscrape_composite = bioscrape_composer.generate(path=outer_path)
-    bioscrape_experiment = Experiment(
-        dict(
-            processes=bioscrape_composite['processes'],
-            topology=bioscrape_composite['topology'],
-            initial_state=initial_state,))
-
-    bioscrape_experiment.update(total_time)
-    output = bioscrape_experiment.emitter.get_data()
-    # final_agents = output[total_time]['agents'].keys()
-    # assert len(final_agents) > 1, 'bioscrapeCOBRA agent did not successfully divide'
-    return output
-
-
 
 agent_id = '1'
 outer_path = ('agents', agent_id,)
@@ -272,9 +227,7 @@ fields_config = {
     'fields_path': ('..', '..', 'fields',),
     'dimensions_path': ('..', '..', 'dimensions',)}
 
-
-
-def test_bioscrape_cobra_divide():
+def test_bioscrape_cobra():
 
     fields_composer = BioscrapeCOBRA(fields_config)
 
@@ -299,12 +252,6 @@ def test_bioscrape_cobra_divide():
     final_agents = output[total_time]['agents'].keys()
     assert len(final_agents) > 1, 'bioscrapeCOBRA agent did not successfully divide'
     return output
-
-
-
-
-
-
 
 BOUNDS = [20, 20]
 NBINS = [10, 10]
@@ -368,23 +315,9 @@ def run_bioscrape_cobra():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    parser = argparse.ArgumentParser(description='bioscrape_cobra')
-    parser.add_argument('--biocobra', '-b', action='store_true', default=False)
-    parser.add_argument('--divide', '-d', action='store_true', default=False)
-    parser.add_argument('--spatial', '-s', action='store_true', default=False)
-    args = parser.parse_args()
-    no_args = (len(sys.argv) == 1)
+    # output = test_bioscrape_cobra()
+    output = test_bioscrape_cobra_lattice()
 
-    if args.spatial:
-        output = test_bioscrape_cobra_lattice()
-    elif args.divide:
-        output = test_bioscrape_cobra_divide()
-    else:
-        output = test_bioscrape_cobra()
-        # print(output)
-        return
-
-    # multigen plotts
     plot_settings = {
         'remove_zeros': True}
     plot_agents_multigen(
