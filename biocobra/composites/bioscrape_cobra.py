@@ -361,7 +361,7 @@ def test_bioscrape_cobra_lattice(total_time=100):
             agent_id: {
                 FACTORY_KEY: {
                     'type': BioscrapeCOBRA,
-                    'config': {}
+                    'config': divide_config
                 }
             }
         }}
