@@ -10,6 +10,9 @@ from vivarium.library.units import units
 from vivarium.core.composition import COMPOSITE_OUT_DIR, FACTORY_KEY, compose_experiment, compartment_in_experiment
 from vivarium.core.experiment import Experiment
 
+# vivarium-core processes
+from vivarium.processes.clock import Clock
+
 # vivarium-bioscrape imports
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
@@ -97,10 +100,15 @@ class BioscrapeCOBRA(Composite):
         'agent_id': np.random.randint(0, 100),
         'divide_condition': {
             'threshold': 2000 * units.fg},
-        'agents_path': ('..', '..', 'agents',),
+        'boundary_path': ('boundary',),
+        'agents_path': ('agents',),
+        'fields_path': ('fields',),
+        'dimensions_path': ('dimensions',),
         'daughter_path': tuple(),
         '_schema': schema_override,
-        'stochastic': False
+        'stochastic': False,
+        'clock': {
+            'time_step': 1.0}
     }
 
     def generate_processes(self, config):
@@ -109,6 +117,8 @@ class BioscrapeCOBRA(Composite):
             'cobra': DynamicFBA(config['cobra']),
             'mass_deriver': TreeMass(),
             'volume_deriver': Volume(),
+            'local_field': LocalField(),
+            'clock': Clock(config['clock']),
         }
 
         # Process Logic for different kinds of simulations
@@ -150,6 +160,10 @@ class BioscrapeCOBRA(Composite):
         return processes
 
     def generate_topology(self, config):
+        agents_path = config['agents_path']
+        fields_path = config['fields_path']
+        dimensions_path = config['dimensions_path']
+        boundary_path = config['boundary_path']
 
         topology = {
             'bioscrape': {
@@ -157,25 +171,25 @@ class BioscrapeCOBRA(Composite):
                 # except Biomass, which goes to the 'globals' store, with variable 'biomass'
                 'species': {
                     '_path': ('species',),
-                    'Biomass': ('..', 'globals', 'biomass'),
+                    'Biomass': ('..',) + boundary_path + ('biomass',),
                 },
                 'delta_species': ('delta_species',),
                 'rates': {
                     '_path': ('rates',),
                 },
-                'globals': ('globals',),
+                'globals': boundary_path,
             },
             'cobra': {
                 'internal_counts': ('internal_counts',),
-                'external': ('external',),
-                'exchanges': ('exchanges',),
+                'external': boundary_path + ('external',),
+                'exchanges': boundary_path + ('exchange',),
                 'reactions': ('reactions',),
                 'flux_bounds': ('flux_bounds',),
-                'global': ('globals',),
+                'global': boundary_path,
             },
             'flux_deriver': {
                 'inputs': ('delta_species',),
-                # 'amounts': ('globals',),
+                # 'amounts': boundary_path,
                 # connect Bioscrape deltas 'Lactose_consumed' and 'Glucose_internal'
                 # to COBRA flux bounds 'EX_lac__D_e' and 'EX_glc__D_e'
 
@@ -185,16 +199,24 @@ class BioscrapeCOBRA(Composite):
                     'Glucose_internal': ('EX_glc__D_e',),
                 }
             },
-
             'mass_deriver': {
-                'global': ('globals',),
+                'global': boundary_path,
             },
             'volume_deriver': {
-                'global': ('globals',),
+                'global': boundary_path,
             },
             'biomass_adaptor': {
-                'input': ('globals',),
-                'output': ('globals',),
+                'input': boundary_path,
+                'output': boundary_path,
+            },
+            'local_field': {
+                'exchanges': boundary_path + ('exchange',),
+                'location': boundary_path + ('location',),
+                'fields': fields_path,
+                'dimensions': dimensions_path,
+            },
+            'clock': {
+                'global_time': boundary_path + ('time',)
             }
         }
 
@@ -214,16 +236,15 @@ class BioscrapeCOBRA(Composite):
             pass
 
         if config['divide_on']:
-            agents_path = config['agents_path']
 
             # connect divide_condition to the mass variable
             topology.update({
                 'divide_condition': {
-                    'variable': ('globals', 'mass',),
-                    'divide': ('globals', 'divide',),
+                    'variable': boundary_path + ('mass',),
+                    'divide': boundary_path + ('divide',),
                 },
                 'division': {
-                    'global': ('globals',),
+                    'global': boundary_path,
                     'agents': agents_path,
                 },
             })
@@ -241,7 +262,6 @@ def test_bioscrape_cobra(total_time=1000):
     initial_state['species']['Glucose_external'] = 10 ** 6
     initial_state['species']['Lactose_external'] = 10 ** 6
 
-
     # make experiment
     bioscrape_composite = bioscrape_composer.generate()
     bioscrape_experiment = Experiment(
@@ -255,6 +275,8 @@ def test_bioscrape_cobra(total_time=1000):
     return timeseries
 
 
+
+# division test config
 agent_id = '1'
 outer_path = ('agents', agent_id,)
 divide_config = {
@@ -279,7 +301,6 @@ def test_bioscrape_cobra_divide():
             agent_id: initial_state}}
 
     # run simulation
-    # simulate
     settings = {
         'outer_path': outer_path,
         'initial_state': initial_state,
@@ -299,9 +320,7 @@ def test_bioscrape_cobra_divide():
 
 
 
-
-
-
+# lattice environment test config
 BOUNDS = [20, 20]
 NBINS = [10, 10]
 DEPTH = 10
@@ -360,6 +379,7 @@ def test_bioscrape_cobra_lattice(total_time=100):
     return data
 
 
+
 def run_bioscrape_cobra():
     out_dir = os.path.join(COMPOSITE_OUT_DIR, NAME)
     if not os.path.exists(out_dir):
@@ -407,6 +427,10 @@ def run_bioscrape_cobra():
         output = test_bioscrape_cobra_divide()
         # multigen plots
         plot_settings = {
+            'skip_paths': [
+                ('external',),
+                ('internal_counts',),
+            ],
             'remove_zeros': True}
         plot_agents_multigen(
             output, plot_settings, out_dir, 'bioCOBRA_division_multigen')
@@ -434,7 +458,6 @@ def run_bioscrape_cobra():
                                out_dir=out_dir,
                                filename='bioCOBRA_composite_alone',
                                )
-
 
 
 
