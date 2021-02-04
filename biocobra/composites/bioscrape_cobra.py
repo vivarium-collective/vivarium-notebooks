@@ -7,7 +7,7 @@ import argparse
 from vivarium import TreeMass, DivideCondition, MetaDivision
 from vivarium.core.process import Composite
 from vivarium.library.units import units
-from vivarium.core.composition import COMPOSITE_OUT_DIR, FACTORY_KEY, compose_experiment
+from vivarium.core.composition import COMPOSITE_OUT_DIR, FACTORY_KEY, compose_experiment, compartment_in_experiment
 from vivarium.core.experiment import Experiment
 
 # vivarium-bioscrape imports
@@ -27,6 +27,7 @@ from biocobra.processes.flux_deriver import FluxDeriver, DilutionFluxDeriver, Av
 from biocobra.processes.biomass_adaptor import mass_to_concentration, mass_to_count
 
 # plots
+from vivarium.plots.simulation_output import plot_simulation_output, plot_variables
 from vivarium.plots.agents_multigen import plot_agents_multigen
 from vivarium_multibody.plots.snapshots import (
     format_snapshot_data,
@@ -232,23 +233,17 @@ class BioscrapeCOBRA(Composite):
 
 
 
-
-
-
-
 def test_bioscrape_cobra(total_time=1000):
 
     bioscrape_composer = BioscrapeCOBRA({})
 
     initial_state = bioscrape_composer.initial_state()
-    initial_state['external']['glc__D_e'] = 10
-    initial_state['external']['lcts_e'] = 10
-    initial_state = {
-        'agents': {
-            agent_id: initial_state}}
+    initial_state['species']['Glucose_external'] = 10 ** 6
+    initial_state['species']['Lactose_external'] = 10 ** 6
+
 
     # make experiment
-    bioscrape_composite = bioscrape_composer.generate(path=outer_path)
+    bioscrape_composite = bioscrape_composer.generate()
     bioscrape_experiment = Experiment(
         dict(
             processes=bioscrape_composite['processes'],
@@ -256,16 +251,13 @@ def test_bioscrape_cobra(total_time=1000):
             initial_state=initial_state,))
 
     bioscrape_experiment.update(total_time)
-    output = bioscrape_experiment.emitter.get_data()
-    # final_agents = output[total_time]['agents'].keys()
-    # assert len(final_agents) > 1, 'bioscrapeCOBRA agent did not successfully divide'
-    return output
-
+    timeseries = bioscrape_experiment.emitter.get_timeseries()
+    return timeseries
 
 
 agent_id = '1'
 outer_path = ('agents', agent_id,)
-fields_config = {
+divide_config = {
     'divide_on': True,
     'agent_id': agent_id,
     'agents_path': ('..', '..', 'agents',),
@@ -273,33 +265,37 @@ fields_config = {
     'dimensions_path': ('..', '..', 'dimensions',)}
 
 
-
 def test_bioscrape_cobra_divide():
+    total_time = 2500
 
-    fields_composer = BioscrapeCOBRA(fields_config)
+    division_composite = BioscrapeCOBRA(divide_config)
 
-    initial_state = fields_composer.initial_state()
-    initial_state['external']['glc__D_e'] = 10
-    initial_state['external']['lcts_e'] = 10
+    # initial state
+    initial_state = division_composite.initial_state()
+    initial_state['species']['Glucose_external'] = 1e6
+    initial_state['species']['Lactose_external'] = 1e6
     initial_state = {
         'agents': {
             agent_id: initial_state}}
 
-    # make experiment
-    fields_composite = fields_composer.generate(path=outer_path)
-    fields_experiment = Experiment(
-        dict(
-            processes=fields_composite['processes'],
-            topology=fields_composite['topology'],
-            initial_state=initial_state,))
+    # run simulation
+    # simulate
+    settings = {
+        'outer_path': outer_path,
+        'initial_state': initial_state,
+        'experiment_id': 'division'}
+    division_experiment = compartment_in_experiment(
+        division_composite,
+        settings=settings,
+        initial_state=initial_state)
 
-    total_time = 1000
-    fields_experiment.update(total_time)
-    output = fields_experiment.emitter.get_data()
-    final_agents = output[total_time]['agents'].keys()
+    # run the experiment and extract the data
+    division_experiment.update(total_time)
+    division_output = division_experiment.emitter.get_data_unitless()
+
+    final_agents = division_output[total_time]['agents'].keys()
     assert len(final_agents) > 1, 'bioscrapeCOBRA agent did not successfully divide'
-    return output
-
+    return division_output
 
 
 
@@ -309,10 +305,11 @@ def test_bioscrape_cobra_divide():
 BOUNDS = [20, 20]
 NBINS = [10, 10]
 DEPTH = 10
+
 def test_bioscrape_cobra_lattice(total_time=100):
 
     # get initial state
-    fields_composer = BioscrapeCOBRA(fields_config)
+    fields_composer = BioscrapeCOBRA(divide_config)
     initial_state = fields_composer.initial_state()
 
     # initial external
@@ -377,39 +374,67 @@ def run_bioscrape_cobra():
 
     if args.spatial:
         output = test_bioscrape_cobra_lattice()
+
+        # multigen plots
+        plot_settings = {
+            'remove_zeros': True}
+        plot_agents_multigen(
+            output, plot_settings, out_dir, 'bioCOBRA_lattice_multigen')
+
+        agents, fields = format_snapshot_data(output)
+        plot_snapshots(
+            bounds=BOUNDS,
+            agents=agents,
+            fields=fields,
+            include_fields=['glc__D_e', 'lcts_e'],
+            out_dir=out_dir,
+            filename='bioCOBRA_lattice_snapshots')
+
+        tags_data = {'agents': agents, 'fields': fields, 'config': {'bounds': BOUNDS}}
+        tags_config = {
+            'tagged_molecules': [
+                ('species', 'protein_Lactose_Permease',),
+            ],
+            'out_dir': out_dir,
+            'filename': 'bioCOBRA_tags'}
+        plot_tags(
+            data=tags_data,
+            plot_config=tags_config
+        )
+
+
     elif args.divide:
         output = test_bioscrape_cobra_divide()
+        # multigen plots
+        plot_settings = {
+            'remove_zeros': True}
+        plot_agents_multigen(
+            output, plot_settings, out_dir, 'bioCOBRA_division_multigen')
+
+
     else:
         output = test_bioscrape_cobra()
-        # print(output)
-        return
 
-    # multigen plotts
-    plot_settings = {
-        'remove_zeros': True}
-    plot_agents_multigen(
-        output, plot_settings, out_dir, 'bioCOBRA_lattice_multigen')
+        # plot output
+        variables_plot_config = {
+            'filename': 'bioCOBRA_composite_alone_variables',
+            'row_height': 2,
+            'row_padding': 0.2,
+            'column_width': 10,
+            'out_dir': out_dir,
+            'variables': [
+                ('species', 'Glucose_external'),
+                ('species', 'Lactose_external'),
+                ('species', 'rna_M'),
+                ('species', 'protein_betaGal'),
+                ('species', 'protein_Lactose_Permease')]}
 
-    agents, fields = format_snapshot_data(output)
-    plot_snapshots(
-        bounds=BOUNDS,
-        agents=agents,
-        fields=fields,
-        include_fields=['glc__D_e', 'lcts_e'],
-        out_dir=out_dir,
-        filename='bioCOBRA_lattice_snapshots')
+        plot_variables(output, **variables_plot_config)
+        plot_simulation_output(output,
+                               out_dir=out_dir,
+                               filename='bioCOBRA_composite_alone',
+                               )
 
-    tags_data = {'agents': agents, 'fields': fields, 'config': {'bounds': BOUNDS}}
-    tags_config = {
-        'tagged_molecules': [
-            ('species', 'protein_Lactose_Permease',),
-        ],
-        'out_dir': out_dir,
-        'filename': 'bioCOBRA_tags'}
-    plot_tags(
-        data=tags_data,
-        plot_config=tags_config
-        )
 
 
 
