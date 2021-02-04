@@ -288,7 +288,7 @@ divide_config = {
 
 
 def test_bioscrape_cobra_divide():
-    total_time = 2500
+    total_time = 1500
 
     division_composite = BioscrapeCOBRA(divide_config)
 
