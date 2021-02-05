@@ -130,5 +130,4 @@ dmypy.json
 
 # user files
 /user
-/out
-/lac_operon/out
+**/out

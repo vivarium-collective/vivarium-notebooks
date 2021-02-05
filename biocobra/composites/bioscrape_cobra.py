@@ -91,7 +91,7 @@ schema_override = {
         'rates':{
             'k_dilution__': {
                 '_emit': True,  #k_dilution should be emitted so it can be plotted
-                '_updater':'set',
+                '_updater': 'set',
             }
         }
     }
