@@ -294,8 +294,8 @@ divide_config = {
 
 
 # lattice environment test config
-BOUNDS = [20, 20]
-NBINS = [10, 10]
+BOUNDS = [10, 10]
+NBINS = [5, 5]
 DEPTH = 10
 #Turn on spatial dynamics
 spatial_config = dict(divide_config)
@@ -377,11 +377,13 @@ def test_bioscrape_cobra_divide():
     return division_output
 
 
-def test_bioscrape_cobra_lattice(total_time=100):
+def test_bioscrape_cobra_lattice(total_time=2500):
 
     # get initial state
     fields_composer = BioscrapeCOBRA(spatial_config)
     initial_state = fields_composer.initial_state()
+    initial_state['species']['Glucose_external'] = 1e6  # TODO (Eran): remove this!
+    initial_state['species']['Lactose_external'] = 1e6  # TODO (Eran): remove this!
 
     # initial external
     initial_field_concs = {}  #initial_state['boundary']['external']
@@ -413,7 +415,7 @@ def test_bioscrape_cobra_lattice(total_time=100):
             agent_id: {
                 FACTORY_KEY: {
                     'type': BioscrapeCOBRA,
-                    'config': divide_config
+                    'config': spatial_config
                 }
             }
         }}

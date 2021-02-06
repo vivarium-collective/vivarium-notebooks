@@ -129,5 +129,5 @@ dmypy.json
 .pyre/
 
 # user files
-/user
-**/out
+user/
+**out/
