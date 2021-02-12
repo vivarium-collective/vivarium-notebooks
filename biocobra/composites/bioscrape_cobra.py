@@ -40,6 +40,10 @@ from vivarium_multibody.plots.snapshots import plot_tags
 
 
 NAME = 'BioscrapeCOBRA'
+GLUCOSE_EXTERNAL = 'Glucose_external'
+LACTOSE_EXTERNAL = 'Lactose_external'
+
+
 SBML_FILE_DETERMINISTIC = 'lac_operon/LacOperon_deterministic.xml'
 SBML_FILE_STOCHASTIC = 'lac_operon/LacOperon_stochastic.xml'
 
@@ -199,6 +203,8 @@ class BioscrapeCOBRA(Composer):
                 'species': {
                     '_path': ('species',),
                     'Biomass': ('..',) + boundary_path + ('biomass',),
+                    GLUCOSE_EXTERNAL: ('..',) + boundary_path + ('external', GLUCOSE_EXTERNAL,),
+                    LACTOSE_EXTERNAL: ('..',) + boundary_path + ('external', LACTOSE_EXTERNAL,),
                 },
                 'delta_species': ('delta_species',),
                 'rates': {
@@ -272,11 +278,12 @@ class BioscrapeCOBRA(Composer):
 
         # Ports to use in the spatial case
         if config["spatial_on"]:
-            topology.update({'local_field': {
-                'exchanges': boundary_path + ('exchange',),
-                'location': boundary_path + ('location',),
-                'fields': fields_path,
-                'dimensions': dimensions_path,
+            topology.update({
+                'local_field': {
+                    'exchanges': boundary_path + ('exchange',),
+                    'location': boundary_path + ('location',),
+                    'fields': fields_path,
+                    'dimensions': dimensions_path,
             }})
 
         return topology
@@ -311,8 +318,8 @@ def test_bioscrape_cobra(total_time=1000):
     bioscrape_composer = BioscrapeCOBRA({})
 
     initial_state = bioscrape_composer.initial_state()
-    initial_state['species']['Glucose_external'] = 10 ** 6
-    initial_state['species']['Lactose_external'] = 10 ** 6
+    initial_state['species'][GLUCOSE_EXTERNAL] = 10 ** 6
+    initial_state['species'][LACTOSE_EXTERNAL] = 10 ** 6
 
     # make experiment
     bioscrape_composite = bioscrape_composer.generate()
@@ -332,8 +339,8 @@ def test_bioscrape_cobra_stochastic(total_time=1000):
     stochastic_biocobra_composer = BioscrapeCOBRA({'stochastic': True})
 
     initial_state = stochastic_biocobra_composer.initial_state()
-    initial_state['species']['Glucose_external'] = 1e6
-    initial_state['species']['Lactose_external'] = 1e5
+    initial_state['species'][GLUCOSE_EXTERNAL] = 1e6
+    initial_state['species'][LACTOSE_EXTERNAL] = 1e5
 
     # make experiment
     stochastic_biocobra_composite = stochastic_biocobra_composer.generate()
@@ -356,8 +363,8 @@ def test_bioscrape_cobra_divide():
 
     # initial state
     initial_state = division_composite.initial_state()
-    initial_state['species']['Glucose_external'] = 1e6
-    initial_state['species']['Lactose_external'] = 1e6
+    initial_state['species'][GLUCOSE_EXTERNAL] = 1e6
+    initial_state['species'][LACTOSE_EXTERNAL] = 1e6
     initial_state = {
         'agents': {
             agent_id: initial_state}}
@@ -385,15 +392,22 @@ def test_bioscrape_cobra_lattice(total_time=2500):
     # get initial state
     fields_composer = BioscrapeCOBRA(spatial_config)
     initial_state = fields_composer.initial_state()
-    initial_state['species']['Glucose_external'] = 1e6  # TODO (Eran): remove this!
-    initial_state['species']['Lactose_external'] = 1e6  # TODO (Eran): remove this!
+    # initial_state['species'][GLUCOSE_EXTERNAL] = 1e6  # TODO (Eran): remove this!
+    # initial_state['species'][LACTOSE_EXTERNAL] = 1e6  # TODO (Eran): remove this!
 
     # initial external
-    initial_field_concs = {}  #initial_state['boundary']['external']
-    initial_field_concs.update({
-        'glc__D_e': 10,
-        'lcts_e': 10
-    })
+    initial_field_concs = {
+        GLUCOSE_EXTERNAL: 10,
+        LACTOSE_EXTERNAL: 10,
+    }
+    # initial_field_concs = {}  #initial_state['boundary']['external']
+    # initial_field_concs.update({
+    #     'glc__D_e': 10,
+    #     'lcts_e': 10
+    # })
+
+    import ipdb; ipdb.set_trace()
+    # TODO -- connect GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL
 
     # initial agents
     initial_state = {
@@ -513,8 +527,8 @@ def run_bioscrape_cobra():
             'column_width': 10,
             'out_dir': stoch_out_dir,
             'variables': [
-                ('species', 'Glucose_external'),
-                ('species', 'Lactose_external'),
+                ('species', GLUCOSE_EXTERNAL),
+                ('species', LACTOSE_EXTERNAL),
                 ('species', 'rna_M'),
                 ('species', 'protein_betaGal'),
                 ('species', 'protein_Lactose_Permease')]}
@@ -537,8 +551,8 @@ def run_bioscrape_cobra():
             'column_width': 10,
             'out_dir': biocobra_out_dir,
             'variables': [
-                ('species', 'Glucose_external'),
-                ('species', 'Lactose_external'),
+                ('species', GLUCOSE_EXTERNAL),
+                ('species', LACTOSE_EXTERNAL),
                 ('species', 'rna_M'),
                 ('species', 'protein_betaGal'),
                 ('species', 'protein_Lactose_Permease')]}
