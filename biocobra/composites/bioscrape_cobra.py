@@ -5,9 +5,9 @@ import argparse
 
 # vivarium imports
 from vivarium import TreeMass, DivideCondition, MetaDivision
-from vivarium.core.process import Composite
+from vivarium.core.process import Composer
 from vivarium.library.units import units
-from vivarium.core.composition import COMPOSITE_OUT_DIR, FACTORY_KEY, compose_experiment, compartment_in_experiment
+from vivarium.core.composition import COMPOSITE_OUT_DIR, COMPOSER_KEY, compose_experiment, composer_in_experiment
 from vivarium.core.experiment import Experiment
 
 # vivarium-core processes
@@ -64,10 +64,11 @@ stochastic_bioscrape_config = {
 cobra_config = get_iAF1260b_config()
 
 #set up the config for the FluxAdaptor
+#set up the config for the FluxAdaptor
 flux_config = {
     'flux_keys': {
-        'Lactose_consumed': {}, #No options specified
-        'Glucose_internal': {},  #No options specified
+        'Lactose_consumed': {'input_type': 'delta'}, #No options specified
+        'Glucose_internal': {'input_type': 'delta'},  #No options specified
     },
 }
 
@@ -98,7 +99,7 @@ schema_override = {
 }
 
 
-class BioscrapeCOBRA(Composite):
+class BioscrapeCOBRA(Composer):
     defaults = {
         'bioscrape_deterministic': deterministic_bioscrape_config,
         'bioscrape_stochastic': stochastic_bioscrape_config,
@@ -117,7 +118,7 @@ class BioscrapeCOBRA(Composite):
         '_schema': schema_override,
         'stochastic': False,  # Is the CRN stochastic or deterministic?
         'spatial_on': False,  # are spatial dynamics used?
-        'bioscrape_timestep': 10,
+        'bioscrape_timestep': 1,
         'cobra_timestep': 10,
         'clock': {
             'time_step': 1.0}
@@ -172,7 +173,7 @@ class BioscrapeCOBRA(Composite):
                 config.get('division', {}),
                 daughter_path=daughter_path,
                 agent_id=agent_id,
-                generator=self)
+                composer=self)
 
             processes.update({
                 'divide_condition': DivideCondition(config['divide_condition']),
@@ -279,6 +280,8 @@ class BioscrapeCOBRA(Composite):
             }})
 
         return topology
+    
+    
 
 # tests
 
@@ -326,27 +329,28 @@ def test_bioscrape_cobra(total_time=1000):
 
 def test_bioscrape_cobra_stochastic(total_time=1000):
 
-    bioscrape_composer = BioscrapeCOBRA({'stochastic':True})
+    stochastic_biocobra_composer = BioscrapeCOBRA({'stochastic': True})
 
-    initial_state = bioscrape_composer.initial_state()
-    initial_state['species']['Glucose_external'] = 10 ** 6
-    initial_state['species']['Lactose_external'] = 10 ** 6
+    initial_state = stochastic_biocobra_composer.initial_state()
+    initial_state['species']['Glucose_external'] = 1e6
+    initial_state['species']['Lactose_external'] = 1e5
 
     # make experiment
-    bioscrape_composite = bioscrape_composer.generate()
-    bioscrape_experiment = Experiment(
+    stochastic_biocobra_composite = stochastic_biocobra_composer.generate()
+    stochastic_biocobra_experiment = Experiment(
         dict(
-            processes=bioscrape_composite['processes'],
-            topology=bioscrape_composite['topology'],
-            initial_state=initial_state,))
+            processes=stochastic_biocobra_composite['processes'],
+            topology=stochastic_biocobra_composite['topology'],
+            initial_state=initial_state, ))
 
-    bioscrape_experiment.update(total_time)
-    timeseries = bioscrape_experiment.emitter.get_timeseries()
+    stochastic_biocobra_experiment.update(total_time)
+
+    timeseries = stochastic_biocobra_experiment.emitter.get_timeseries()
     return timeseries
 
 
 def test_bioscrape_cobra_divide():
-    total_time = 5000
+    total_time = 2000
 
     division_composite = BioscrapeCOBRA(divide_config)
 
@@ -360,12 +364,11 @@ def test_bioscrape_cobra_divide():
 
     # run simulation
     settings = {
-        'outer_path': outer_path,
-        'initial_state': initial_state,
         'experiment_id': 'division'}
-    division_experiment = compartment_in_experiment(
+    division_experiment = composer_in_experiment(
         division_composite,
         settings=settings,
+        outer_path=outer_path,
         initial_state=initial_state)
 
     # run the experiment and extract the data
@@ -408,12 +411,12 @@ def test_bioscrape_cobra_lattice(total_time=2500):
 
     # declare the hierarchy
     hierarchy = {
-        FACTORY_KEY: {
+        COMPOSER_KEY: {
             'type': Lattice,
             'config': lattice_config},
         'agents': {
             agent_id: {
-                FACTORY_KEY: {
+                COMPOSER_KEY: {
                     'type': BioscrapeCOBRA,
                     'config': spatial_config
                 }
@@ -449,6 +452,7 @@ def run_bioscrape_cobra():
     no_args = (len(sys.argv) == 1)
 
     if args.environment or args.all:
+        env_out_dir = os.path.join(out_dir, 'environment')
         output = test_bioscrape_cobra_lattice()
 
         # multigen plots
@@ -459,7 +463,7 @@ def run_bioscrape_cobra():
             ],
             'remove_zeros': True}
         plot_agents_multigen(
-            output, plot_settings, out_dir, 'spatial_multigen')
+            output, plot_settings, env_out_dir, 'spatial_multigen')
 
         agents, fields = format_snapshot_data(output)
         plot_snapshots(
@@ -467,7 +471,7 @@ def run_bioscrape_cobra():
             agents=agents,
             fields=fields,
             include_fields=['glc__D_e', 'lcts_e'],
-            out_dir=out_dir,
+            out_dir=env_out_dir,
             filename='spatial_snapshots')
 
         tags_data = {'agents': agents, 'fields': fields, 'config': {'bounds': BOUNDS}}
@@ -475,7 +479,7 @@ def run_bioscrape_cobra():
             'tagged_molecules': [
                 ('species', 'protein_Lactose_Permease',),
             ],
-            'out_dir': out_dir,
+            'out_dir': env_out_dir,
             'filename': 'spatial_tags'}
         plot_tags(
             data=tags_data,
@@ -484,6 +488,7 @@ def run_bioscrape_cobra():
 
 
     if args.divide or args.all:
+        div_out_dir = os.path.join(out_dir, 'divide')
         output = test_bioscrape_cobra_divide()
         # multigen plots
         plot_settings = {
@@ -493,10 +498,11 @@ def run_bioscrape_cobra():
             ],
             'remove_zeros': True}
         plot_agents_multigen(
-            output, plot_settings, out_dir, 'division_multigen')
+            output, plot_settings, div_out_dir, 'division_multigen')
 
 
     if args.stochastic or args.all:
+        stoch_out_dir = os.path.join(out_dir, 'stochastic')
         output = test_bioscrape_cobra_stochastic()
 
         # plot output
@@ -505,7 +511,7 @@ def run_bioscrape_cobra():
             'row_height': 2,
             'row_padding': 0.2,
             'column_width': 10,
-            'out_dir': out_dir,
+            'out_dir': stoch_out_dir,
             'variables': [
                 ('species', 'Glucose_external'),
                 ('species', 'Lactose_external'),
@@ -515,11 +521,12 @@ def run_bioscrape_cobra():
 
         plot_variables(output, **variables_plot_config)
         plot_simulation_output(output,
-                               out_dir=out_dir,
+                               out_dir=stoch_out_dir,
                                filename='composite_alone_stochastic',
                                )
 
     if args.biocobra or args.all:
+        biocobra_out_dir = os.path.join(out_dir, 'biocobra')
         output = test_bioscrape_cobra()
 
         # plot output
@@ -528,7 +535,7 @@ def run_bioscrape_cobra():
             'row_height': 2,
             'row_padding': 0.2,
             'column_width': 10,
-            'out_dir': out_dir,
+            'out_dir': biocobra_out_dir,
             'variables': [
                 ('species', 'Glucose_external'),
                 ('species', 'Lactose_external'),
@@ -538,7 +545,7 @@ def run_bioscrape_cobra():
 
         plot_variables(output, **variables_plot_config)
         plot_simulation_output(output,
-                               out_dir=out_dir,
+                               out_dir=biocobra_out_dir,
                                filename='composite_alone',
                                )
 
