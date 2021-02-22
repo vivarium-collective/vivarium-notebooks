@@ -95,7 +95,7 @@ class DilutionFluxAdaptor(FluxAdaptor):
 
             else:
                 # Standard case
-                update['fluxes'][flux_key] = flux / self.prev_inputs[flux_key]
+                update['fluxes'][flux_key] = (flux / self.prev_inputs[flux_key]).magnitude
 
             # Enforce non-negativity
             if update['fluxes'][flux_key] < 0:
