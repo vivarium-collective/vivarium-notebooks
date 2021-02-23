@@ -24,7 +24,7 @@ from vivarium_cobra.processes.dynamic_fba import DynamicFBA
 from vivarium_multibody.composites.lattice import Lattice, make_lattice_config
 
 # local imports
-from biocobra.processes.flux_adaptor import DilutionFluxAdaptor, FluxAdaptor, AverageFluxAdaptor
+from biocobra.processes.flux_adaptor import DilutionFluxAdaptor, FluxAdaptor
 
 # plots
 from vivarium.plots.simulation_output import plot_simulation_output, plot_variables
@@ -495,8 +495,9 @@ def run_bioscrape_cobra_deterministic_lattice(
     # multigen plots
     plot_settings = {
         'skip_paths': [
-            ('external',),
+            # ('external',),
             ('internal_counts',),
+            ('cobra_external',),
         ],
         'remove_zeros': True}
     plot_agents_multigen(
@@ -549,12 +550,13 @@ def main():
     if args.divide:
         div_out_dir = os.path.join(out_dir, 'division')
         run_bioscrape_cobra_deterministic_division(
+            total_time=3000,
             out_dir=div_out_dir)
 
     if args.fields:
         field_out_dir = os.path.join(out_dir, 'field')
         run_bioscrape_cobra_deterministic_lattice(
-            total_time=100,
+            total_time=3000,
             out_dir=field_out_dir)
 
 if __name__ == '__main__':
