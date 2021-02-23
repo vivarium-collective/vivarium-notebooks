@@ -30,6 +30,8 @@ NAME = 'BioscrapeCOBRA'
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
 SBML_FILE_STOCHASTIC = 'lac_operon/LacOperon_stochastic.xml'
+COBRA_TIMESTEP = 10
+BIOSCRAPE_TIMESTEP = 1
 
 # choose the SBML file and set other bioscrape parameters
 stochastic_bioscrape_config = {
@@ -49,13 +51,6 @@ flux_config = {
         'Lactose_consumed': {'input_type': 'delta'},  # No options specified
         'Glucose_internal': {'input_type': 'delta'},  # No options specified
     },
-}
-dilution_rate_flux_config = {
-    'flux_keys': {
-        'biomass': {
-            'input_type': 'amount'
-        }
-    }
 }
 mass_mw_config = {
     'molecular_weights': {
@@ -106,12 +101,9 @@ schema_override = {
 
 class BioscrapeCOBRAstochastic(Composer):
     defaults = {
-        # 'bioscrape_deterministic': deterministic_bioscrape_config,
         'bioscrape_stochastic': stochastic_bioscrape_config,
         'cobra': cobra_config,
         'flux_adaptor': flux_config,
-        'dilution_rate_flux': dilution_rate_flux_config,
-        # 'mass_to_molar': mass_mw_config,
         'mass_to_counts': mass_mw_config,
         'strip_units': strip_units_config,
         'divide_on': False,  # is division turned on?
@@ -125,27 +117,31 @@ class BioscrapeCOBRAstochastic(Composer):
         'daughter_path': tuple(),
         '_schema': schema_override,
         'spatial_on': False,  # are spatial dynamics used?
-        'bioscrape_timestep': 1,
-        'cobra_timestep': 10,
+        'bioscrape_timestep': BIOSCRAPE_TIMESTEP,
+        'cobra_timestep': COBRA_TIMESTEP,
         'clock': {
             'time_step': 1.0}
     }
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.config['dilution_rate_flux']['time_step'] = self.config['cobra_timestep']
+        # configure timesteps
+
+        self.config['bioscrape_stochastic']['time_step'] = self.config['bioscrape_timestep']
         self.config['flux_adaptor']['time_step'] = self.config['bioscrape_timestep']
+        self.config['cobra']['time_step'] = self.config['cobra_timestep']
+        self.config['clock']['time_step'] = min(self.config['cobra_timestep'], self.config['bioscrape_timestep'])
 
     def generate_processes(self, config):
         processes = {
             'cobra': DynamicFBA(config['cobra']),
+            'bioscrape': Bioscrape(config['bioscrape_stochastic']),
+            'clock': Clock(config['clock']),
             'mass_deriver': TreeMass(),
             'volume_deriver': Volume(),
-            'clock': Clock(config['clock']),
-            'strip_units': StripUnits(config['strip_units']),
-            'bioscrape': Bioscrape(config['bioscrape_stochastic']),
             'flux_adaptor': AverageFluxAdaptor(config['flux_adaptor']),
             'biomass_adaptor': MassToCount(config['mass_to_counts']),
+            'strip_units': StripUnits(config['strip_units']),
         }
 
         # Division Logic
@@ -165,7 +161,7 @@ class BioscrapeCOBRAstochastic(Composer):
             })
 
         # Spatial logic
-        if config["spatial_on"]:
+        if config['spatial_on']:
             processes.update({'local_field': LocalField()})
 
         return processes
@@ -186,9 +182,7 @@ class BioscrapeCOBRAstochastic(Composer):
                     'Biomass': ('..',) + unitless_boundary_path + ('biomass',),
                 },
                 'delta_species': ('delta_species',),
-                'rates': {
-                    '_path': ('rates',),
-                },
+                'rates': ('rates',),
                 'globals': unitless_boundary_path,
             },
             'cobra': {
@@ -252,7 +246,7 @@ class BioscrapeCOBRAstochastic(Composer):
             })
 
         # Ports to use in the spatial case
-        if config["spatial_on"]:
+        if config['spatial_on']:
             topology.update({'local_field': {
                 'exchanges': boundary_path + ('exchange',),
                 'location': boundary_path + ('location',),
@@ -275,9 +269,11 @@ def test_bioscrape_cobra_stochastic(
 
     # get initial state
     initial_state = bioscrape_composer.initial_state()
-    initial_state['boundary']['external'] = {
-        GLUCOSE_EXTERNAL: 1e2,
-        LACTOSE_EXTERNAL: 1e2}
+    # initial_state['boundary']['external'] = {
+    #     GLUCOSE_EXTERNAL: 1e2,
+    #     LACTOSE_EXTERNAL: 1e2}
+    initial_state['species']['Glucose_external'] = 1e6
+    initial_state['species']['Lactose_external'] = 1e5
 
     # make the experiment
     bioscrape_composite = bioscrape_composer.generate()

@@ -30,6 +30,8 @@ NAME = 'BioscrapeCOBRA'
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
 SBML_FILE_DETERMINISTIC = 'lac_operon/LacOperon_deterministic.xml'
+COBRA_TIMESTEP = 10
+BIOSCRAPE_TIMESTEP = 1
 
 #choose the SBML file and set other bioscrape parameters
 deterministic_bioscrape_config = {
@@ -44,6 +46,7 @@ cobra_config = get_iAF1260b_config()
 
 #set up the config for the FluxAdaptor
 flux_config = {
+    'time_step': COBRA_TIMESTEP,
     'flux_keys': {
         'Lactose_consumed': {'input_type': 'delta'}, #No options specified
         'Glucose_internal': {'input_type': 'delta'},  #No options specified
@@ -120,28 +123,33 @@ class BioscrapeCOBRAdeterministic(Composer):
         'daughter_path': tuple(),
         '_schema': schema_override,
         'spatial_on': False,  # are spatial dynamics used?
-        'bioscrape_timestep': 1,
-        'cobra_timestep': 10,
+        'bioscrape_timestep': BIOSCRAPE_TIMESTEP,
+        'cobra_timestep': COBRA_TIMESTEP,
         'clock': {
             'time_step': 1.0}
     }
 
     def __init__(self, config=None):
         super().__init__(config)
-        self.config['dilution_rate_flux']['time_step'] = self.config['cobra_timestep']
+
+        # configure timesteps
+        self.config['bioscrape_deterministic']['time_step'] = self.config['bioscrape_timestep']
         self.config['flux_adaptor']['time_step'] = self.config['bioscrape_timestep']
+        self.config['cobra']['time_step'] = self.config['cobra_timestep']
+        self.config['dilution_rate_flux']['time_step'] = self.config['cobra_timestep']
+        self.config['clock']['time_step'] = min(self.config['cobra_timestep'], self.config['bioscrape_timestep'])
 
     def generate_processes(self, config):
         processes = {
             'cobra': DynamicFBA(config['cobra']),
+            'bioscrape': Bioscrape(config['bioscrape_deterministic']),
+            'clock': Clock(config['clock']),
             'mass_deriver': TreeMass(),
             'volume_deriver': Volume(),
-            'clock': Clock(config['clock']),
-            'strip_units': StripUnits(config['strip_units']),
-            'bioscrape': Bioscrape(config['bioscrape_deterministic']),
-            'dilution_rate_adaptor': DilutionFluxAdaptor(config["dilution_rate_flux"]),
+            'dilution_rate_adaptor': DilutionFluxAdaptor(config['dilution_rate_flux']),
             'flux_adaptor': FluxAdaptor(config['flux_adaptor']),
-            'biomass_adaptor': MassToMolar(config['mass_to_molar'])
+            'biomass_adaptor': MassToMolar(config['mass_to_molar']),
+            'strip_units': StripUnits(config['strip_units']),
         }
 
         # Division Logic
@@ -161,7 +169,7 @@ class BioscrapeCOBRAdeterministic(Composer):
             })
 
         # Spatial logic
-        if config["spatial_on"]:
+        if config['spatial_on']:
             processes.update({'local_field': LocalField()})
 
         return processes
@@ -182,9 +190,7 @@ class BioscrapeCOBRAdeterministic(Composer):
                     'Biomass': ('..',) + unitless_boundary_path + ('biomass',),
                 },
                 'delta_species': ('delta_species',),
-                'rates': {
-                    '_path': ('rates',),
-                },
+                'rates': ('rates',),
                 'globals': unitless_boundary_path,
             },
             'cobra': {
@@ -256,7 +262,7 @@ class BioscrapeCOBRAdeterministic(Composer):
             })
 
         # Ports to use in the spatial case
-        if config["spatial_on"]:
+        if config['spatial_on']:
             topology.update({'local_field': {
                 'exchanges': boundary_path + ('exchange',),
                 'location': boundary_path + ('location',),
@@ -279,9 +285,11 @@ def test_bioscrape_cobra_deterministic(
 
     # get initial state
     initial_state = bioscrape_composer.initial_state()
-    initial_state['boundary']['external'] = {
-        GLUCOSE_EXTERNAL: 1e2,
-        LACTOSE_EXTERNAL: 1e2}
+    initial_state['boundary']['biomass'] = 0.00182659297 * units.mmolar
+    # initial_state['boundary']['no_units'] = {'biomass': 0.00166}
+    # initial_state['boundary']['external'] = {
+    #     GLUCOSE_EXTERNAL: 1e2,
+    #     LACTOSE_EXTERNAL: 1e2}
 
     # make the experiment
     bioscrape_composite = bioscrape_composer.generate()
@@ -346,9 +354,9 @@ plot_variables_list_deterministic = [
     ('species', 'protein_Lactose_Permease'),
     ('flux_bounds', 'EX_glc__D_e'),
     ('flux_bounds', 'EX_lac__D_e'),
-    # ('boundary', 'no_units', 'biomass'),
-    ('boundary', ('mass', 'femtogram')),
-    ('boundary', ('volume', 'femtoliter')),
+    ('boundary', 'no_units', 'biomass'),
+    # ('boundary', ('mass', 'femtogram')),
+    # ('boundary', ('volume', 'femtoliter')),
 ]
 
 def run_bioscrape_cobra_deterministic(
