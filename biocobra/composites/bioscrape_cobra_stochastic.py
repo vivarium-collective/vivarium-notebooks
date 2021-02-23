@@ -32,29 +32,29 @@ LACTOSE_EXTERNAL = 'Lactose_external'
 SBML_FILE_DETERMINISTIC = 'lac_operon/LacOperon_deterministic.xml'
 SBML_FILE_STOCHASTIC = 'lac_operon/LacOperon_stochastic.xml'
 
-#choose the SBML file and set other bioscrape parameters
-deterministic_bioscrape_config = {
-            'sbml_file': SBML_FILE_DETERMINISTIC,
-            'stochastic': False,
-            'initial_volume': 1,
-            'internal_dt': 0.01,
-}
+# choose the SBML file and set other bioscrape parameters
+# deterministic_bioscrape_config = {
+#     'sbml_file': SBML_FILE_DETERMINISTIC,
+#     'stochastic': False,
+#     'initial_volume': 1,
+#     'internal_dt': 0.01,
+# }
 stochastic_bioscrape_config = {
-            'sbml_file': SBML_FILE_STOCHASTIC,
-            'stochastic': True,
-            'safe_mode': False,
-            'initial_volume': 1,
-            'internal_dt': 0.1,
+    'sbml_file': SBML_FILE_STOCHASTIC,
+    'stochastic': True,
+    'safe_mode': False,
+    'initial_volume': 1,
+    'internal_dt': 0.1,
 }
 
-#set cobra constrained reactions config
+# set cobra constrained reactions config
 cobra_config = get_iAF1260b_config()
 
-#set up the config for the FluxAdaptor
+# set up the config for the FluxAdaptor
 flux_config = {
     'flux_keys': {
-        'Lactose_consumed': {'input_type': 'delta'}, #No options specified
-        'Glucose_internal': {'input_type': 'delta'},  #No options specified
+        'Lactose_consumed': {'input_type': 'delta'},  # No options specified
+        'Glucose_internal': {'input_type': 'delta'},  # No options specified
     },
 }
 dilution_rate_flux_config = {
@@ -84,24 +84,26 @@ mass_mw_config = {
 # configuration for strip units deriver, which converts and removes specified units
 strip_units_config = {
     'keys': [
-        'mass', 'volume', 'density', 'biomass'],
+        'mass', 'volume', 'density',
+        # 'biomass'
+    ],
     'convert': {
-        'biomass': units.mmolar,
+        # 'biomass': units.mmolar,
         'mass': units.ug,
     }}
 
-#Here we override the default ports schema of the Biomass species and the k_dilution rate in Bioscrape.
-#This is done so they can be set by the Derivers connected to mass and mass flux from Cobra.
+# Here we override the default ports schema of the Biomass species and the k_dilution rate in Bioscrape.
+# This is done so they can be set by the Derivers connected to mass and mass flux from Cobra.
 schema_override = {
     'bioscrape': {
         'species': {
             'Biomass': {
-                '_updater': 'set'  #override bioscrape ('species', 'Biomass') with a 'set' updater
+                '_updater': 'set'  # override bioscrape ('species', 'Biomass') with a 'set' updater
             }
         },
         'rates': {
             'k_dilution__': {
-                '_emit': True,  #k_dilution should be emitted so it can be plotted
+                '_emit': True,  # k_dilution should be emitted so it can be plotted
                 '_updater': 'set',
             }
         }
@@ -109,14 +111,15 @@ schema_override = {
 }
 
 
-class BioscrapeCOBRAdeterministic(Composer):
+class BioscrapeCOBRAstochastic(Composer):
     defaults = {
-        'bioscrape_deterministic': deterministic_bioscrape_config,
+        # 'bioscrape_deterministic': deterministic_bioscrape_config,
         'bioscrape_stochastic': stochastic_bioscrape_config,
         'cobra': cobra_config,
         'flux_adaptor': flux_config,
         'dilution_rate_flux': dilution_rate_flux_config,
-        'mass_to_molar': mass_mw_config,
+        # 'mass_to_molar': mass_mw_config,
+        'mass_to_counts': mass_mw_config,
         'strip_units': strip_units_config,
         'divide_on': False,  # is division turned on?
         'agent_id': np.random.randint(0, 100),
@@ -128,7 +131,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         'dimensions_path': ('dimensions',),
         'daughter_path': tuple(),
         '_schema': schema_override,
-        'stochastic': False,  # Is the CRN stochastic or deterministic?
+        'stochastic': True,  # Is the CRN stochastic or deterministic?
         'spatial_on': False,  # are spatial dynamics used?
         'bioscrape_timestep': 1,
         'cobra_timestep': 10,
@@ -151,30 +154,15 @@ class BioscrapeCOBRAdeterministic(Composer):
 
         # Process Logic for different kinds of simulations
 
-        # Deterministic case
-        if not config['stochastic']:
-            # create a deterministic bioscrape model
-            processes['bioscrape'] = Bioscrape(config['bioscrape_deterministic'])
+        # Stochastic Case
+        # create a stochastic bioscrape model
+        processes['bioscrape'] = Bioscrape(config['bioscrape_stochastic'])
 
-            # deterministic simulations have a variable dilution rate
-            processes['dilution_rate_adaptor'] = DilutionFluxAdaptor(config["dilution_rate_flux"])
+        # flux is computed as an average flux
+        processes['flux_adaptor'] = AverageFluxAdaptor(config['flux_adaptor'])
 
-            # flux is computed as an instaneous flux
-            processes['flux_adaptor'] = FluxAdaptor(config['flux_adaptor'])
-
-            # biomass is converted to a concentration
-            processes['biomass_adaptor'] = MassToMolar(config['mass_to_molar'])
-
-        # # Stochastic Case
-        # else:
-        #     # create a stochastic bioscrape model
-        #     processes['bioscrape'] = Bioscrape(config['bioscrape_stochastic'])
-        #
-        #     # flux is computed as an average flux
-        #     processes['flux_adaptor'] = AverageFluxAdaptor(config['flux_adaptor'])
-        #
-        #     # biomass is converted to a molecular count
-        #     processes['biomass_adaptor'] = mass_to_count()
+        # biomass is converted to a molecular count
+        processes['biomass_adaptor'] = MassToCount(config['mass_to_counts'])
 
         # Division Logic
         if config['divide_on']:
@@ -240,7 +228,6 @@ class BioscrapeCOBRAdeterministic(Composer):
                     'Glucose_internal': ('EX_glc__D_e',),
                 }
             },
-
             'mass_deriver': {
                 'global': boundary_path,
             },
@@ -309,11 +296,11 @@ class BioscrapeCOBRAdeterministic(Composer):
 
 # tests
 
-def test_bioscrape_cobra_deterministic(
+def test_bioscrape_cobra_stochastic(
         total_time=1000,
         external_volume=1e-12 * units.L,
 ):
-    bioscrape_composer = BioscrapeCOBRAdeterministic({
+    bioscrape_composer = BioscrapeCOBRAstochastic({
         'local_fields': {'bin_volume': external_volume},
     })
 
@@ -335,8 +322,8 @@ def test_bioscrape_cobra_deterministic(
     timeseries = bioscrape_experiment.emitter.get_timeseries()
     return timeseries
 
-def test_bioscrape_cobra_deterministic_divide(
-        total_time=3000,
+def test_bioscrape_cobra_stochastic_divide(
+        total_time=1000,
         external_volume=1e-12 * units.L,
 ):
     agent_id = '1'
@@ -350,7 +337,7 @@ def test_bioscrape_cobra_deterministic_divide(
         'local_fields': {'bin_volume': external_volume},
     }
 
-    bioscrape_composer = BioscrapeCOBRAdeterministic(divide_config)
+    bioscrape_composer = BioscrapeCOBRAstochastic(divide_config)
 
     # get initial state
     initial_state = bioscrape_composer.initial_state()
@@ -370,52 +357,44 @@ def test_bioscrape_cobra_deterministic_divide(
             initial_state=initial_state,))
 
     bioscrape_experiment.update(total_time)
-    output = bioscrape_experiment.emitter.get_data_unitless()
-    return output
-
+    timeseries = bioscrape_experiment.emitter.get_timeseries()
+    return timeseries
 
 # execute from the terminal
-plot_variables_list_deterministic = [
-    # ('boundary', 'external', GLUCOSE_EXTERNAL),
-    # ('boundary', 'external', LACTOSE_EXTERNAL),
-    ('species', GLUCOSE_EXTERNAL),  # TODO - replace with boundary, external
-    ('species', LACTOSE_EXTERNAL),  # TODO - replace with boundary, external
-    ('rates', 'k_dilution__',),
+plot_variables_list_stochastic = [
+    ('species', GLUCOSE_EXTERNAL),
+    ('species', LACTOSE_EXTERNAL),
     ('species', 'rna_M'),
     ('species', 'protein_betaGal'),
     ('species', 'protein_Lactose_Permease'),
     ('flux_bounds', 'EX_glc__D_e'),
     ('flux_bounds', 'EX_lac__D_e'),
-    # ('boundary', 'no_units', 'biomass'),
     ('boundary', ('mass', 'femtogram')),
     ('boundary', ('volume', 'femtoliter')),
 ]
 
-def run_bioscrape_cobra_deterministic(
+def run_bioscrape_cobra_stochastic(
     total_time=1000,
-    out_dir='out'
+    out_dir='out',
 ):
-    output = test_bioscrape_cobra_deterministic(total_time=total_time)
+    output = test_bioscrape_cobra_stochastic(total_time=total_time)
 
     # plot output
     variables_plot_config = {
         'out_dir': out_dir, 'filename': 'variables',
         'row_height': 2, 'row_padding': 0.2, 'column_width': 10,
-        'variables': plot_variables_list_deterministic}
+        'variables': plot_variables_list_stochastic}
 
-    plot_variables(
-        output, **variables_plot_config)
-    plot_simulation_output(
-        output,
-        out_dir=out_dir,
-        filename='simulation_output')
+    plot_variables(output, **variables_plot_config)
+    plot_simulation_output(output,
+                           out_dir=out_dir,
+                           filename='simulation_output')
 
-def run_bioscrape_cobra_deterministic_division(
+def run_bioscrape_cobra_stochastic_division(
         total_time=3000,
         out_dir='out'
 ):
-    # output = test_bioscrape_cobra_divide()
-    output = test_bioscrape_cobra_deterministic_divide(
+    output = test_bioscrape_cobra_stochastic_divide(
         total_time=total_time)
 
     # multigen plots
@@ -426,17 +405,12 @@ def run_bioscrape_cobra_deterministic_division(
             ('cobra_external',),
         ],
         'remove_zeros': True}
-
     plot_agents_multigen(
-        output,
-        plot_settings,
-        out_dir,
-        'division_multigen')
+        output, plot_settings, out_dir, 'division_multigen')
 
 
 def main():
-    out_dir = os.path.join(
-        EXPERIMENT_OUT_DIR, 'bioscrape_cobra_deterministic')
+    out_dir = os.path.join(EXPERIMENT_OUT_DIR, 'bioscrape_cobra_stochastic')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
@@ -448,13 +422,13 @@ def main():
 
     if args.single:
         biocobra_out_dir = os.path.join(out_dir, 'single')
-        run_bioscrape_cobra_deterministic(
+        run_bioscrape_cobra_stochastic(
             total_time=2000,
             out_dir=biocobra_out_dir)
 
     if args.divide:
         div_out_dir = os.path.join(out_dir, 'division')
-        run_bioscrape_cobra_deterministic_division(
+        run_bioscrape_cobra_stochastic_division(
             out_dir=div_out_dir)
 
     if args.fields:
