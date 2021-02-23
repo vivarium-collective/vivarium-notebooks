@@ -64,17 +64,6 @@ mass_mw_config = {
         'mass': 1.0 * units.fg / units.molec
     }
 }
-# # convert stochastic delta counts to delta concentrations for constraining FBA
-# delta_counts_to_concs_config = {
-#     'keys': [
-#         'Glucose_internal',
-#         'Lactose_consumed',
-#     ]
-# }
-# # configures the counts deriver to convert field concentrations to counts for stochastic sims
-# field_counts_deriver_config = {
-#     'keys': [GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL]}
-
 
 # configuration for strip units deriver, which converts and removes specified units
 strip_units_config = {
@@ -85,21 +74,33 @@ strip_units_config = {
         'mass': units.ug,
     }}
 
+# set mass threshold for division
+divide_config = {'threshold': 2000 * units.fg}
+
 #Here we override the default ports schema of the Biomass species and the k_dilution rate in Bioscrape.
 #This is done so they can be set by the Derivers connected to mass and mass flux from Cobra.
 schema_override = {
     'bioscrape': {
         'species': {
             'Biomass': {
-                '_updater': 'set'  #override bioscrape ('species', 'Biomass') with a 'set' updater
-            }
+                '_default': 0.00166,
+                '_updater': 'set',  # override bioscrape ('species', 'Biomass') with a 'set' updater
+            },
+            'Glucose_external': {
+                '_divider': 'set',
+                '_updater': 'null',
+            },
+            'Lactose_external': {
+                '_divider': 'set',
+                '_updater': 'null',
+            },
         },
         'rates': {
             'k_dilution__': {
-                '_emit': True,  #k_dilution should be emitted so it can be plotted
+                '_emit': True,  # k_dilution should be emitted so it can be plotted
                 '_updater': 'set',
             }
-        }
+        },
     }
 }
 
@@ -113,16 +114,16 @@ class BioscrapeCOBRAdeterministic(Composer):
         'mass_to_molar': mass_mw_config,
         'strip_units': strip_units_config,
         'divide_on': False,  # is division turned on?
+        'fields_on': False,  # are spatial dynamics used?
+        'local_fields': {},
         'agent_id': np.random.randint(0, 100),
-        'divide_condition': {
-            'threshold': 2000 * units.fg},
+        'divide_condition': divide_config,
         'boundary_path': ('boundary',),
         'agents_path': ('agents',),
         'fields_path': ('fields',),
         'dimensions_path': ('dimensions',),
         'daughter_path': tuple(),
         '_schema': schema_override,
-        'spatial_on': False,  # are spatial dynamics used?
         'bioscrape_timestep': BIOSCRAPE_TIMESTEP,
         'cobra_timestep': COBRA_TIMESTEP,
         'clock': {
@@ -139,6 +140,10 @@ class BioscrapeCOBRAdeterministic(Composer):
         self.config['dilution_rate_flux']['time_step'] = self.config['cobra_timestep']
         self.config['clock']['time_step'] = min(self.config['cobra_timestep'], self.config['bioscrape_timestep'])
 
+        # configure local fields
+        if not self.config['fields_on']:
+            self.config['local_fields'].update({'nonspatial': True})
+
     def generate_processes(self, config):
         processes = {
             'cobra': DynamicFBA(config['cobra']),
@@ -150,6 +155,7 @@ class BioscrapeCOBRAdeterministic(Composer):
             'flux_adaptor': FluxAdaptor(config['flux_adaptor']),
             'biomass_adaptor': MassToMolar(config['mass_to_molar']),
             'strip_units': StripUnits(config['strip_units']),
+            'local_field': LocalField(config['local_fields']),
         }
 
         # Division Logic
@@ -168,10 +174,6 @@ class BioscrapeCOBRAdeterministic(Composer):
                 'division': MetaDivision(division_config)
             })
 
-        # Spatial logic
-        if config['spatial_on']:
-            processes.update({'local_field': LocalField()})
-
         return processes
 
     def generate_topology(self, config):
@@ -188,6 +190,8 @@ class BioscrapeCOBRAdeterministic(Composer):
                 'species': {
                     '_path': ('species',),
                     'Biomass': ('..',) + unitless_boundary_path + ('biomass',),
+                    GLUCOSE_EXTERNAL: ('..',) + boundary_path + ('external', GLUCOSE_EXTERNAL,),
+                    LACTOSE_EXTERNAL: ('..',) + boundary_path + ('external', LACTOSE_EXTERNAL,),
                 },
                 'delta_species': ('delta_species',),
                 'rates': ('rates',),
@@ -197,10 +201,22 @@ class BioscrapeCOBRAdeterministic(Composer):
                 'internal_counts': ('internal_counts',),
                 # 'external': boundary_path + ('external',),
                 'external': ('cobra_external',),  # These are handled separately from the external fields
-                'exchanges': boundary_path + ('exchange',),
+                'exchanges': {
+                    # connect only glc__D_e lac__D_e to boundary exchanges that update fields
+                    '_path': ('hidden_exchanges',),
+                    'glc__D_e': ('..',) + boundary_path + ('exchanges', GLUCOSE_EXTERNAL,),
+                    'lac__D_e': ('..',) + boundary_path + ('exchanges', LACTOSE_EXTERNAL,),
+                },
                 'reactions': ('reactions',),
                 'flux_bounds': ('flux_bounds',),
                 'global': boundary_path,
+            },
+            'local_field': {
+                'exchanges': boundary_path + ('exchanges',),
+                'location': boundary_path + ('location',),
+                # connect fields directly to external port if fields_on is False
+                'fields': fields_path if config['fields_on'] else boundary_path + ('external',),
+                'dimensions': dimensions_path,
             },
             'flux_adaptor': {
                 'inputs': ('delta_species',),
@@ -213,7 +229,6 @@ class BioscrapeCOBRAdeterministic(Composer):
                     'Glucose_internal': ('EX_glc__D_e',),
                 }
             },
-
             'mass_deriver': {
                 'global': boundary_path,
             },
@@ -261,15 +276,6 @@ class BioscrapeCOBRAdeterministic(Composer):
                 },
             })
 
-        # Ports to use in the spatial case
-        if config['spatial_on']:
-            topology.update({'local_field': {
-                'exchanges': boundary_path + ('exchange',),
-                'location': boundary_path + ('location',),
-                'fields': fields_path,
-                'dimensions': dimensions_path,
-            }})
-
         return topology
 
 
@@ -286,10 +292,9 @@ def test_bioscrape_cobra_deterministic(
     # get initial state
     initial_state = bioscrape_composer.initial_state()
     initial_state['boundary']['biomass'] = 0.00182659297 * units.mmolar
-    # initial_state['boundary']['no_units'] = {'biomass': 0.00166}
-    # initial_state['boundary']['external'] = {
-    #     GLUCOSE_EXTERNAL: 1e2,
-    #     LACTOSE_EXTERNAL: 1e2}
+    initial_state['boundary']['external'] = {
+        GLUCOSE_EXTERNAL: 1e-1,
+        LACTOSE_EXTERNAL: 1e1}
 
     # make the experiment
     bioscrape_composite = bioscrape_composer.generate()
@@ -344,18 +349,19 @@ def test_bioscrape_cobra_deterministic_divide(
 
 # execute from the terminal
 plot_variables_list_deterministic = [
-    # ('boundary', 'external', GLUCOSE_EXTERNAL),
-    # ('boundary', 'external', LACTOSE_EXTERNAL),
-    ('species', GLUCOSE_EXTERNAL),  # TODO - replace with boundary, external
-    ('species', LACTOSE_EXTERNAL),  # TODO - replace with boundary, external
+    # ('species', GLUCOSE_EXTERNAL),
+    # ('species', LACTOSE_EXTERNAL),
+    ('boundary', 'external', GLUCOSE_EXTERNAL),
+    ('boundary', 'external', LACTOSE_EXTERNAL),
     ('rates', 'k_dilution__',),
     ('species', 'rna_M'),
     ('species', 'protein_betaGal'),
     ('species', 'protein_Lactose_Permease'),
     ('flux_bounds', 'EX_glc__D_e'),
     ('flux_bounds', 'EX_lac__D_e'),
-    ('boundary', 'no_units', 'biomass'),
-    # ('boundary', ('mass', 'femtogram')),
+    # ('boundary', 'no_units', 'mass'),
+    # ('boundary', 'no_units', 'biomass'),  # TODO -- biomass from point of view of bioscrape is unchanging.
+    ('boundary', ('mass', 'femtogram')),
     # ('boundary', ('volume', 'femtoliter')),
 ]
 
@@ -363,7 +369,8 @@ def run_bioscrape_cobra_deterministic(
     total_time=1000,
     out_dir='out'
 ):
-    output = test_bioscrape_cobra_deterministic(total_time=total_time)
+    output = test_bioscrape_cobra_deterministic(
+        total_time=total_time)
 
     # plot output
     variables_plot_config = {

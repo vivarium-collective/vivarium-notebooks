@@ -57,16 +57,16 @@ mass_mw_config = {
         'mass': 1.0 * units.fg / units.molec
     }
 }
-# # convert stochastic delta counts to delta concentrations for constraining FBA
-# delta_counts_to_concs_config = {
-#     'keys': [
-#         'Glucose_internal',
-#         'Lactose_consumed',
-#     ]
-# }
-# # configures the counts deriver to convert field concentrations to counts for stochastic sims
-# field_counts_deriver_config = {
-#     'keys': [GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL]}
+# convert stochastic delta counts to delta concentrations for constraining FBA
+delta_counts_to_concs_config = {
+    'keys': [
+        'Glucose_internal',
+        'Lactose_consumed',
+    ]
+}
+# configures the counts deriver to convert field concentrations to counts for stochastic sims
+field_counts_deriver_config = {
+    'keys': [GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL]}
 
 
 # configuration for strip units deriver, which converts and removes specified units
@@ -79,6 +79,9 @@ strip_units_config = {
         # 'biomass': units.mmolar,
         'mass': units.ug,
     }}
+
+# set mass threshold for division
+divide_config = {'threshold': 2000 * units.fg}
 
 # Here we override the default ports schema of the Biomass species and the k_dilution rate in Bioscrape.
 # This is done so they can be set by the Derivers connected to mass and mass flux from Cobra.
@@ -105,18 +108,20 @@ class BioscrapeCOBRAstochastic(Composer):
         'cobra': cobra_config,
         'flux_adaptor': flux_config,
         'mass_to_counts': mass_mw_config,
+        'delta_counts_to_concs': delta_counts_to_concs_config,
+        'field_counts_deriver': field_counts_deriver_config,
         'strip_units': strip_units_config,
         'divide_on': False,  # is division turned on?
+        'fields_on': False,  # are spatial dynamics used?
+        'local_fields': {},
         'agent_id': np.random.randint(0, 100),
-        'divide_condition': {
-            'threshold': 2000 * units.fg},
+        'divide_condition': divide_config,
         'boundary_path': ('boundary',),
         'agents_path': ('agents',),
         'fields_path': ('fields',),
         'dimensions_path': ('dimensions',),
         'daughter_path': tuple(),
         '_schema': schema_override,
-        'spatial_on': False,  # are spatial dynamics used?
         'bioscrape_timestep': BIOSCRAPE_TIMESTEP,
         'cobra_timestep': COBRA_TIMESTEP,
         'clock': {
@@ -131,6 +136,10 @@ class BioscrapeCOBRAstochastic(Composer):
         self.config['flux_adaptor']['time_step'] = self.config['bioscrape_timestep']
         self.config['cobra']['time_step'] = self.config['cobra_timestep']
         self.config['clock']['time_step'] = min(self.config['cobra_timestep'], self.config['bioscrape_timestep'])
+
+        # configure local fields
+        if not self.config['fields_on']:
+            self.config['local_fields'].update({'nonspatial': True})
 
     def generate_processes(self, config):
         processes = {
@@ -161,7 +170,7 @@ class BioscrapeCOBRAstochastic(Composer):
             })
 
         # Spatial logic
-        if config['spatial_on']:
+        if config['fields_on']:
             processes.update({'local_field': LocalField()})
 
         return processes
