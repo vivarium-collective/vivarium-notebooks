@@ -427,7 +427,7 @@ agent_id = '1'
 outer_path = ('agents', agent_id,)
 spatial_config = {
     'divide_on': True,
-    'spatial_on': True,
+    'fields_on': True,
     'agent_id': agent_id,
     'agents_path': ('..', '..', 'agents',),
     'fields_path': ('..', '..', 'fields',),
@@ -520,7 +520,10 @@ def run_bioscrape_cobra_stochastic_lattice(
         out_dir=out_dir,
         filename='spatial_snapshots')
 
-    tags_data = {'agents': agents, 'fields': fields, 'config': {'bounds': BOUNDS}}
+    tags_data = {
+        'agents': agents,
+        'fields': fields,
+        'config': {'bounds': BOUNDS}}
     tags_config = {
         'tagged_molecules': [
             ('species', 'protein_Lactose_Permease',),

@@ -9,7 +9,8 @@ from vivarium import (
 from vivarium.core.experiment import Experiment
 from vivarium.core.process import Composer
 from vivarium.library.units import units
-from vivarium.core.composition import EXPERIMENT_OUT_DIR
+from vivarium.core.composition import (
+    compose_experiment, EXPERIMENT_OUT_DIR, COMPOSER_KEY)
 
 # vivarium-bioscrape imports
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
@@ -19,12 +20,20 @@ from vivarium_cobra import Volume, LocalField
 from vivarium_cobra.processes.configurations import get_iAF1260b_config
 from vivarium_cobra.processes.dynamic_fba import DynamicFBA
 
+# vivarium-multibody imports
+from vivarium_multibody.composites.lattice import Lattice, make_lattice_config
+
 # local imports
 from biocobra.processes.flux_adaptor import DilutionFluxAdaptor, FluxAdaptor, AverageFluxAdaptor
 
 # plots
 from vivarium.plots.simulation_output import plot_simulation_output, plot_variables
 from vivarium.plots.agents_multigen import plot_agents_multigen
+from vivarium_multibody.plots.snapshots import (
+    format_snapshot_data,
+    plot_snapshots,
+)
+from vivarium_multibody.plots.snapshots import plot_tags
 
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
@@ -405,6 +414,120 @@ def run_bioscrape_cobra_deterministic_division(
         'division_multigen')
 
 
+# spatial test config
+agent_id = '1'
+outer_path = ('agents', agent_id,)
+spatial_config = {
+    'divide_on': True,
+    'fields_on': True,
+    'agent_id': agent_id,
+    'agents_path': ('..', '..', 'agents',),
+    'fields_path': ('..', '..', 'fields',),
+    'dimensions_path': ('..', '..', 'dimensions',)}
+
+# lattice environment test config
+BOUNDS = [10, 10]
+NBINS = [5, 5]
+DEPTH = 10
+
+def test_bioscrape_cobra_lattice(total_time=2500):
+
+    # initial external
+    field_concentrations = {
+        GLUCOSE_EXTERNAL: 10,
+        LACTOSE_EXTERNAL: 10,
+    }
+
+    # get initial state
+    fields_composer = BioscrapeCOBRAdeterministic(spatial_config)
+    initial_state = fields_composer.initial_state()
+    initial_state['boundary']['external'] = {
+        GLUCOSE_EXTERNAL: 1e-1,
+        LACTOSE_EXTERNAL: 1e-1}
+
+    # initial agents
+    initial_state = {
+        'agents': {
+            agent_id: initial_state}}
+
+    # configure lattice compartment
+    lattice_config_kwargs = {
+        'bounds': BOUNDS,
+        'n_bins': NBINS,
+        'depth': DEPTH,
+        'concentrations': field_concentrations}
+
+    lattice_config = make_lattice_config(**lattice_config_kwargs)
+
+    # declare the hierarchy
+    hierarchy = {
+        COMPOSER_KEY: {
+            'type': Lattice,
+            'config': lattice_config},
+        'agents': {
+            agent_id: {
+                COMPOSER_KEY: {
+                    'type': BioscrapeCOBRAdeterministic,
+                    'config': spatial_config}
+            }}}
+
+    # make experiment with helper function compose_experiment()
+    experiment_settings = {
+        'initial_state': initial_state,
+        'experiment_id': 'spatial_environment'}
+    spatial_experiment = compose_experiment(
+        hierarchy=hierarchy,
+        settings=experiment_settings)
+
+    spatial_experiment.update(total_time)
+    data = spatial_experiment.emitter.get_data_unitless()
+    return data
+
+
+def run_bioscrape_cobra_deterministic_lattice(
+        total_time=3000,
+        out_dir='out'
+):
+    output = test_bioscrape_cobra_lattice(
+        total_time=total_time
+    )
+
+    # multigen plots
+    plot_settings = {
+        'skip_paths': [
+            ('external',),
+            ('internal_counts',),
+        ],
+        'remove_zeros': True}
+    plot_agents_multigen(
+        output, plot_settings, out_dir, 'spatial_multigen')
+
+    agents, fields = format_snapshot_data(output)
+    plot_snapshots(
+        bounds=BOUNDS,
+        agents=agents,
+        fields=fields,
+        # include_fields=['glc__D_e', 'lcts_e'],
+        include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
+        out_dir=out_dir,
+        filename='spatial_snapshots')
+
+    tags_data = {
+        'agents': agents,
+        'fields': fields,
+        'config': {'bounds': BOUNDS}}
+    tags_config = {
+        'tagged_molecules': [
+            ('species', 'protein_Lactose_Permease',),
+        ],
+        'out_dir': out_dir,
+        'filename': 'spatial_tags'}
+    plot_tags(
+        data=tags_data,
+        plot_config=tags_config
+    )
+
+
 def main():
     out_dir = os.path.join(
         EXPERIMENT_OUT_DIR, 'bioscrape_cobra_deterministic')
@@ -429,7 +552,10 @@ def main():
             out_dir=div_out_dir)
 
     if args.fields:
-        pass
+        field_out_dir = os.path.join(out_dir, 'field')
+        run_bioscrape_cobra_deterministic_lattice(
+            total_time=100,
+            out_dir=field_out_dir)
 
 if __name__ == '__main__':
     main()
