@@ -26,7 +26,7 @@ from biocobra.processes.flux_adaptor import DilutionFluxAdaptor, FluxAdaptor, Av
 from vivarium.plots.simulation_output import plot_simulation_output, plot_variables
 from vivarium.plots.agents_multigen import plot_agents_multigen
 
-NAME = 'BioscrapeCOBRA'
+
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
 SBML_FILE_DETERMINISTIC = 'lac_operon/LacOperon_deterministic.xml'
@@ -35,11 +35,10 @@ BIOSCRAPE_TIMESTEP = 1
 
 #choose the SBML file and set other bioscrape parameters
 deterministic_bioscrape_config = {
-            'sbml_file': SBML_FILE_DETERMINISTIC,
-            'stochastic': False,
-            'initial_volume': 1,
-            'internal_dt': 0.01,
-}
+    'sbml_file': SBML_FILE_DETERMINISTIC,
+    'stochastic': False,
+    'initial_volume': 1,
+    'internal_dt': 0.01}
 
 #set cobra constrained reactions config
 cobra_config = get_iAF1260b_config()
@@ -107,14 +106,14 @@ schema_override = {
 
 class BioscrapeCOBRAdeterministic(Composer):
     defaults = {
-        'bioscrape_deterministic': deterministic_bioscrape_config,
+        'divide_on': False,  # is division turned on?
+        'fields_on': False,  # are spatial dynamics used?
+        'bioscrape': deterministic_bioscrape_config,
         'cobra': cobra_config,
         'flux_adaptor': flux_config,
         'dilution_rate_flux': dilution_rate_flux_config,
         'mass_to_molar': mass_mw_config,
         'strip_units': strip_units_config,
-        'divide_on': False,  # is division turned on?
-        'fields_on': False,  # are spatial dynamics used?
         'local_fields': {},
         'agent_id': np.random.randint(0, 100),
         'divide_condition': divide_config,
@@ -126,15 +125,13 @@ class BioscrapeCOBRAdeterministic(Composer):
         '_schema': schema_override,
         'bioscrape_timestep': BIOSCRAPE_TIMESTEP,
         'cobra_timestep': COBRA_TIMESTEP,
-        'clock': {
-            'time_step': 1.0}
-    }
+        'clock': {'time_step': 1.0}}
 
     def __init__(self, config=None):
         super().__init__(config)
 
         # configure timesteps
-        self.config['bioscrape_deterministic']['time_step'] = self.config['bioscrape_timestep']
+        self.config['bioscrape']['time_step'] = self.config['bioscrape_timestep']
         self.config['flux_adaptor']['time_step'] = self.config['bioscrape_timestep']
         self.config['cobra']['time_step'] = self.config['cobra_timestep']
         self.config['dilution_rate_flux']['time_step'] = self.config['cobra_timestep']
@@ -147,7 +144,7 @@ class BioscrapeCOBRAdeterministic(Composer):
     def generate_processes(self, config):
         processes = {
             'cobra': DynamicFBA(config['cobra']),
-            'bioscrape': Bioscrape(config['bioscrape_deterministic']),
+            'bioscrape': Bioscrape(config['bioscrape']),
             'clock': Clock(config['clock']),
             'mass_deriver': TreeMass(),
             'volume_deriver': Volume(),
@@ -171,8 +168,7 @@ class BioscrapeCOBRAdeterministic(Composer):
 
             processes.update({
                 'divide_condition': DivideCondition(config['divide_condition']),
-                'division': MetaDivision(division_config)
-            })
+                'division': MetaDivision(division_config)})
 
         return processes
 
@@ -293,8 +289,8 @@ def test_bioscrape_cobra_deterministic(
     initial_state = bioscrape_composer.initial_state()
     initial_state['boundary']['biomass'] = 0.00182659297 * units.mmolar
     initial_state['boundary']['external'] = {
-        GLUCOSE_EXTERNAL: 1e-1,
-        LACTOSE_EXTERNAL: 1e1}
+        GLUCOSE_EXTERNAL: 1e0,
+        LACTOSE_EXTERNAL: 1e0}
 
     # make the experiment
     bioscrape_composite = bioscrape_composer.generate()
