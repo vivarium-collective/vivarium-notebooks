@@ -85,7 +85,7 @@ mass_mw_config = {
 strip_units_config = {
     'keys': [
         'mass', 'volume', 'density',
-        # 'biomass'
+        'biomass'
     ],
     'convert': {
         # 'biomass': units.mmolar,
