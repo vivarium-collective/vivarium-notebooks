@@ -30,7 +30,6 @@ NAME = 'BioscrapeCOBRA'
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
 SBML_FILE_DETERMINISTIC = 'lac_operon/LacOperon_deterministic.xml'
-SBML_FILE_STOCHASTIC = 'lac_operon/LacOperon_stochastic.xml'
 
 #choose the SBML file and set other bioscrape parameters
 deterministic_bioscrape_config = {
@@ -38,13 +37,6 @@ deterministic_bioscrape_config = {
             'stochastic': False,
             'initial_volume': 1,
             'internal_dt': 0.01,
-}
-stochastic_bioscrape_config = {
-            'sbml_file': SBML_FILE_STOCHASTIC,
-            'stochastic': True,
-            'safe_mode': False,
-            'initial_volume': 1,
-            'internal_dt': 0.1,
 }
 
 #set cobra constrained reactions config
@@ -112,7 +104,6 @@ schema_override = {
 class BioscrapeCOBRAdeterministic(Composer):
     defaults = {
         'bioscrape_deterministic': deterministic_bioscrape_config,
-        'bioscrape_stochastic': stochastic_bioscrape_config,
         'cobra': cobra_config,
         'flux_adaptor': flux_config,
         'dilution_rate_flux': dilution_rate_flux_config,
@@ -128,7 +119,6 @@ class BioscrapeCOBRAdeterministic(Composer):
         'dimensions_path': ('dimensions',),
         'daughter_path': tuple(),
         '_schema': schema_override,
-        'stochastic': False,  # Is the CRN stochastic or deterministic?
         'spatial_on': False,  # are spatial dynamics used?
         'bioscrape_timestep': 1,
         'cobra_timestep': 10,
@@ -147,34 +137,12 @@ class BioscrapeCOBRAdeterministic(Composer):
             'mass_deriver': TreeMass(),
             'volume_deriver': Volume(),
             'clock': Clock(config['clock']),
-            'strip_units': StripUnits(config['strip_units'])}
-
-        # Process Logic for different kinds of simulations
-
-        # Deterministic case
-        if not config['stochastic']:
-            # create a deterministic bioscrape model
-            processes['bioscrape'] = Bioscrape(config['bioscrape_deterministic'])
-
-            # deterministic simulations have a variable dilution rate
-            processes['dilution_rate_adaptor'] = DilutionFluxAdaptor(config["dilution_rate_flux"])
-
-            # flux is computed as an instaneous flux
-            processes['flux_adaptor'] = FluxAdaptor(config['flux_adaptor'])
-
-            # biomass is converted to a concentration
-            processes['biomass_adaptor'] = MassToMolar(config['mass_to_molar'])
-
-        # # Stochastic Case
-        # else:
-        #     # create a stochastic bioscrape model
-        #     processes['bioscrape'] = Bioscrape(config['bioscrape_stochastic'])
-        #
-        #     # flux is computed as an average flux
-        #     processes['flux_adaptor'] = AverageFluxAdaptor(config['flux_adaptor'])
-        #
-        #     # biomass is converted to a molecular count
-        #     processes['biomass_adaptor'] = mass_to_count()
+            'strip_units': StripUnits(config['strip_units']),
+            'bioscrape': Bioscrape(config['bioscrape_deterministic']),
+            'dilution_rate_adaptor': DilutionFluxAdaptor(config["dilution_rate_flux"]),
+            'flux_adaptor': FluxAdaptor(config['flux_adaptor']),
+            'biomass_adaptor': MassToMolar(config['mass_to_molar'])
+        }
 
         # Division Logic
         if config['divide_on']:
@@ -233,7 +201,6 @@ class BioscrapeCOBRAdeterministic(Composer):
                 # 'amounts': boundary_path,
                 # connect Bioscrape deltas 'Lactose_consumed' and 'Glucose_internal'
                 # to COBRA flux bounds 'EX_lac__D_e' and 'EX_glc__D_e'
-
                 'fluxes': {
                     '_path': ('flux_bounds',),
                     'Lactose_consumed': ('EX_lac__D_e',),
@@ -265,22 +232,15 @@ class BioscrapeCOBRAdeterministic(Composer):
                 'units': boundary_path,
                 'no_units': unitless_boundary_path,
             },
-        }
-
-        # Ports added only in the deterministic case
-        if not config['stochastic']:
             # Create port biomass flux to the dilution rate computed by the dilution_rate_adaptor process
-            topology['dilution_rate_adaptor'] = {
+            'dilution_rate_adaptor': {
                 'inputs': boundary_path,
                 'fluxes': {
                     '_path': ('rates',),
                     'biomass': ('k_dilution__',)
                 }
             }
-
-        # # Ports added only in the stochastic case
-        # else:
-        #     pass
+        }
 
         if config['divide_on']:
             # connect divide_condition to the mass variable

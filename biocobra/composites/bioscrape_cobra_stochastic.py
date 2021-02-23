@@ -29,16 +29,9 @@ from vivarium.plots.agents_multigen import plot_agents_multigen
 NAME = 'BioscrapeCOBRA'
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-SBML_FILE_DETERMINISTIC = 'lac_operon/LacOperon_deterministic.xml'
 SBML_FILE_STOCHASTIC = 'lac_operon/LacOperon_stochastic.xml'
 
 # choose the SBML file and set other bioscrape parameters
-# deterministic_bioscrape_config = {
-#     'sbml_file': SBML_FILE_DETERMINISTIC,
-#     'stochastic': False,
-#     'initial_volume': 1,
-#     'internal_dt': 0.01,
-# }
 stochastic_bioscrape_config = {
     'sbml_file': SBML_FILE_STOCHASTIC,
     'stochastic': True,
@@ -131,7 +124,6 @@ class BioscrapeCOBRAstochastic(Composer):
         'dimensions_path': ('dimensions',),
         'daughter_path': tuple(),
         '_schema': schema_override,
-        'stochastic': True,  # Is the CRN stochastic or deterministic?
         'spatial_on': False,  # are spatial dynamics used?
         'bioscrape_timestep': 1,
         'cobra_timestep': 10,
@@ -150,19 +142,11 @@ class BioscrapeCOBRAstochastic(Composer):
             'mass_deriver': TreeMass(),
             'volume_deriver': Volume(),
             'clock': Clock(config['clock']),
-            'strip_units': StripUnits(config['strip_units'])}
-
-        # Process Logic for different kinds of simulations
-
-        # Stochastic Case
-        # create a stochastic bioscrape model
-        processes['bioscrape'] = Bioscrape(config['bioscrape_stochastic'])
-
-        # flux is computed as an average flux
-        processes['flux_adaptor'] = AverageFluxAdaptor(config['flux_adaptor'])
-
-        # biomass is converted to a molecular count
-        processes['biomass_adaptor'] = MassToCount(config['mass_to_counts'])
+            'strip_units': StripUnits(config['strip_units']),
+            'bioscrape': Bioscrape(config['bioscrape_stochastic']),
+            'flux_adaptor': AverageFluxAdaptor(config['flux_adaptor']),
+            'biomass_adaptor': MassToCount(config['mass_to_counts']),
+        }
 
         # Division Logic
         if config['divide_on']:
@@ -253,21 +237,6 @@ class BioscrapeCOBRAstochastic(Composer):
                 'no_units': unitless_boundary_path,
             },
         }
-
-        # Ports added only in the deterministic case
-        if not config['stochastic']:
-            # Create port biomass flux to the dilution rate computed by the dilution_rate_adaptor process
-            topology['dilution_rate_adaptor'] = {
-                'inputs': boundary_path,
-                'fluxes': {
-                    '_path': ('rates',),
-                    'biomass': ('k_dilution__',)
-                }
-            }
-
-        # # Ports added only in the stochastic case
-        # else:
-        #     pass
 
         if config['divide_on']:
             # connect divide_condition to the mass variable
