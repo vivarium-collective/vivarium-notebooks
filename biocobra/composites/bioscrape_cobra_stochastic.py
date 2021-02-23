@@ -285,6 +285,22 @@ class BioscrapeCOBRAstochastic(Composer):
         return topology
 
 
+
+# plotting config
+
+plot_variables_list_stochastic = [
+    ('species', GLUCOSE_EXTERNAL),
+    ('species', LACTOSE_EXTERNAL),
+    ('species', 'rna_M'),
+    ('species', 'protein_betaGal'),
+    ('species', 'protein_Lactose_Permease'),
+    ('flux_bounds', 'EX_glc__D_e'),
+    ('flux_bounds', 'EX_lac__D_e'),
+    ('boundary', ('mass', 'femtogram')),
+    ('boundary', ('volume', 'femtoliter')),
+]
+
+
 # tests
 
 def test_bioscrape_cobra_stochastic(
@@ -334,8 +350,9 @@ def test_bioscrape_cobra_stochastic_divide(
     # get initial state
     initial_state = bioscrape_composer.initial_state()
     initial_state['boundary']['external'] = {
-        GLUCOSE_EXTERNAL: 1e2,
-        LACTOSE_EXTERNAL: 1e2}
+        GLUCOSE_EXTERNAL: 1e-1,
+        LACTOSE_EXTERNAL: 1e-1}
+    initial_state['boundary']['characteristic_volume'] = 10 * units.fL
     initial_state = {
         'agents': {
             agent_id: initial_state}}
@@ -349,21 +366,9 @@ def test_bioscrape_cobra_stochastic_divide(
             initial_state=initial_state,))
 
     bioscrape_experiment.update(total_time)
-    timeseries = bioscrape_experiment.emitter.get_timeseries()
+    timeseries = bioscrape_experiment.emitter.get_data_unitless()
     return timeseries
 
-# execute from the terminal
-plot_variables_list_stochastic = [
-    ('species', GLUCOSE_EXTERNAL),
-    ('species', LACTOSE_EXTERNAL),
-    ('species', 'rna_M'),
-    ('species', 'protein_betaGal'),
-    ('species', 'protein_Lactose_Permease'),
-    ('flux_bounds', 'EX_glc__D_e'),
-    ('flux_bounds', 'EX_lac__D_e'),
-    ('boundary', ('mass', 'femtogram')),
-    ('boundary', ('volume', 'femtoliter')),
-]
 
 def run_bioscrape_cobra_stochastic(
     total_time=2000,
@@ -396,7 +401,7 @@ def run_bioscrape_cobra_stochastic_division(
             ('internal_counts',),
             ('cobra_external',),
         ],
-        'remove_zeros': True}
+        'remove_zeros': False}
     plot_agents_multigen(
         output, plot_settings, out_dir, 'division_multigen')
 
@@ -421,7 +426,7 @@ def main():
     if args.divide:
         div_out_dir = os.path.join(out_dir, 'division')
         run_bioscrape_cobra_stochastic_division(
-            total_time=3000,
+            total_time=1000,
             out_dir=div_out_dir)
 
     if args.fields:
