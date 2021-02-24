@@ -127,8 +127,12 @@ schema_override = {
 
 class BioscrapeCOBRAstochastic(Composer):
     defaults = {
+        'bioscrape_timestep': BIOSCRAPE_TIMESTEP,
+        'cobra_timestep': COBRA_TIMESTEP,
         'divide_on': False,  # is division turned on?
         'fields_on': False,  # are spatial dynamics used?
+
+        # process configs
         'bioscrape': stochastic_bioscrape_config,
         'cobra': cobra_config,
         'flux_adaptor': flux_config,
@@ -136,7 +140,10 @@ class BioscrapeCOBRAstochastic(Composer):
         'delta_counts_to_concs': delta_counts_to_concs_config,
         'field_counts_deriver': field_counts_deriver_config,
         'strip_units': strip_units_config,
+        'clock': {},
         'local_fields': {},
+
+        # division config
         'agent_id': np.random.randint(0, 100),
         'divide_condition': divide_config,
         'boundary_path': ('boundary',),
@@ -144,19 +151,19 @@ class BioscrapeCOBRAstochastic(Composer):
         'fields_path': ('fields',),
         'dimensions_path': ('dimensions',),
         'daughter_path': tuple(),
-        '_schema': schema_override,
-        'bioscrape_timestep': BIOSCRAPE_TIMESTEP,
-        'cobra_timestep': COBRA_TIMESTEP,
-        'clock': {'time_step': 1.0}}
+
+        # override
+        '_schema': schema_override}
 
     def __init__(self, config=None):
         super().__init__(config)
-        # configure timesteps
 
+        # configure timesteps
         self.config['bioscrape']['time_step'] = self.config['bioscrape_timestep']
         self.config['flux_adaptor']['time_step'] = self.config['bioscrape_timestep']
         self.config['cobra']['time_step'] = self.config['cobra_timestep']
-        self.config['clock']['time_step'] = min(self.config['cobra_timestep'], self.config['bioscrape_timestep'])
+        self.config['clock']['time_step'] = min(
+            self.config['cobra_timestep'], self.config['bioscrape_timestep'])
 
         # configure local fields
         if not self.config['fields_on']:
@@ -164,18 +171,20 @@ class BioscrapeCOBRAstochastic(Composer):
 
     def generate_processes(self, config):
         processes = {
+            # Processes
             'cobra': DynamicFBA(config['cobra']),
             'bioscrape': Bioscrape(config['bioscrape']),
-            'local_field': LocalField(config['local_fields']),
             'clock': Clock(config['clock']),
+            'flux_adaptor': AverageFluxAdaptor(config['flux_adaptor']),
+
+            # Derivers
             'mass_deriver': TreeMass(),
             'volume_deriver': Volume(),
             'delta_counts_to_concs': CountsToMolar(config['delta_counts_to_concs']),
-            'flux_adaptor': AverageFluxAdaptor(config['flux_adaptor']),
             'biomass_adaptor': MassToCount(config['mass_to_counts']),
-            'field_counts_deriver': MolarToCounts(config['field_counts_deriver']),
             'strip_units': StripUnits(config['strip_units']),
-        }
+            'local_field': LocalField(config['local_fields']),
+            'field_counts_deriver': MolarToCounts(config['field_counts_deriver'])}
 
         # Division Logic
         if config['divide_on']:
@@ -202,41 +211,43 @@ class BioscrapeCOBRAstochastic(Composer):
         unitless_boundary_path = boundary_path + ('no_units',)
 
         topology = {
-            'bioscrape': {
-                # all species go to a species store on the base level,
-                # except Biomass, which goes to the 'boundary' store, with variable 'biomass'
-                'species': {
-                    '_path': ('species',),
-                    'Biomass': ('..',) + unitless_boundary_path + ('biomass',),
-                },
-                'delta_species': ('delta_species',),
-                'rates': ('rates',),
-                'globals': unitless_boundary_path,
-            },
             'cobra': {
                 'internal_counts': ('internal_counts',),
-                # 'external': boundary_path + ('external',),
-                'external': ('cobra_external',),  # These are handled separately from the external fields
+                'external': ('cobra_external',),
                 'exchanges': {
-                    # connect only glc__D_e lac__D_e to boundary exchanges that update fields
+                    # connect glc__D_e and lac__D_e to boundary exchanges that update fields
                     '_path': ('hidden_exchanges',),
                     'glc__D_e': ('..',) + boundary_path + ('exchanges', GLUCOSE_EXTERNAL,),
-                    'lac__D_e': ('..',) + boundary_path + ('exchanges', LACTOSE_EXTERNAL,),
-                },
+                    'lac__D_e': ('..',) + boundary_path + ('exchanges', LACTOSE_EXTERNAL,)},
                 'reactions': ('reactions',),
                 'flux_bounds': ('flux_bounds',),
                 'global': boundary_path,
             },
+            'bioscrape': {
+                # all species go to a species store on the base level,
+                # except Biomass, which goes to the 'boundary' store
+                'species': {
+                    '_path': ('species',),
+                    'Biomass': ('..',) + unitless_boundary_path + ('biomass',)},
+                'delta_species': ('delta_species',),
+                'rates': ('rates',),
+                'globals': unitless_boundary_path,
+            },
+            # convert the delta counts to delta concentrations
+            'delta_counts_to_concs': {
+                'global': boundary_path,
+                'counts': ('delta_species',),
+                'concentrations': ('delta_concentrations',),
+            },
+            # convert delta concentrations over several steps to an average flux bounds
             'flux_adaptor': {
                 'inputs': ('delta_concentrations',),
-                # 'amounts': boundary_path,
                 # connect Bioscrape deltas 'Lactose_consumed' and 'Glucose_internal'
                 # to COBRA flux bounds 'EX_lac__D_e' and 'EX_glc__D_e'
                 'fluxes': {
                     '_path': ('flux_bounds',),
                     'Lactose_consumed': ('EX_lac__D_e',),
-                    'Glucose_internal': ('EX_glc__D_e',),
-                }
+                    'Glucose_internal': ('EX_glc__D_e',)}
             },
             'mass_deriver': {
                 'global': boundary_path,
@@ -247,12 +258,10 @@ class BioscrapeCOBRAstochastic(Composer):
             'biomass_adaptor': {
                 'input': {
                     '_path': boundary_path,
-                    'mass': ('mass',)
-                },
+                    'mass': ('mass',)},
                 'output': {
                     '_path': boundary_path,
-                    'mass': ('biomass',)
-                },
+                    'mass': ('biomass',)},
                 'global': boundary_path,
             },
             'clock': {
@@ -262,41 +271,33 @@ class BioscrapeCOBRAstochastic(Composer):
                 'units': boundary_path,
                 'no_units': unitless_boundary_path,
             },
+            # apply exchanges from COBRA to the fields, and update external state
             'local_field': {
                 'exchanges': boundary_path + ('exchanges',),
                 'location': boundary_path + ('location',),
-                # connect fields directly to external port if fields_on is False
+                # connect fields directly to external port if fields are OFF
                 'fields': fields_path if config['fields_on'] else boundary_path + ('external',),
                 'dimensions': dimensions_path,
             },
+            # convert external concentrations to external counts, for Bioscrape to read from
             'field_counts_deriver': {
-                # connect to a characteristic volume, which will remain constant
+                'concentrations': boundary_path + ('external',),
+                'counts': ('species',),
                 'global': {
+                    # connect to a fixed characteristic volume
                     '_path': boundary_path,
-                    'volume': ('characteristic_volume',)
-                },
-                'counts': ('species',),
-                'concentrations': boundary_path + ('external',)
+                    'volume': ('characteristic_volume',)},
             },
-            'delta_counts_to_concs': {
-                'global': boundary_path,
-                'counts': ('species',),
-                'concentrations': ('delta_concentrations',),
-            }
         }
 
         if config['divide_on']:
-            # connect divide_condition to the mass variable
             topology.update({
                 'divide_condition': {
                     'variable': boundary_path + ('mass',),
-                    'divide': boundary_path + ('divide',),
-                },
+                    'divide': boundary_path + ('divide',)},
                 'division': {
                     'global': boundary_path,
-                    'agents': agents_path,
-                },
-            })
+                    'agents': agents_path}})
 
         return topology
 
