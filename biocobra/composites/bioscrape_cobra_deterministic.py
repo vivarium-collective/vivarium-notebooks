@@ -62,7 +62,7 @@ flux_config = {
 }
 dilution_rate_flux_config = {
     'flux_keys': {
-        'biomass': {
+        'mass': {
             'input_type': 'amount'
         }
     }
@@ -267,7 +267,7 @@ class BioscrapeCOBRAdeterministic(Composer):
                 'inputs': boundary_path,
                 'fluxes': {
                     '_path': ('rates',),
-                    'biomass': ('k_dilution__',)}
+                    'mass': ('k_dilution__',)}
             }
         }
 
