@@ -172,7 +172,7 @@ class BioscrapeCOBRAstochastic(Composer):
 
     def initial_state(self, config=None):
         initial_state = super().initial_state(config)
-        initial_state['boundary']['characteristic_volume'] = self.parameters[
+        initial_state['boundary']['characteristic_volume'] = self.config[
             'characteristic_external_volume']
         return initial_state
 
@@ -596,7 +596,7 @@ def main():
     if args.fields:
         field_out_dir = os.path.join(out_dir, 'field')
         run_bioscrape_cobra_stochastic_lattice(
-            total_time=8000,
+            total_time=15000,
             out_dir=field_out_dir)
 
 if __name__ == '__main__':
