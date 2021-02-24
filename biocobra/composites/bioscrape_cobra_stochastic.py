@@ -1,11 +1,16 @@
+"""
+Stochastic Bioscrape/COBRA model
+"""
+
 import os
 import numpy as np
 import argparse
 
 # vivarium-core processes
 from vivarium import (
-    TreeMass, Clock, MassToMolar, MassToCount, CountsToMolar,
-    DivideCondition, MetaDivision, MolarToCounts, StripUnits)
+    TreeMass, Clock, MassToCount,
+    CountsToMolar, DivideCondition,
+    MetaDivision, MolarToCounts, StripUnits)
 from vivarium.core.experiment import Experiment
 from vivarium.core.process import Composer
 from vivarium.library.units import units
@@ -21,18 +26,18 @@ from vivarium_cobra.processes.configurations import get_iAF1260b_config
 from vivarium_cobra.processes.dynamic_fba import DynamicFBA
 
 # vivarium-multibody imports
-from vivarium_multibody.composites.lattice import Lattice, make_lattice_config
+from vivarium_multibody.composites.lattice import (
+    Lattice, make_lattice_config)
 
 # local imports
 from biocobra.processes.flux_adaptor import AverageFluxAdaptor
 
 # plots
-from vivarium.plots.simulation_output import plot_simulation_output, plot_variables
+from vivarium.plots.simulation_output import (
+    plot_simulation_output, plot_variables)
 from vivarium.plots.agents_multigen import plot_agents_multigen
 from vivarium_multibody.plots.snapshots import (
-    format_snapshot_data,
-    plot_snapshots,
-)
+    format_snapshot_data, plot_snapshots)
 from vivarium_multibody.plots.snapshots import plot_tags
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
@@ -47,8 +52,7 @@ stochastic_bioscrape_config = {
     'stochastic': True,
     'safe_mode': False,
     'initial_volume': 1,
-    'internal_dt': 0.1,
-}
+    'internal_dt': 0.1}
 
 # set cobra constrained reactions config
 cobra_config = get_iAF1260b_config()
@@ -61,21 +65,18 @@ flux_config = {
             'window_size': COBRA_TIMESTEP},
         'Glucose_internal': {
             'input_type': 'delta',
-            'window_size': COBRA_TIMESTEP},
-    },
-}
+            'window_size': COBRA_TIMESTEP}}}
+
 mass_mw_config = {
     'molecular_weights': {
-        'mass': 1.0 * units.fg / units.molec
-    }
-}
+        'mass': 1.0 * units.fg / units.molec}}
+
 # convert stochastic delta counts to delta concentrations for constraining FBA
 delta_counts_to_concs_config = {
     'keys': [
         'Glucose_internal',
-        'Lactose_consumed',
-    ]
-}
+        'Lactose_consumed']}
+
 # configures the counts deriver to convert field concentrations to counts for stochastic sims
 field_counts_deriver_config = {
     'keys': [GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL]}
@@ -83,16 +84,14 @@ field_counts_deriver_config = {
 # configuration for strip units deriver, which converts and removes specified units
 strip_units_config = {
     'keys': [
-        'mass', 'volume', 'density',
-        'biomass'
-    ],
+        'mass', 'volume', 'density', 'biomass'],
     'convert': {
         # 'biomass': units.mmolar,
-        'mass': units.ug,
-    }}
+        'mass': units.ug}}
 
 # set mass threshold for division
-divide_config = {'threshold': 2000 * units.fg}
+divide_config = {
+    'threshold': 2000 * units.fg}
 
 # Here we override the default ports schema of the Biomass species and the k_dilution rate in Bioscrape.
 # This is done so they can be set by the Derivers connected to mass and mass flux from Cobra.
@@ -101,30 +100,22 @@ schema_override = {
         'species': {
             'Biomass': {
                 # '_default': 0.00166,
-                '_updater': 'set',  # override bioscrape ('species', 'Biomass') with a 'set' updater
-            },
+                '_updater': 'set'},  # override bioscrape's Biomass with a 'set' updater
             'Glucose_external': {
                 '_divider': 'set',
-                '_updater': 'null',
-            },
+                '_updater': 'null'},
             'Lactose_external': {
                 '_divider': 'set',
-                '_updater': 'null',
-            },
+                '_updater': 'null'},
             'dna_Lac_Operon': {
-                '_divider': 'set',
-            },
-        },
+                '_divider': 'set'}},
         'rates': {
             'k_dilution__': {
                 '_emit': True,  # k_dilution should be emitted so it can be plotted
-                '_updater': 'set',
-            }
-        }
-    }
-}
+                '_updater': 'set'}}}}
 
 
+# The stochastic Bioscrape/COBRA composer
 class BioscrapeCOBRAstochastic(Composer):
     defaults = {
         'bioscrape_timestep': BIOSCRAPE_TIMESTEP,
@@ -203,7 +194,6 @@ class BioscrapeCOBRAstochastic(Composer):
                 daughter_path=daughter_path,
                 agent_id=agent_id,
                 composer=self)
-
             processes.update({
                 'divide_condition': DivideCondition(config['divide_condition']),
                 'division': MetaDivision(division_config)})
@@ -344,8 +334,7 @@ plot_variables_list_stochastic = [
     ('flux_bounds', 'EX_glc__D_e'),
     ('flux_bounds', 'EX_lac__D_e'),
     ('boundary', ('mass', 'femtogram')),
-    ('boundary', ('volume', 'femtoliter')),
-]
+    ('boundary', ('volume', 'femtoliter'))]
 
 
 # tests

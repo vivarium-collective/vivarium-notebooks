@@ -1,11 +1,15 @@
+"""
+Deterministic Bioscrape/COBRA model
+"""
+
 import os
 import numpy as np
 import argparse
 
 # vivarium-core processes
 from vivarium import (
-    TreeMass, Clock, MassToMolar, MassToCount, CountsToMolar,
-    DivideCondition, MetaDivision, MolarToCounts, StripUnits)
+    TreeMass, Clock, MassToMolar,
+    DivideCondition, MetaDivision, StripUnits)
 from vivarium.core.experiment import Experiment
 from vivarium.core.process import Composer
 from vivarium.library.units import units
@@ -21,18 +25,19 @@ from vivarium_cobra.processes.configurations import get_iAF1260b_config
 from vivarium_cobra.processes.dynamic_fba import DynamicFBA
 
 # vivarium-multibody imports
-from vivarium_multibody.composites.lattice import Lattice, make_lattice_config
+from vivarium_multibody.composites.lattice import (
+    Lattice, make_lattice_config)
 
 # local imports
-from biocobra.processes.flux_adaptor import DilutionFluxAdaptor, FluxAdaptor
+from biocobra.processes.flux_adaptor import (
+    DilutionFluxAdaptor, FluxAdaptor)
 
 # plots
-from vivarium.plots.simulation_output import plot_simulation_output, plot_variables
+from vivarium.plots.simulation_output import (
+    plot_simulation_output, plot_variables)
 from vivarium.plots.agents_multigen import plot_agents_multigen
 from vivarium_multibody.plots.snapshots import (
-    format_snapshot_data,
-    plot_snapshots,
-)
+    format_snapshot_data, plot_snapshots)
 from vivarium_multibody.plots.snapshots import plot_tags
 
 
@@ -42,36 +47,31 @@ SBML_FILE_DETERMINISTIC = 'lac_operon/LacOperon_deterministic.xml'
 COBRA_TIMESTEP = 10
 BIOSCRAPE_TIMESTEP = 1
 
-#choose the SBML file and set other bioscrape parameters
+# choose the SBML file and set other bioscrape parameters
 deterministic_bioscrape_config = {
     'sbml_file': SBML_FILE_DETERMINISTIC,
     'stochastic': False,
     'initial_volume': 1,
     'internal_dt': 0.01}
 
-#set cobra constrained reactions config
+# set cobra constrained reactions config
 cobra_config = get_iAF1260b_config()
 
-#set up the config for the FluxAdaptor
+# set up the config for the FluxAdaptor
 flux_config = {
     'time_step': COBRA_TIMESTEP,
     'flux_keys': {
-        'Lactose_consumed': {'input_type': 'delta'}, #No options specified
-        'Glucose_internal': {'input_type': 'delta'},  #No options specified
-    },
-}
+        'Lactose_consumed': {'input_type': 'delta'},  # No options specified
+        'Glucose_internal': {'input_type': 'delta'}}}
+
 dilution_rate_flux_config = {
     'flux_keys': {
         'mass': {
-            'input_type': 'amount'
-        }
-    }
-}
+            'input_type': 'amount'}}}
+
 mass_mw_config = {
     'molecular_weights': {
-        'mass': 1.0 * units.fg / units.molec
-    }
-}
+        'mass': 1.0 * units.fg / units.molec}}
 
 # configuration for strip units deriver, which converts and removes specified units
 strip_units_config = {
@@ -79,40 +79,34 @@ strip_units_config = {
         'mass', 'volume', 'density', 'biomass'],
     'convert': {
         'biomass': units.mmolar,
-        'mass': units.ug,
-    }}
+        'mass': units.ug}}
 
 # set mass threshold for division
-divide_config = {'threshold': 2000 * units.fg}
+divide_config = {
+    'threshold': 2000 * units.fg}
 
-#Here we override the default ports schema of the Biomass species and the k_dilution rate in Bioscrape.
-#This is done so they can be set by the Derivers connected to mass and mass flux from Cobra.
+# Here we override the default ports schema of the Biomass species and the k_dilution rate in Bioscrape.
+# This is done so they can be set by the Derivers connected to mass and mass flux from Cobra.
 schema_override = {
     'bioscrape': {
         'species': {
             'Biomass': {
                 '_default': 0.00166,
-                '_updater': 'set',  # override bioscrape ('species', 'Biomass') with a 'set' updater
-            },
+                '_updater': 'set'},  # override bioscrape ('species', 'Biomass') with a 'set' updater
             'Glucose_external': {
                 '_divider': 'set',
-                '_updater': 'null',
-            },
+                '_updater': 'null'},
             'Lactose_external': {
                 '_divider': 'set',
-                '_updater': 'null',
-            },
+                '_updater': 'null'},
         },
         'rates': {
             'k_dilution__': {
                 '_emit': True,  # k_dilution should be emitted so it can be plotted
-                '_updater': 'set',
-            }
-        },
-    }
-}
+                '_updater': 'set'}}}}
 
 
+# The deterministic Bioscrape/COBRA composer
 class BioscrapeCOBRAdeterministic(Composer):
     defaults = {
         'bioscrape_timestep': BIOSCRAPE_TIMESTEP,
@@ -183,7 +177,6 @@ class BioscrapeCOBRAdeterministic(Composer):
                 daughter_path=daughter_path,
                 agent_id=agent_id,
                 composer=self)
-
             processes.update({
                 'divide_condition': DivideCondition(config['divide_condition']),
                 'division': MetaDivision(division_config)})
@@ -321,9 +314,7 @@ plot_variables_list_deterministic = [
     ('flux_bounds', 'EX_lac__D_e'),
     # ('boundary', 'no_units', 'mass'),
     # ('boundary', 'no_units', 'biomass'),  # TODO -- biomass from point of view of bioscrape is unchanging.
-    ('boundary', ('mass', 'femtogram')),
-    # ('boundary', ('volume', 'femtoliter')),
-]
+    ('boundary', ('mass', 'femtogram'))]
 
 # tests
 
