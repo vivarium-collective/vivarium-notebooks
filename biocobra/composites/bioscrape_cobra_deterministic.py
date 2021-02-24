@@ -283,75 +283,31 @@ class BioscrapeCOBRAdeterministic(Composer):
         return topology
 
 
-# tests
+# test configs
 
-def test_bioscrape_cobra_deterministic(
-        total_time=1000,
-        external_volume=1e-12 * units.L,
-):
-    bioscrape_composer = BioscrapeCOBRAdeterministic({
-        'local_fields': {'bin_volume': external_volume},
-    })
+# divide config
+agent_id = '1'
+outer_path = ('agents', agent_id,)
+divide_config = {
+    'divide_on': True,
+    'agent_id': agent_id,
+    'agents_path': ('..', '..', 'agents',),
+    'fields_path': ('..', '..', 'fields',),
+    'dimensions_path': ('..', '..', 'dimensions',),
+    'local_fields': {}}
 
-    # get initial state
-    initial_state = bioscrape_composer.initial_state()
-    initial_state['boundary']['biomass'] = 0.00182659297 * units.mmolar
-    initial_state['boundary']['external'] = {
-        GLUCOSE_EXTERNAL: 1e0,
-        LACTOSE_EXTERNAL: 1e0}
+# spatial config
+spatial_config = dict(divide_config)
+spatial_config['fields_on'] = True
 
-    # make the experiment
-    bioscrape_composite = bioscrape_composer.generate()
-    bioscrape_experiment = Experiment(
-        dict(
-            processes=bioscrape_composite['processes'],
-            topology=bioscrape_composite['topology'],
-            initial_state=initial_state,))
+# lattice environment spatial config
+INITIAL_GLC = 1e0
+INITIAL_LAC = 1e0
+BOUNDS = [20, 20]
+NBINS = [10, 10]
+DEPTH = 20
 
-    bioscrape_experiment.update(total_time)
-    timeseries = bioscrape_experiment.emitter.get_timeseries()
-    return timeseries
-
-def test_bioscrape_cobra_deterministic_divide(
-        total_time=3000,
-        external_volume=1e-12 * units.L,
-):
-    agent_id = '1'
-    outer_path = ('agents', agent_id,)
-    divide_config = {
-        'divide_on': True,
-        'agent_id': agent_id,
-        'agents_path': ('..', '..', 'agents',),
-        'fields_path': ('..', '..', 'fields',),
-        'dimensions_path': ('..', '..', 'dimensions',),
-        'local_fields': {'bin_volume': external_volume},
-    }
-
-    bioscrape_composer = BioscrapeCOBRAdeterministic(divide_config)
-
-    # get initial state
-    initial_state = bioscrape_composer.initial_state()
-    initial_state['boundary']['external'] = {
-        GLUCOSE_EXTERNAL: 1e2,
-        LACTOSE_EXTERNAL: 1e2}
-    initial_state = {
-        'agents': {
-            agent_id: initial_state}}
-
-    # make the experiment
-    bioscrape_composite = bioscrape_composer.generate(path=outer_path)
-    bioscrape_experiment = Experiment(
-        dict(
-            processes=bioscrape_composite['processes'],
-            topology=bioscrape_composite['topology'],
-            initial_state=initial_state,))
-
-    bioscrape_experiment.update(total_time)
-    output = bioscrape_experiment.emitter.get_data_unitless()
-    return output
-
-
-# execute from the terminal
+# plotting
 plot_variables_list_deterministic = [
     # ('species', GLUCOSE_EXTERNAL),
     # ('species', LACTOSE_EXTERNAL),
@@ -368,6 +324,43 @@ plot_variables_list_deterministic = [
     ('boundary', ('mass', 'femtogram')),
     # ('boundary', ('volume', 'femtoliter')),
 ]
+
+# tests
+
+def test_bioscrape_cobra_deterministic(
+        total_time=1000,
+        external_volume=1e-12 * units.L,
+):
+    # configure
+    biocobra_config = {
+        'local_fields': {
+            'bin_volume': external_volume}}
+
+    # make the composer
+    bioscrape_composer = BioscrapeCOBRAdeterministic(biocobra_config)
+
+    # get initial state
+    initial_state = bioscrape_composer.initial_state()
+    initial_state['boundary']['biomass'] = 0.00182659297 * units.mmolar  # TODO -- is this still needed?
+    initial_state['boundary']['external'] = {
+        GLUCOSE_EXTERNAL: INITIAL_GLC,
+        LACTOSE_EXTERNAL: INITIAL_LAC}
+
+    # make the experiment
+    bioscrape_composite = bioscrape_composer.generate()
+    bioscrape_experiment = Experiment(
+        dict(
+            processes=bioscrape_composite['processes'],
+            topology=bioscrape_composite['topology'],
+            initial_state=initial_state,))
+
+    # run the experiment
+    bioscrape_experiment.update(total_time)
+
+    # retrieve data
+    timeseries = bioscrape_experiment.emitter.get_timeseries()
+    return timeseries
+
 
 def run_bioscrape_cobra_deterministic(
     total_time=1000,
@@ -389,9 +382,47 @@ def run_bioscrape_cobra_deterministic(
         out_dir=out_dir,
         filename='simulation_output')
 
-def run_bioscrape_cobra_deterministic_division(
+
+def test_bioscrape_cobra_deterministic_divide(
         total_time=3000,
-        out_dir='out'
+        external_volume=1e-12 * units.L,
+):
+
+    # configure
+    divide_config['local_fields']['bin_volume'] = external_volume
+
+    # make the composer
+    bioscrape_composer = BioscrapeCOBRAdeterministic(divide_config)
+
+    # get initial state
+    initial_state = bioscrape_composer.initial_state()
+    initial_state['boundary']['biomass'] = 0.00182659297 * units.mmolar  # TODO -- is this still needed?
+    initial_state['boundary']['external'] = {
+        GLUCOSE_EXTERNAL: INITIAL_GLC,
+        LACTOSE_EXTERNAL: INITIAL_LAC}
+    initial_state = {
+        'agents': {
+            agent_id: initial_state}}
+
+    # make the experiment
+    bioscrape_composite = bioscrape_composer.generate(path=outer_path)
+    bioscrape_experiment = Experiment(
+        dict(
+            processes=bioscrape_composite['processes'],
+            topology=bioscrape_composite['topology'],
+            initial_state=initial_state,))
+
+    # run the experiment
+    bioscrape_experiment.update(total_time)
+
+    # retrieve the data
+    output = bioscrape_experiment.emitter.get_data_unitless()
+    return output
+
+
+def run_bioscrape_cobra_deterministic_division(
+    total_time=3000,
+    out_dir='out'
 ):
     # output = test_bioscrape_cobra_divide()
     output = test_bioscrape_cobra_deterministic_divide(
@@ -413,41 +444,27 @@ def run_bioscrape_cobra_deterministic_division(
         'division_multigen')
 
 
-# spatial test config
-agent_id = '1'
-outer_path = ('agents', agent_id,)
-spatial_config = {
-    'divide_on': True,
-    'fields_on': True,
-    'agent_id': agent_id,
-    'agents_path': ('..', '..', 'agents',),
-    'fields_path': ('..', '..', 'fields',),
-    'dimensions_path': ('..', '..', 'dimensions',)}
-
-# lattice environment test config
-BOUNDS = [10, 10]
-NBINS = [5, 5]
-DEPTH = 10
-
-def test_bioscrape_cobra_lattice(total_time=2500):
-
-    # initial external
-    field_concentrations = {
-        GLUCOSE_EXTERNAL: 10,
-        LACTOSE_EXTERNAL: 10,
-    }
+def test_bioscrape_cobra_lattice(
+    total_time=2500
+):
+    # make the composer
+    fields_composer = BioscrapeCOBRAdeterministic(spatial_config)
 
     # get initial state
-    fields_composer = BioscrapeCOBRAdeterministic(spatial_config)
     initial_state = fields_composer.initial_state()
     initial_state['boundary']['external'] = {
-        GLUCOSE_EXTERNAL: 1e-1,
-        LACTOSE_EXTERNAL: 1e-1}
+        GLUCOSE_EXTERNAL: INITIAL_GLC,
+        LACTOSE_EXTERNAL: INITIAL_LAC}
 
     # initial agents
     initial_state = {
         'agents': {
             agent_id: initial_state}}
+
+    # initial external
+    field_concentrations = {
+        GLUCOSE_EXTERNAL: INITIAL_GLC,
+        LACTOSE_EXTERNAL: INITIAL_LAC}
 
     # configure lattice compartment
     lattice_config_kwargs = {
@@ -455,7 +472,6 @@ def test_bioscrape_cobra_lattice(total_time=2500):
         'n_bins': NBINS,
         'depth': DEPTH,
         'concentrations': field_concentrations}
-
     lattice_config = make_lattice_config(**lattice_config_kwargs)
 
     # declare the hierarchy
@@ -467,8 +483,7 @@ def test_bioscrape_cobra_lattice(total_time=2500):
             agent_id: {
                 COMPOSER_KEY: {
                     'type': BioscrapeCOBRAdeterministic,
-                    'config': spatial_config}
-            }}}
+                    'config': spatial_config}}}}
 
     # make experiment with helper function compose_experiment()
     experiment_settings = {
@@ -478,7 +493,10 @@ def test_bioscrape_cobra_lattice(total_time=2500):
         hierarchy=hierarchy,
         settings=experiment_settings)
 
+    # run the experiment
     spatial_experiment.update(total_time)
+
+    # retrieve the data
     data = spatial_experiment.emitter.get_data_unitless()
     return data
 
@@ -488,8 +506,7 @@ def run_bioscrape_cobra_deterministic_lattice(
         out_dir='out'
 ):
     output = test_bioscrape_cobra_lattice(
-        total_time=total_time
-    )
+        total_time=total_time)
 
     # multigen plots
     plot_settings = {
@@ -524,8 +541,7 @@ def run_bioscrape_cobra_deterministic_lattice(
         'filename': 'spatial_tags'}
     plot_tags(
         data=tags_data,
-        plot_config=tags_config
-    )
+        plot_config=tags_config)
 
 
 def main():
@@ -549,7 +565,7 @@ def main():
     if args.divide:
         div_out_dir = os.path.join(out_dir, 'division')
         run_bioscrape_cobra_deterministic_division(
-            total_time=3000,
+            total_time=4000,
             out_dir=div_out_dir)
 
     if args.fields:

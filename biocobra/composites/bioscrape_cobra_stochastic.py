@@ -310,8 +310,31 @@ class BioscrapeCOBRAstochastic(Composer):
 
 
 
-# plot variables config
+# test configs
 
+# divide config
+agent_id = '1'
+outer_path = ('agents', agent_id,)
+divide_config = {
+    'divide_on': True,
+    'agent_id': agent_id,
+    'agents_path': ('..', '..', 'agents',),
+    'fields_path': ('..', '..', 'fields',),
+    'dimensions_path': ('..', '..', 'dimensions',),
+    'local_fields': {}}
+
+# spatial config
+spatial_config = dict(divide_config)
+spatial_config['fields_on'] = True
+
+# lattice environment spatial config
+INITIAL_GLC = 1e0
+INITIAL_LAC = 1e0
+BOUNDS = [20, 20]
+NBINS = [10, 10]
+DEPTH = 20
+
+# plotting
 plot_variables_list_stochastic = [
     ('species', GLUCOSE_EXTERNAL),
     ('species', LACTOSE_EXTERNAL),
@@ -342,8 +365,8 @@ def test_bioscrape_cobra_stochastic(
     # get initial state
     initial_state = bioscrape_composer.initial_state()
     initial_state['boundary']['external'] = {
-        GLUCOSE_EXTERNAL: 1e0,
-        LACTOSE_EXTERNAL: 1e0}
+        GLUCOSE_EXTERNAL: INITIAL_GLC,
+        LACTOSE_EXTERNAL: INITIAL_LAC}
 
     # make the experiment
     bioscrape_composite = bioscrape_composer.generate()
@@ -380,18 +403,6 @@ def run_bioscrape_cobra_stochastic(
                            filename='simulation_output')
 
 
-# divide config
-agent_id = '1'
-outer_path = ('agents', agent_id,)
-divide_config = {
-    'divide_on': True,
-    'agent_id': agent_id,
-    'agents_path': ('..', '..', 'agents',),
-    'fields_path': ('..', '..', 'fields',),
-    'dimensions_path': ('..', '..', 'dimensions',),
-    'local_fields': {}}
-
-
 def test_bioscrape_cobra_stochastic_divide(
     total_time=3000,
     external_volume=1e-12 * units.L,
@@ -405,8 +416,8 @@ def test_bioscrape_cobra_stochastic_divide(
     # get initial state
     initial_state = bioscrape_composer.initial_state()
     initial_state['boundary']['external'] = {
-        GLUCOSE_EXTERNAL: 1e0,
-        LACTOSE_EXTERNAL: 1e0}
+        GLUCOSE_EXTERNAL: INITIAL_GLC,
+        LACTOSE_EXTERNAL: INITIAL_LAC}
     initial_state = {
         'agents': {
             agent_id: initial_state}}
@@ -447,22 +458,6 @@ def run_bioscrape_cobra_stochastic_division(
         output, plot_settings, out_dir, 'division_multigen')
 
 
-# spatial test config
-spatial_config = dict(divide_config)
-spatial_config['fields_on'] = True
-# spatial_config = {
-#     'divide_on': True,
-#     'fields_on': True,
-#     'agent_id': agent_id,
-#     'agents_path': ('..', '..', 'agents',),
-#     'fields_path': ('..', '..', 'fields',),
-#     'dimensions_path': ('..', '..', 'dimensions',)}
-
-# lattice environment test config
-BOUNDS = [20, 20]
-NBINS = [10, 10]
-DEPTH = 20
-
 def test_bioscrape_cobra_lattice(
     total_time=2500
 ):
@@ -473,8 +468,8 @@ def test_bioscrape_cobra_lattice(
     # get initial state
     initial_state = fields_composer.initial_state()
     initial_state['boundary']['external'] = {
-        GLUCOSE_EXTERNAL: 1e0,
-        LACTOSE_EXTERNAL: 1e0}
+        GLUCOSE_EXTERNAL: INITIAL_GLC,
+        LACTOSE_EXTERNAL: INITIAL_LAC}
 
     # initial agents
     initial_state = {
@@ -483,8 +478,8 @@ def test_bioscrape_cobra_lattice(
 
     # initial fields
     field_concentrations = {
-        GLUCOSE_EXTERNAL: 1e0,
-        LACTOSE_EXTERNAL: 1e0}
+        GLUCOSE_EXTERNAL: INITIAL_GLC,
+        LACTOSE_EXTERNAL: INITIAL_LAC}
 
     # configure lattice compartment
     lattice_config_kwargs = {
@@ -596,7 +591,7 @@ def main():
     if args.fields:
         field_out_dir = os.path.join(out_dir, 'field')
         run_bioscrape_cobra_stochastic_lattice(
-            total_time=15000,
+            total_time=10000,
             out_dir=field_out_dir)
 
 if __name__ == '__main__':
