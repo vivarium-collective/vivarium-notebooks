@@ -42,7 +42,7 @@ from vivarium_multibody.plots.snapshots import plot_tags
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-SBML_FILE_STOCHASTIC = 'lac_operon/LacOperon_stochastic.xml'
+SBML_FILE_STOCHASTIC = 'models/LacOperon_stochastic.xml'
 COBRA_TIMESTEP = 10
 BIOSCRAPE_TIMESTEP = 10
 
@@ -368,7 +368,7 @@ def test_bioscrape_cobra_stochastic(
     # run the experiment
     bioscrape_experiment.update(total_time)
 
-    # retrieve data
+    # retrieve models
     timeseries = bioscrape_experiment.emitter.get_timeseries()
     return timeseries
 
@@ -422,7 +422,7 @@ def test_bioscrape_cobra_stochastic_divide(
     # run the experiment
     bioscrape_experiment.update(total_time)
 
-    # retrieve data
+    # retrieve models
     timeseries = bioscrape_experiment.emitter.get_data_unitless()
     return timeseries
 
@@ -502,7 +502,7 @@ def test_bioscrape_cobra_lattice(
     # run the experiment
     spatial_experiment.update(total_time)
 
-    # retrieve data
+    # retrieve models
     data = spatial_experiment.emitter.get_data_unitless()
     return data
 
@@ -525,7 +525,7 @@ def run_bioscrape_cobra_stochastic_lattice(
     plot_agents_multigen(
         output, plot_settings, out_dir, 'spatial_multigen')
 
-    # format data for snapshots and tags plots
+    # format models for snapshots and tags plots
     agents, fields = format_snapshot_data(output)
 
     # snapshot plot

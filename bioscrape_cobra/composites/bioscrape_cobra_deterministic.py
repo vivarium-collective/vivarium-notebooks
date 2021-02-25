@@ -43,7 +43,7 @@ from vivarium_multibody.plots.snapshots import plot_tags
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-SBML_FILE_DETERMINISTIC = 'lac_operon/LacOperon_deterministic.xml'
+SBML_FILE_DETERMINISTIC = 'models/LacOperon_deterministic.xml'
 COBRA_TIMESTEP = 10
 BIOSCRAPE_TIMESTEP = 10
 
@@ -352,7 +352,7 @@ def test_bioscrape_cobra_deterministic(
     # run the experiment
     bioscrape_experiment.update(total_time)
 
-    # retrieve data
+    # retrieve models
     timeseries = bioscrape_experiment.emitter.get_timeseries()
     return timeseries
 
@@ -410,7 +410,7 @@ def test_bioscrape_cobra_deterministic_divide(
     # run the experiment
     bioscrape_experiment.update(total_time)
 
-    # retrieve the data
+    # retrieve the models
     output = bioscrape_experiment.emitter.get_data_unitless()
     return output
 
@@ -493,7 +493,7 @@ def test_bioscrape_cobra_lattice(
     # run the experiment
     spatial_experiment.update(total_time)
 
-    # retrieve the data
+    # retrieve the models
     data = spatial_experiment.emitter.get_data_unitless()
     return data
 

@@ -13,7 +13,7 @@ setup(
         'bioscrape_cobra',
         'bioscrape_cobra.processes',
         'bioscrape_cobra.composites',
-        'bioscrape_cobra.data',
+        'bioscrape_cobra.models',
     ],
     author='Eran Agmon, William Poole',
     author_email='',
