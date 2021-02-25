@@ -45,7 +45,7 @@ GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
 SBML_FILE_DETERMINISTIC = 'lac_operon/LacOperon_deterministic.xml'
 COBRA_TIMESTEP = 10
-BIOSCRAPE_TIMESTEP = 1
+BIOSCRAPE_TIMESTEP = 10
 
 # choose the SBML file and set other bioscrape parameters
 deterministic_bioscrape_config = {
@@ -99,6 +99,10 @@ schema_override = {
             'Lactose_external': {
                 '_divider': 'set',
                 '_updater': 'null'},
+            'Glucose_internal': {
+                '_divider': 'split'},
+            'Lactose_consumed': {
+                '_divider': 'split'},
         },
         'rates': {
             'k_dilution__': {
@@ -462,7 +466,9 @@ def test_bioscrape_cobra_lattice(
         'bounds': BOUNDS,
         'n_bins': NBINS,
         'depth': DEPTH,
-        'concentrations': field_concentrations}
+        'concentrations': field_concentrations,
+        'diffusion': 1e-1,
+        'time_step': COBRA_TIMESTEP}
     lattice_config = make_lattice_config(**lattice_config_kwargs)
 
     # declare the hierarchy
@@ -562,7 +568,7 @@ def main():
     if args.fields:
         field_out_dir = os.path.join(out_dir, 'field')
         run_bioscrape_cobra_deterministic_lattice(
-            total_time=3000,
+            total_time=10000,
             out_dir=field_out_dir)
 
 if __name__ == '__main__':
