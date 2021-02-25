@@ -29,7 +29,7 @@ from vivarium_multibody.composites.lattice import (
     Lattice, make_lattice_config)
 
 # local imports
-from biocobra.processes.flux_adaptor import (
+from bioscrape_cobra.processes.flux_adaptor import (
     DilutionFluxAdaptor, FluxAdaptor)
 
 # plots
