@@ -43,7 +43,7 @@ from vivarium_multibody.plots.snapshots import plot_tags
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-SBML_FILE_DETERMINISTIC = 'models/LacOperon_deterministic.xml'
+SBML_FILE_DETERMINISTIC = 'bioscrape_cobra/models/LacOperon_deterministic.xml'
 COBRA_TIMESTEP = 10
 BIOSCRAPE_TIMESTEP = 10
 
