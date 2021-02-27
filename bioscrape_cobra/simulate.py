@@ -72,7 +72,8 @@ plot_variables_list = [
 
 plot_variables_list_deterministic = [
     ('boundary', 'external', GLUCOSE_EXTERNAL),
-    ('boundary', 'external', LACTOSE_EXTERNAL)]
+    ('boundary', 'external', LACTOSE_EXTERNAL),
+    ('rates', 'k_dilution__',)]
 plot_variables_list_deterministic.extend(plot_variables_list)
 
 plot_variables_list_stochastic = [
@@ -104,11 +105,13 @@ def put_bioscrape_cobra_in_lattice(
         bounds=BOUNDS,
         n_bins=NBINS,
         depth=DEPTH,
-        agent_ids=[AGENT_ID],
+        agent_ids=None,
 ):
     """ configure lattice compartment
     :return: a hierarchy dict for compose_experiment to initialize
     """
+    if agent_ids is None:
+        agent_ids = [AGENT_ID]
     lattice_config_kwargs = {
         'bounds': bounds,
         'n_bins': n_bins,
@@ -149,6 +152,7 @@ def simulate_bioscrape_cobra(
     # get the composer and configuration
     if agent_ids is None:
         agent_ids = [AGENT_ID]
+
     if stochastic:
         biocobra_composer = BioscrapeCOBRAstochastic
         biocobra_config = get_bioscrape_cobra_config(
@@ -230,14 +234,18 @@ def main():
         os.makedirs(out_dir)
 
     parser = argparse.ArgumentParser(description='bioscrape_cobra')
-    parser.add_argument('--deterministic', '-d', action='store_true', default=False)
-    parser.add_argument('--stochastic', '-s', action='store_true', default=False)
+    parser.add_argument('--deterministic', '-a', action='store_true', default=False)
+    parser.add_argument('--stochastic', '-b', action='store_true', default=False)
+    parser.add_argument('--deterministic_divide', '-c', action='store_true', default=False)
+    parser.add_argument('--stochastic_divide', '-d', action='store_true', default=False)
+    parser.add_argument('--deterministic_spatial', '-e', action='store_true', default=False)
+    parser.add_argument('--stochastic_spatial', '-f', action='store_true', default=False)
     args = parser.parse_args()
 
     if args.deterministic:
         biocobra_out_dir = os.path.join(out_dir, 'deterministic')
         output = simulate_bioscrape_cobra(
-            total_time=100,
+            total_time=2000,
             output_type='timeseries')
 
         # plot output
@@ -249,6 +257,30 @@ def main():
             output, **variables_plot_config)
 
     if args.stochastic:
+        biocobra_out_dir = os.path.join(out_dir, 'stochastic')
+        output = simulate_bioscrape_cobra(
+            stochastic=True,
+            total_time=2000,
+            output_type='timeseries')
+
+        # plot output
+        variables_plot_config = {
+            'out_dir': biocobra_out_dir, 'filename': 'variables',
+            'row_height': 2, 'row_padding': 0.2, 'column_width': 10,
+            'variables': plot_variables_list_stochastic}
+        plot_variables(
+            output, **variables_plot_config)
+
+    if args.deterministic_divide:
+        pass
+
+    if args.stochastic_divide:
+        pass
+
+    if args.deterministic_spatial:
+        pass
+
+    if args.stochastic_spatial:
         pass
 
 
