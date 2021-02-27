@@ -28,7 +28,7 @@ from vivarium_multibody.plots.snapshots import (
 from vivarium_multibody.plots.snapshots import plot_tags
 
 # default variables, which can be varied by simulate_bioscrape_cobra
-DEFAULT_EXTERNAL_VOLUME = 1e-12 * units.L
+DEFAULT_EXTERNAL_VOLUME = 1e-13 * units.L
 DEFAULT_DIVIDE_THRESHOLD = 2000 * units.fg
 INITIAL_GLC = 1e0
 INITIAL_LAC = 1e0
@@ -84,10 +84,10 @@ plot_variables_list_stochastic.extend(plot_variables_list)
 def get_bioscrape_cobra_config(
         division=False,
         divide_threshold=DEFAULT_DIVIDE_THRESHOLD,
-        external_volume=DEFAULT_EXTERNAL_VOLUME,
 ):
     """ create a generic config dict for bioscrape_cobra composers """
     agent_id = INITIAL_AGENT_ID
+    external_volume = DEFAULT_EXTERNAL_VOLUME
 
     if division:
         config = {
@@ -296,9 +296,25 @@ def main():
             'division_multigen')
 
 
-
     if args.stochastic_divide:
-        pass
+        biocobra_out_dir = os.path.join(out_dir, 'stochastic_divide')
+        output = simulate_bioscrape_cobra(
+            stochastic=True,
+            division=True,
+            total_time=4000,
+            output_type='unitless')
+
+        # multigen plot
+        plot_settings = {
+            'skip_paths': [
+                ('internal_counts',),
+                ('cobra_external',)],
+            'remove_zeros': False}
+        plot_agents_multigen(
+            output,
+            plot_settings,
+            biocobra_out_dir,
+            'division_multigen')
 
     if args.deterministic_spatial:
         pass
