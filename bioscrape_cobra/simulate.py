@@ -30,8 +30,13 @@ from vivarium_multibody.plots.snapshots import plot_tags
 # default variables, which can be varied by simulate_bioscrape_cobra
 DEFAULT_EXTERNAL_VOLUME = 1e-12 * units.L
 DEFAULT_DIVIDE_THRESHOLD = 2000 * units.fg
+INITIAL_GLC = 1e0
+INITIAL_LAC = 1e0
+BOUNDS = [20, 20]
+NBINS = [10, 10]
+DEPTH = 20
 
-# global variables
+# fixed global variables
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
 SBML_FILE_DETERMINISTIC = 'bioscrape_cobra/LacOperon_deterministic.xml'
@@ -40,10 +45,10 @@ COBRA_TIMESTEP = 10
 BIOSCRAPE_TIMESTEP = 10
 
 # divide config
-AGENT_ID = '1'
+INITIAL_AGENT_ID = '1'
 divide_config = {
     'divide_on': True,
-    'AGENT_ID': AGENT_ID,
+    'agent_id': INITIAL_AGENT_ID,
     'agents_path': ('..', '..', 'agents',),
     'fields_path': ('..', '..', 'fields',),
     'dimensions_path': ('..', '..', 'dimensions',),
@@ -52,13 +57,6 @@ divide_config = {
 # spatial config
 spatial_config = dict(divide_config)
 spatial_config['fields_on'] = True
-
-# lattice config
-INITIAL_GLC = 1e0
-INITIAL_LAC = 1e0
-BOUNDS = [20, 20]
-NBINS = [10, 10]
-DEPTH = 20
 
 # plotting
 plot_variables_list = [
@@ -89,12 +87,23 @@ def get_bioscrape_cobra_config(
         external_volume=DEFAULT_EXTERNAL_VOLUME,
 ):
     """ create a generic config dict for bioscrape_cobra composers """
-    config = {
-        'local_fields': {
-            'bin_volume': external_volume}}
+    agent_id = INITIAL_AGENT_ID
+
     if division:
-        config['divide_condition'] = {
-            'threshold': divide_threshold}
+        config = {
+            'divide_on': True,
+            'agent_id': agent_id,
+            'agents_path': ('..', '..', 'agents',),
+            'fields_path': ('..', '..', 'fields',),
+            'dimensions_path': ('..', '..', 'dimensions',),
+            'local_fields': {},
+            'divide_condition': {
+                'threshold': divide_threshold}}
+    else:
+        config = {
+            'local_fields': {
+                'bin_volume': external_volume}}
+
     return config
 
 
@@ -110,8 +119,7 @@ def put_bioscrape_cobra_in_lattice(
     """ configure lattice compartment
     :return: a hierarchy dict for compose_experiment to initialize
     """
-    if agent_ids is None:
-        agent_ids = [AGENT_ID]
+    agent_id = INITIAL_AGENT_ID
     lattice_config_kwargs = {
         'bounds': bounds,
         'n_bins': n_bins,
@@ -130,8 +138,7 @@ def put_bioscrape_cobra_in_lattice(
             agent_id: {
                 COMPOSER_KEY: {
                     'type': biocobra_composer,
-                    'config': biocobra_config}}
-            for agent_id in agent_ids}}
+                    'config': biocobra_config}}}}
 
     return hierarchy
 
@@ -143,15 +150,13 @@ def simulate_bioscrape_cobra(
         initial_glucose=1e0,
         initial_lactose=1e0,
         divide_threshold=2000*units.fg,
-        agent_ids=None,
         total_time=100,
         output_type=None,
 ):
     """ Simulation function for BioscrapeCOBRA """
+    agent_id = INITIAL_AGENT_ID
 
     # get the composer and configuration
-    if agent_ids is None:
-        agent_ids = [AGENT_ID]
 
     if stochastic:
         biocobra_composer = BioscrapeCOBRAstochastic
@@ -176,20 +181,21 @@ def simulate_bioscrape_cobra(
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
 
-    if spatial:
-        # place the biocobra_composer in a hierarchy with lattice
-        hierarchy = put_bioscrape_cobra_in_lattice(
-            biocobra_composer, biocobra_config)
-
-    elif division:
-        # place the biocobra_composer in an embedded hierarchy under ('agents', AGENT_ID)
+    if division:
+        # place the biocobra_composer in an embedded hierarchy under ('agents', agent_id)
         hierarchy = {
             'agents': {
                 agent_id: {
                     COMPOSER_KEY: {
                         'type': biocobra_composer,
-                        'config': biocobra_config}}
-                for agent_id in agent_ids}}
+                        'config': biocobra_config}}}}
+        initial_state = {
+            'agents': {
+                agent_id: initial_state}}
+
+    elif spatial:
+        hierarchy = put_bioscrape_cobra_in_lattice(
+            biocobra_composer, biocobra_config)
     else:
         hierarchy = {
             COMPOSER_KEY: {
@@ -212,7 +218,6 @@ def simulate_bioscrape_cobra(
         return biocobra_experiment.emitter.get_timeseries()
     if output_type == 'unitless':
         return biocobra_experiment.emitter.get_data_unitless()
-
     return biocobra_experiment
 
 
@@ -256,7 +261,7 @@ def main():
         plot_variables(
             output, **variables_plot_config)
 
-    if args.stochastic:
+    elif args.stochastic:
         biocobra_out_dir = os.path.join(out_dir, 'stochastic')
         output = simulate_bioscrape_cobra(
             stochastic=True,
@@ -272,7 +277,25 @@ def main():
             output, **variables_plot_config)
 
     if args.deterministic_divide:
-        pass
+        biocobra_out_dir = os.path.join(out_dir, 'deterministic_divide')
+        output = simulate_bioscrape_cobra(
+            division=True,
+            total_time=4000,
+            output_type='unitless')
+
+        # multigen plot
+        plot_settings = {
+            'skip_paths': [
+                ('internal_counts',),
+                ('cobra_external',)],
+            'remove_zeros': True}
+        plot_agents_multigen(
+            output,
+            plot_settings,
+            biocobra_out_dir,
+            'division_multigen')
+
+
 
     if args.stochastic_divide:
         pass
