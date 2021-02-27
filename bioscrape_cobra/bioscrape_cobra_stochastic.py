@@ -1,4 +1,5 @@
 """
+===================================
 Stochastic Bioscrape/COBRA model
 """
 
@@ -15,7 +16,7 @@ from vivarium.core.experiment import Experiment
 from vivarium.core.process import Composer
 from vivarium.library.units import units
 from vivarium.core.composition import (
-    compose_experiment, EXPERIMENT_OUT_DIR, COMPOSER_KEY)
+    compose_experiment, COMPOSER_KEY)
 
 # vivarium-bioscrape imports
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
@@ -30,7 +31,7 @@ from vivarium_multibody.composites.lattice import (
     Lattice, make_lattice_config)
 
 # local imports
-from bioscrape_cobra.processes.flux_adaptor import AverageFluxAdaptor
+from bioscrape_cobra.flux_adaptor import AverageFluxAdaptor
 
 # plots
 from vivarium.plots.simulation_output import (
@@ -42,9 +43,13 @@ from vivarium_multibody.plots.snapshots import plot_tags
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-SBML_FILE_STOCHASTIC = 'bioscrape_cobra/models/LacOperon_stochastic.xml'
+SBML_FILE_STOCHASTIC = 'bioscrape_cobra/LacOperon_stochastic.xml'
 COBRA_TIMESTEP = 10
 BIOSCRAPE_TIMESTEP = 10
+
+# set mass threshold for division
+divide_config = {
+    'threshold': 2000 * units.fg}
 
 # choose the SBML file and set other bioscrape parameters
 stochastic_bioscrape_config = {
@@ -89,10 +94,6 @@ strip_units_config = {
         # 'biomass': units.mmolar,
         'mass': units.ug}}
 
-# set mass threshold for division
-divide_config = {
-    'threshold': 2000 * units.fg}
-
 # Here we override the default ports schema of the Biomass species and the k_dilution rate in Bioscrape.
 # This is done so they can be set by the Derivers connected to mass and mass flux from Cobra.
 schema_override = {
@@ -109,10 +110,7 @@ schema_override = {
                 '_updater': 'null'},
             'dna_Lac_Operon': {
                 '_divider': 'set'}},
-        'rates': {
-            'k_dilution__': {
-                '_emit': True,  # k_dilution should be emitted so it can be plotted
-                '_updater': 'set'}}}}
+    }}
 
 
 # The stochastic Bioscrape/COBRA composer
@@ -122,7 +120,7 @@ class BioscrapeCOBRAstochastic(Composer):
         'cobra_timestep': COBRA_TIMESTEP,
         'divide_on': False,  # is division turned on?
         'fields_on': False,  # are spatial dynamics used?
-        'characteristic_external_volume': 10 * units.fL,  # converts external nutrient concentrations to counts
+        'characteristic_external_volume': 1 * units.fL,  # converts external nutrient concentrations to counts
 
         # process configs
         'bioscrape': stochastic_bioscrape_config,
@@ -305,7 +303,7 @@ class BioscrapeCOBRAstochastic(Composer):
 # divide config
 agent_id = '1'
 outer_path = ('agents', agent_id,)
-divide_config = {
+division_config = {
     'divide_on': True,
     'agent_id': agent_id,
     'agents_path': ('..', '..', 'agents',),
@@ -314,7 +312,7 @@ divide_config = {
     'local_fields': {}}
 
 # spatial config
-spatial_config = dict(divide_config)
+spatial_config = dict(division_config)
 spatial_config['fields_on'] = True
 
 # lattice environment spatial config
@@ -341,7 +339,7 @@ plot_variables_list_stochastic = [
 
 def test_bioscrape_cobra_stochastic(
     total_time=100,
-    external_volume=1e-12 * units.L,
+    external_volume=1e-13 * units.L,
 ):
     # configure
     biocobra_config = {
@@ -394,13 +392,13 @@ def run_bioscrape_cobra_stochastic(
 
 def test_bioscrape_cobra_stochastic_divide(
     total_time=3000,
-    external_volume=1e-12 * units.L,
+    external_volume=1e-13 * units.L,
 ):
     # configure
-    divide_config['local_fields']['bin_volume'] = external_volume
+    division_config['local_fields']['bin_volume'] = external_volume
 
     # make the composer
-    bioscrape_composer = BioscrapeCOBRAstochastic(divide_config)
+    bioscrape_composer = BioscrapeCOBRAstochastic(division_config)
 
     # get initial state
     initial_state = bioscrape_composer.initial_state()
@@ -555,7 +553,7 @@ def run_bioscrape_cobra_stochastic_lattice(
 
 
 def main():
-    out_dir = os.path.join(EXPERIMENT_OUT_DIR, 'bioscrape_cobra_stochastic')
+    out_dir = os.path.join('out', 'bioscrape_cobra_stochastic')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 

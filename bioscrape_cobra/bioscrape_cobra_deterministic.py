@@ -1,5 +1,7 @@
 """
+===================================
 Deterministic Bioscrape/COBRA model
+===================================
 """
 
 import os
@@ -14,7 +16,7 @@ from vivarium.core.experiment import Experiment
 from vivarium.core.process import Composer
 from vivarium.library.units import units
 from vivarium.core.composition import (
-    compose_experiment, EXPERIMENT_OUT_DIR, COMPOSER_KEY)
+    compose_experiment, COMPOSER_KEY)
 
 # vivarium-bioscrape imports
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
@@ -29,7 +31,7 @@ from vivarium_multibody.composites.lattice import (
     Lattice, make_lattice_config)
 
 # local imports
-from bioscrape_cobra.processes.flux_adaptor import (
+from bioscrape_cobra.flux_adaptor import (
     DilutionFluxAdaptor, FluxAdaptor)
 
 # plots
@@ -43,7 +45,7 @@ from vivarium_multibody.plots.snapshots import plot_tags
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-SBML_FILE_DETERMINISTIC = 'bioscrape_cobra/models/LacOperon_deterministic.xml'
+SBML_FILE_DETERMINISTIC = 'bioscrape_cobra/LacOperon_deterministic.xml'
 COBRA_TIMESTEP = 10
 BIOSCRAPE_TIMESTEP = 10
 
@@ -285,7 +287,7 @@ class BioscrapeCOBRAdeterministic(Composer):
 # divide config
 agent_id = '1'
 outer_path = ('agents', agent_id,)
-divide_config = {
+division_config = {
     'divide_on': True,
     'agent_id': agent_id,
     'agents_path': ('..', '..', 'agents',),
@@ -294,7 +296,7 @@ divide_config = {
     'local_fields': {}}
 
 # spatial config
-spatial_config = dict(divide_config)
+spatial_config = dict(division_config)
 spatial_config['fields_on'] = True
 
 # lattice environment spatial config
@@ -384,10 +386,10 @@ def test_bioscrape_cobra_deterministic_divide(
 ):
 
     # configure
-    divide_config['local_fields']['bin_volume'] = external_volume
+    division_config['local_fields']['bin_volume'] = external_volume
 
     # make the composer
-    bioscrape_composer = BioscrapeCOBRAdeterministic(divide_config)
+    bioscrape_composer = BioscrapeCOBRAdeterministic(division_config)
 
     # get initial state
     initial_state = bioscrape_composer.initial_state()
@@ -543,7 +545,7 @@ def run_bioscrape_cobra_deterministic_lattice(
 
 def main():
     out_dir = os.path.join(
-        EXPERIMENT_OUT_DIR, 'bioscrape_cobra_deterministic')
+        'out', 'bioscrape_cobra_deterministic')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
