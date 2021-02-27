@@ -131,7 +131,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         'local_fields': {},
 
         # division config
-        'agent_id': np.random.randint(0, 100),
+        'AGENT_ID': np.random.randint(0, 100),
         'divide_condition': divide_config,
         'boundary_path': ('boundary',),
         'agents_path': ('agents',),
@@ -177,7 +177,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         if config['divide_on']:
             # division config
             daughter_path = config['daughter_path']
-            agent_id = config['agent_id']
+            agent_id = config['AGENT_ID']
             division_config = dict(
                 config.get('division', {}),
                 daughter_path=daughter_path,
@@ -289,7 +289,7 @@ agent_id = '1'
 outer_path = ('agents', agent_id,)
 division_config = {
     'divide_on': True,
-    'agent_id': agent_id,
+    'AGENT_ID': agent_id,
     'agents_path': ('..', '..', 'agents',),
     'fields_path': ('..', '..', 'fields',),
     'dimensions_path': ('..', '..', 'dimensions',),
