@@ -20,8 +20,7 @@ from bioscrape_cobra.bioscrape_cobra_stochastic import BioscrapeCOBRAstochastic,
 from bioscrape_cobra.bioscrape_cobra_deterministic import BioscrapeCOBRAdeterministic
 
 # plotting
-from vivarium.plots.simulation_output import (
-    plot_simulation_output, plot_variables)
+from vivarium.plots.simulation_output import plot_variables
 from vivarium.plots.agents_multigen import plot_agents_multigen
 from vivarium_multibody.plots.snapshots import (
     format_snapshot_data, plot_snapshots)
@@ -123,6 +122,7 @@ def put_bioscrape_cobra_in_lattice(
         biocobra_composer,
         biocobra_config,
         field_concentrations=None,
+        diffusion_rate=1e-1,
         bounds=BOUNDS,
         n_bins=NBINS,
         depth=DEPTH,
@@ -141,7 +141,7 @@ def put_bioscrape_cobra_in_lattice(
         'n_bins': n_bins,
         'depth': depth,
         'concentrations': field_concentrations,
-        'diffusion': 1e-1,
+        'diffusion': diffusion_rate,
         'time_step': COBRA_TIMESTEP}
     lattice_config = make_lattice_config(**lattice_config_kwargs)
 
@@ -164,8 +164,9 @@ def simulate_bioscrape_cobra(
         spatial=False,
         initial_glucose=1e0,
         initial_lactose=1e0,
+        diffusion_rate=1e-1,
         divide_threshold=2000*units.fg,
-        halt_threshold=10,
+        halt_threshold=32,
         total_time=100,
         output_type=None,
 ):
@@ -201,6 +202,7 @@ def simulate_bioscrape_cobra(
         hierarchy = put_bioscrape_cobra_in_lattice(
             biocobra_composer=biocobra_composer,
             biocobra_config=biocobra_config,
+            diffusion_rate=diffusion_rate,
             field_concentrations=field_concentrations)
 
         initial_state = {
@@ -229,7 +231,9 @@ def simulate_bioscrape_cobra(
     experiment_settings = {
         'initial_state': initial_state,
         # 'display_info': False,
-        'experiment_id': f"biocobra_{division}_{stochastic}_{spatial}"}
+        'experiment_id': f"{'stochastic' if stochastic else 'deterministic'}_"
+                         f"{'division' if division else ''}_"
+                         f"{'spatial' if spatial else ''}"}
     biocobra_experiment = compose_experiment(
         hierarchy=hierarchy,
         settings=experiment_settings)
@@ -355,16 +359,15 @@ def main():
         output = simulate_bioscrape_cobra(
             division=True,
             spatial=True,
-            total_time=100,
+            total_time=6000,
             output_type='unitless')
 
         # multigen plots
         plot_settings = {
             'skip_paths': [
-                # ('external',),
                 ('internal_counts',),
-                ('cobra_external',),
-            ],
+                ('cobra_external',)],
+            'n_snapshots': 5,
             'remove_zeros': True}
         plot_agents_multigen(
             output, plot_settings, biocobra_out_dir, 'spatial_multigen')
@@ -384,8 +387,8 @@ def main():
             'config': {'bounds': BOUNDS}}
         tags_config = {
             'tagged_molecules': [
-                ('species', 'protein_Lactose_Permease',),
-            ],
+                ('species', 'protein_Lactose_Permease',)],
+            'n_snapshots': 5,
             'out_dir': biocobra_out_dir,
             'filename': 'spatial_tags'}
         plot_tags(
@@ -393,7 +396,46 @@ def main():
             plot_config=tags_config)
 
     if args.stochastic_spatial:
-        pass
+        biocobra_out_dir = os.path.join(out_dir, 'stochastic_spatial')
+        output = simulate_bioscrape_cobra(
+            stochastic=True,
+            division=True,
+            spatial=True,
+            total_time=10000,
+            output_type='unitless')
+
+        # multigen plots
+        plot_settings = {
+            'skip_paths': [
+                ('internal_counts',),
+                ('cobra_external',)],
+            'n_snapshots': 5,
+            'remove_zeros': True}
+        plot_agents_multigen(
+            output, plot_settings, biocobra_out_dir, 'spatial_multigen')
+
+        agents, fields = format_snapshot_data(output)
+        plot_snapshots(
+            bounds=BOUNDS,
+            agents=agents,
+            fields=fields,
+            include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
+            out_dir=biocobra_out_dir,
+            filename='spatial_snapshots')
+
+        tags_data = {
+            'agents': agents,
+            'fields': fields,
+            'config': {'bounds': BOUNDS}}
+        tags_config = {
+            'tagged_molecules': [
+                ('species', 'protein_Lactose_Permease',)],
+            'n_snapshots': 5,
+            'out_dir': biocobra_out_dir,
+            'filename': 'spatial_tags'}
+        plot_tags(
+            data=tags_data,
+            plot_config=tags_config)
 
 
 if __name__ == '__main__':
