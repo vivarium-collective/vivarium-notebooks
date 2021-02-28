@@ -150,39 +150,33 @@ def simulate_bioscrape_cobra(
         initial_glucose=1e0,
         initial_lactose=1e0,
         divide_threshold=2000*units.fg,
+        halt_threshold=10,
         total_time=100,
         output_type=None,
 ):
     """ Simulation function for BioscrapeCOBRA """
     agent_id = INITIAL_AGENT_ID
 
-    # get the composer and configuration
-
+    # get the BioscrapeCOBRA composer
     if stochastic:
         biocobra_composer = BioscrapeCOBRAstochastic
-        biocobra_config = get_bioscrape_cobra_config(
-            division=division,
-            divide_threshold=divide_threshold)
-
-        # get initial state from composer
-        composer_instance = biocobra_composer(biocobra_config)
-        initial_state = composer_instance.initial_state()
-
     else:
         biocobra_composer = BioscrapeCOBRAdeterministic
-        biocobra_config = get_bioscrape_cobra_config(
-            division=division,
-            divide_threshold=divide_threshold)
 
-        # get initial state from composer
-        composer_instance = biocobra_composer(biocobra_config)
-        initial_state = composer_instance.initial_state()
-        initial_state['boundary']['external'] = {
-            GLUCOSE_EXTERNAL: initial_glucose,
-            LACTOSE_EXTERNAL: initial_lactose}
+    # make a configconfig
+    biocobra_config = get_bioscrape_cobra_config(
+        division=division,
+        divide_threshold=divide_threshold)
 
+    # initial state from composer
+    composer_instance = biocobra_composer(biocobra_config)
+    initial_state = composer_instance.initial_state()
+    initial_state['boundary']['external'] = {
+        GLUCOSE_EXTERNAL: initial_glucose,
+        LACTOSE_EXTERNAL: initial_lactose}
+
+    # division requires the agent to be embedded in a hierarchy
     if division:
-        # place the biocobra_composer in an embedded hierarchy under ('agents', agent_id)
         hierarchy = {
             'agents': {
                 agent_id: {
@@ -193,6 +187,7 @@ def simulate_bioscrape_cobra(
             'agents': {
                 agent_id: initial_state}}
 
+    # spatial places the agent in a hierarchy with a Lattice composite in the environment
     elif spatial:
         hierarchy = put_bioscrape_cobra_in_lattice(
             biocobra_composer, biocobra_config)
@@ -202,16 +197,27 @@ def simulate_bioscrape_cobra(
                 'type': biocobra_composer,
                 'config': biocobra_config}}
 
-    # make experiment with helper function compose_experiment()
+    # make the experiment with helper function compose_experiment
     experiment_settings = {
         'initial_state': initial_state,
-        'experiment_id': f"{division} {stochastic} {spatial}"}
+        # 'display_info': False,
+        'experiment_id': f"biocobra_{division}_{stochastic}_{spatial}"}
     biocobra_experiment = compose_experiment(
         hierarchy=hierarchy,
         settings=experiment_settings)
 
     # run the experiment
-    biocobra_experiment.update(total_time)
+    if division:
+        # terminate upon reaching total_time or halt_threshold
+        time = 0
+        sim_step = 1000
+        n_agents = len(biocobra_experiment.state.get_value()['agents'])
+        while n_agents < halt_threshold and time <= total_time:
+            biocobra_experiment.update(sim_step)
+            time += sim_step
+            n_agents = len(biocobra_experiment.state.get_value()['agents'])
+    else:
+        biocobra_experiment.update(total_time)
 
     # retrieve the data
     if output_type == 'timeseries':
@@ -261,7 +267,7 @@ def main():
         plot_variables(
             output, **variables_plot_config)
 
-    elif args.stochastic:
+    if args.stochastic:
         biocobra_out_dir = os.path.join(out_dir, 'stochastic')
         output = simulate_bioscrape_cobra(
             stochastic=True,
@@ -280,7 +286,7 @@ def main():
         biocobra_out_dir = os.path.join(out_dir, 'deterministic_divide')
         output = simulate_bioscrape_cobra(
             division=True,
-            total_time=4000,
+            total_time=6000,
             output_type='unitless')
 
         # multigen plot
@@ -295,13 +301,12 @@ def main():
             biocobra_out_dir,
             'division_multigen')
 
-
     if args.stochastic_divide:
         biocobra_out_dir = os.path.join(out_dir, 'stochastic_divide')
         output = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
-            total_time=4000,
+            total_time=6000,
             output_type='unitless')
 
         # multigen plot
@@ -317,7 +322,47 @@ def main():
             'division_multigen')
 
     if args.deterministic_spatial:
-        pass
+
+        biocobra_out_dir = os.path.join(out_dir, 'deterministic_spatial')
+        output = simulate_bioscrape_cobra(
+            division=True,
+            spatial=True,
+            total_time=100,
+            output_type='unitless')
+
+        # multigen plots
+        plot_settings = {
+            'skip_paths': [
+                # ('external',),
+                ('internal_counts',),
+                ('cobra_external',),
+            ],
+            'remove_zeros': True}
+        plot_agents_multigen(
+            output, plot_settings, biocobra_out_dir, 'spatial_multigen')
+
+        agents, fields = format_snapshot_data(output)
+        plot_snapshots(
+            bounds=BOUNDS,
+            agents=agents,
+            fields=fields,
+            include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
+            out_dir=biocobra_out_dir,
+            filename='spatial_snapshots')
+
+        tags_data = {
+            'agents': agents,
+            'fields': fields,
+            'config': {'bounds': BOUNDS}}
+        tags_config = {
+            'tagged_molecules': [
+                ('species', 'protein_Lactose_Permease',),
+            ],
+            'out_dir': biocobra_out_dir,
+            'filename': 'spatial_tags'}
+        plot_tags(
+            data=tags_data,
+            plot_config=tags_config)
 
     if args.stochastic_spatial:
         pass
