@@ -173,21 +173,23 @@ def simulate_bioscrape_cobra(
     """ Simulation function for BioscrapeCOBRA """
     agent_id = INITIAL_AGENT_ID
 
-    # get the BioscrapeCOBRA composer
-    if stochastic:
-        biocobra_composer = BioscrapeCOBRAstochastic
-    else:
-        biocobra_composer = BioscrapeCOBRAdeterministic
-
     # make the config
     biocobra_config = get_bioscrape_cobra_config(
         spatial=spatial,
         division=division,
         divide_threshold=divide_threshold)
 
-    # initial state from composer
-    composer_instance = biocobra_composer(biocobra_config)
-    initial_state = composer_instance.initial_state()
+    # get the BioscrapeCOBRA composer
+    if stochastic:
+        biocobra_composer = BioscrapeCOBRAstochastic(biocobra_config)
+    else:
+        biocobra_composer = BioscrapeCOBRAdeterministic(biocobra_config)
+
+    # make the composite
+    biocobra_composite = biocobra_composer.generate()
+
+    # get initial state
+    initial_state = biocobra_composite.initial_state()
     initial_state['boundary']['external'] = {
         GLUCOSE_EXTERNAL: initial_glucose,
         LACTOSE_EXTERNAL: initial_lactose}
@@ -198,12 +200,16 @@ def simulate_bioscrape_cobra(
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
 
-        # spatial places the agent in a hierarchy with a Lattice composite in the environment
-        hierarchy = put_bioscrape_cobra_in_lattice(
-            biocobra_composer=biocobra_composer,
-            biocobra_config=biocobra_config,
-            diffusion_rate=diffusion_rate,
-            field_concentrations=field_concentrations)
+        lattice_config_kwargs = {
+            'bounds': bounds,
+            'n_bins': n_bins,
+            'depth': depth,
+            'concentrations': field_concentrations,
+            'diffusion': diffusion_rate,
+            'time_step': COBRA_TIMESTEP}
+        lattice_config = make_lattice_config(**lattice_config_kwargs)
+
+        lattice_composer = Lattice(lattice_config)
 
         initial_state = {
             'agents': {
