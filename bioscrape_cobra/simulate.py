@@ -82,6 +82,7 @@ plot_variables_list_stochastic.extend(plot_variables_list)
 
 # helper functions
 def get_bioscrape_cobra_config(
+        spatial=False,
         division=False,
         divide_threshold=DEFAULT_DIVIDE_THRESHOLD,
 ):
@@ -89,7 +90,18 @@ def get_bioscrape_cobra_config(
     agent_id = INITIAL_AGENT_ID
     external_volume = DEFAULT_EXTERNAL_VOLUME
 
-    if division:
+    if spatial:
+        config = {
+            'divide_on': True,
+            'fields_on': True,
+            'agent_id': agent_id,
+            'agents_path': ('..', '..', 'agents',),
+            'fields_path': ('..', '..', 'fields',),
+            'dimensions_path': ('..', '..', 'dimensions',),
+            'local_fields': {},
+            'divide_condition': {
+                'threshold': divide_threshold}}
+    elif division:
         config = {
             'divide_on': True,
             'agent_id': agent_id,
@@ -110,7 +122,7 @@ def get_bioscrape_cobra_config(
 def put_bioscrape_cobra_in_lattice(
         biocobra_composer,
         biocobra_config,
-        field_concentrations,
+        field_concentrations=None,
         bounds=BOUNDS,
         n_bins=NBINS,
         depth=DEPTH,
@@ -119,6 +131,10 @@ def put_bioscrape_cobra_in_lattice(
     """ configure lattice compartment
     :return: a hierarchy dict for compose_experiment to initialize
     """
+    if field_concentrations is None:
+        field_concentrations = {
+            GLUCOSE_EXTERNAL: INITIAL_GLC,
+            LACTOSE_EXTERNAL: INITIAL_LAC}
     agent_id = INITIAL_AGENT_ID
     lattice_config_kwargs = {
         'bounds': bounds,
@@ -139,7 +155,6 @@ def put_bioscrape_cobra_in_lattice(
                 COMPOSER_KEY: {
                     'type': biocobra_composer,
                     'config': biocobra_config}}}}
-
     return hierarchy
 
 
@@ -163,8 +178,9 @@ def simulate_bioscrape_cobra(
     else:
         biocobra_composer = BioscrapeCOBRAdeterministic
 
-    # make a configconfig
+    # make the config
     biocobra_config = get_bioscrape_cobra_config(
+        spatial=spatial,
         division=division,
         divide_threshold=divide_threshold)
 
@@ -175,8 +191,24 @@ def simulate_bioscrape_cobra(
         GLUCOSE_EXTERNAL: initial_glucose,
         LACTOSE_EXTERNAL: initial_lactose}
 
-    # division requires the agent to be embedded in a hierarchy
-    if division:
+    # make the hierarchy
+    if spatial:
+        field_concentrations = {
+            GLUCOSE_EXTERNAL: initial_glucose,
+            LACTOSE_EXTERNAL: initial_lactose}
+
+        # spatial places the agent in a hierarchy with a Lattice composite in the environment
+        hierarchy = put_bioscrape_cobra_in_lattice(
+            biocobra_composer=biocobra_composer,
+            biocobra_config=biocobra_config,
+            field_concentrations=field_concentrations)
+
+        initial_state = {
+            'agents': {
+                agent_id: initial_state}}
+
+    elif division:
+        # division requires the agent to be embedded in a hierarchy
         hierarchy = {
             'agents': {
                 agent_id: {
@@ -187,10 +219,6 @@ def simulate_bioscrape_cobra(
             'agents': {
                 agent_id: initial_state}}
 
-    # spatial places the agent in a hierarchy with a Lattice composite in the environment
-    elif spatial:
-        hierarchy = put_bioscrape_cobra_in_lattice(
-            biocobra_composer, biocobra_config)
     else:
         hierarchy = {
             COMPOSER_KEY: {
