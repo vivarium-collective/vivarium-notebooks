@@ -3,7 +3,7 @@
 Stochastic Bioscrape/COBRA model
 ================================
 """
-
+import os
 import numpy as np
 
 # vivarium-core processes
@@ -24,11 +24,14 @@ from vivarium_cobra.processes.dynamic_fba import DynamicFBA
 
 # local imports
 from bioscrape_cobra.flux_adaptor import AverageFluxAdaptor
+from bioscrape_cobra.helper import get_package_path
 
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-SBML_FILE_STOCHASTIC = 'bioscrape_cobra/LacOperon_stochastic.xml'
+package_path = get_package_path()
+SBML_FILE_STOCHASTIC = os.path.join(
+    package_path, 'bioscrape_cobra', 'LacOperon_stochastic.xml')
 COBRA_TIMESTEP = 10
 BIOSCRAPE_TIMESTEP = 10
 
