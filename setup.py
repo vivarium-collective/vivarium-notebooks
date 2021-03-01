@@ -11,9 +11,6 @@ setup(
     version='0.0.1',
     packages=[
         'bioscrape_cobra',
-        'bioscrape_cobra.processes',
-        'bioscrape_cobra.composites',
-        'bioscrape_cobra.models',
     ],
     author='Eran Agmon, William Poole',
     author_email='',

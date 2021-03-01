@@ -24,6 +24,9 @@ from bioscrape_cobra.bioscrape_cobra_deterministic import BioscrapeCOBRAdetermin
 from bioscrape_cobra.plot import (
     plot_multigen, plot_single, plot_fields)
 
+def get_package_path():
+    return os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
 # default variables, which can be varied by simulate_bioscrape_cobra
 DEFAULT_EXTERNAL_VOLUME = 1e-13 * units.L
 DEFAULT_DIVIDE_THRESHOLD = 2000 * units.fg
@@ -36,10 +39,13 @@ DEPTH = 20
 # fixed global variables
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-SBML_FILE_DETERMINISTIC = 'bioscrape_cobra/LacOperon_deterministic.xml'
-SBML_FILE_STOCHASTIC = 'bioscrape_cobra/LacOperon_stochastic.xml'
 COBRA_TIMESTEP = 10
 BIOSCRAPE_TIMESTEP = 10
+package_path = get_package_path()
+SBML_FILE_DETERMINISTIC = os.path.join(package_path, 'LacOperon_deterministic.xml')
+SBML_FILE_STOCHASTIC = os.path.join(package_path, 'LacOperon_stochastic.xml')
+# SBML_FILE_DETERMINISTIC = 'bioscrape_cobra/LacOperon_deterministic.xml'
+# SBML_FILE_STOCHASTIC = 'bioscrape_cobra/LacOperon_stochastic.xml'
 
 # divide config
 INITIAL_AGENT_ID = '1'
