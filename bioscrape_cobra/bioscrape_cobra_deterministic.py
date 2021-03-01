@@ -66,10 +66,6 @@ strip_units_config = {
         'biomass': units.mmolar,
         'mass': units.ug}}
 
-# set mass threshold for division
-divide_config = {
-    'threshold': 2000 * units.fg}
-
 # Here we override the default ports schema of the Biomass species and the k_dilution rate in Bioscrape.
 # This is done so they can be set by the Derivers connected to mass and mass flux from Cobra.
 schema_override = {
@@ -111,11 +107,13 @@ class BioscrapeCOBRAdeterministic(Composer):
         'mass_to_molar': mass_mw_config,
         'strip_units': strip_units_config,
         'clock': {},
-        'local_fields': {},
+        'local_fields': {
+            'bin_volume': 1e-12 * units.L},
 
         # division config
-        'agent_id': np.random.randint(0, 100),
-        'divide_condition': divide_config,
+        'agent_id': np.random.randint(0, 1000),
+        'divide_condition': {
+            'threshold': 2000 * units.fg},
         'boundary_path': ('boundary',),
         'agents_path': ('agents',),
         'fields_path': ('fields',),

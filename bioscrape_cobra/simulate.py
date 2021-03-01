@@ -9,6 +9,7 @@ import argparse
 # vivarium imports
 from vivarium.core.experiment import Experiment
 from vivarium.library.units import units
+from vivarium.library.dict_utils import deep_merge
 
 # vivarium-multibody imports
 from vivarium_multibody.composites.lattice import (
@@ -20,17 +21,14 @@ from bioscrape_cobra.bioscrape_cobra_stochastic import (
 from bioscrape_cobra.bioscrape_cobra_deterministic import BioscrapeCOBRAdeterministic
 
 # plotting
-from vivarium.plots.simulation_output import plot_variables
-from vivarium.plots.agents_multigen import plot_agents_multigen
-from vivarium_multibody.plots.snapshots import (
-    format_snapshot_data, plot_snapshots)
-from vivarium_multibody.plots.snapshots import plot_tags
+from bioscrape_cobra.plot import (
+    plot_multigen, plot_single, plot_fields)
 
 # default variables, which can be varied by simulate_bioscrape_cobra
 DEFAULT_EXTERNAL_VOLUME = 1e-13 * units.L
 DEFAULT_DIVIDE_THRESHOLD = 2000 * units.fg
-INITIAL_GLC = 1e0
-INITIAL_LAC = 1e0
+INITIAL_GLC = 1e0  # mmolar
+INITIAL_LAC = 1e0  # mmolar
 BOUNDS = [20, 20]
 NBINS = [10, 10]
 DEPTH = 20
@@ -57,38 +55,17 @@ divide_config = {
 spatial_config = dict(divide_config)
 spatial_config['fields_on'] = True
 
-# plotting
-plot_variables_list = [
-    ('species', 'rna_M'),
-    ('species', 'protein_betaGal'),
-    ('species', 'protein_Lactose_Permease'),
-    ('flux_bounds', 'EX_glc__D_e'),
-    ('flux_bounds', 'EX_lac__D_e'),
-    ('boundary', ('mass', 'femtogram')),
-    ('boundary', ('volume', 'femtoliter'))]
-
-plot_variables_list_deterministic = [
-    ('boundary', 'external', GLUCOSE_EXTERNAL),
-    ('boundary', 'external', LACTOSE_EXTERNAL),
-    ('rates', 'k_dilution__',)]
-plot_variables_list_deterministic.extend(plot_variables_list)
-
-plot_variables_list_stochastic = [
-    ('species', GLUCOSE_EXTERNAL),
-    ('species', LACTOSE_EXTERNAL)]
-plot_variables_list_stochastic.extend(plot_variables_list)
-
 
 # helper functions
 def get_bioscrape_cobra_config(
         spatial=False,
         division=False,
         divide_threshold=DEFAULT_DIVIDE_THRESHOLD,
+        external_volume=DEFAULT_EXTERNAL_VOLUME,
         agent_id=INITIAL_AGENT_ID
 ):
     """ create a generic config dict for bioscrape_cobra composers """
     agent_id = agent_id
-    external_volume = DEFAULT_EXTERNAL_VOLUME
 
     if spatial:
         config = {
@@ -126,23 +103,27 @@ def simulate_bioscrape_cobra(
         spatial=False,
         initial_glucose=1e0,
         initial_lactose=1e0,
-        bounds=BOUNDS,
-        n_bins=NBINS,
-        depth=DEPTH,
+        initial_state=None,
+        bounds=[20, 20],
+        n_bins=[10, 10],
+        depth=20,
         diffusion_rate=1e-1,
-        divide_threshold=2000*units.fg,
+        divide_threshold=2000 * units.fg,
+        external_volume=1e-13 * units.L,
+        agent_id='1',
         halt_threshold=32,
         total_time=100,
         output_type=None,
 ):
     """ Simulation function for BioscrapeCOBRA """
-    agent_id = INITIAL_AGENT_ID
+    initial_state = initial_state or {}
 
     # make the BioscrapeCOBRA config
     biocobra_config = get_bioscrape_cobra_config(
         spatial=spatial,
         division=division,
         divide_threshold=divide_threshold,
+        external_volume=external_volume,
         agent_id=agent_id)
 
     # get the BioscrapeCOBRA composer -- either stochastic or deterministic
@@ -158,8 +139,8 @@ def simulate_bioscrape_cobra(
             path=('agents', agent_id))
 
         # get initial state from the composite
-        initial_state = biocobra_composite.initial_state()
-        initial_state['agents'][agent_id]['boundary']['external'] = {
+        state = biocobra_composite.initial_state()
+        state['agents'][agent_id]['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
 
@@ -187,8 +168,8 @@ def simulate_bioscrape_cobra(
             path=('agents', agent_id))
 
         # get initial state from the composite
-        initial_state = biocobra_composite.initial_state()
-        initial_state['agents'][agent_id]['boundary']['external'] = {
+        state = biocobra_composite.initial_state()
+        state['agents'][agent_id]['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
 
@@ -197,10 +178,13 @@ def simulate_bioscrape_cobra(
         biocobra_composite = biocobra_composer.generate()
 
         # get initial state from the composite
-        initial_state = biocobra_composite.initial_state()
-        initial_state['boundary']['external'] = {
+        state = biocobra_composite.initial_state()
+        state['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
+
+    # update initial state with any value from function assignment
+    initial_state = deep_merge(state, initial_state)
 
     # make the experiment
     experiment_config = {
@@ -208,9 +192,9 @@ def simulate_bioscrape_cobra(
         'topology': biocobra_composite.topology,
         'initial_state': initial_state,
         # 'display_info': False,
-        'experiment_id': f"{'stochastic' if stochastic else 'deterministic'}_"
-                         f"{'division' if division else ''}_"
-                         f"{'spatial' if spatial else ''}"}
+        'experiment_id': f"{'stochastic' if stochastic else 'deterministic'}"
+                         f"{'_division' if division else ''}"
+                         f"{'_spatial' if spatial else ''}"}
     biocobra_experiment = Experiment(experiment_config)
 
     # run the experiment
@@ -234,16 +218,26 @@ def simulate_bioscrape_cobra(
     return biocobra_experiment
 
 
+# plotting
+plot_variables_list = [
+    ('species', 'rna_M'),
+    ('species', 'protein_betaGal'),
+    ('species', 'protein_Lactose_Permease'),
+    ('flux_bounds', 'EX_glc__D_e'),
+    ('flux_bounds', 'EX_lac__D_e'),
+    ('boundary', ('mass', 'femtogram')),
+    ('boundary', ('volume', 'femtoliter'))]
 
-def plot_bioscrape_cobra(
-    stochastic=False,
-):
-    # plotting
-    if stochastic:
-        pass
-    else:
-        pass
+plot_variables_list_deterministic = [
+    ('boundary', 'external', GLUCOSE_EXTERNAL),
+    ('boundary', 'external', LACTOSE_EXTERNAL),
+    ('rates', 'k_dilution__',)]
+plot_variables_list_deterministic.extend(plot_variables_list)
 
+plot_variables_list_stochastic = [
+    ('species', GLUCOSE_EXTERNAL),
+    ('species', LACTOSE_EXTERNAL)]
+plot_variables_list_stochastic.extend(plot_variables_list)
 
 def main():
     out_dir = os.path.join(
@@ -252,126 +246,94 @@ def main():
         os.makedirs(out_dir)
 
     parser = argparse.ArgumentParser(description='bioscrape_cobra')
-    parser.add_argument('--deterministic', '-a', action='store_true', default=False)
-    parser.add_argument('--stochastic', '-b', action='store_true', default=False)
-    parser.add_argument('--deterministic_divide', '-c', action='store_true', default=False)
-    parser.add_argument('--stochastic_divide', '-d', action='store_true', default=False)
-    parser.add_argument('--deterministic_spatial', '-e', action='store_true', default=False)
-    parser.add_argument('--stochastic_spatial', '-f', action='store_true', default=False)
+    parser.add_argument('--deterministic', '-1', action='store_true', default=False)
+    parser.add_argument('--stochastic', '-2', action='store_true', default=False)
+    parser.add_argument('--deterministic_divide', '-3', action='store_true', default=False)
+    parser.add_argument('--stochastic_divide', '-4', action='store_true', default=False)
+    parser.add_argument('--deterministic_spatial', '-5', action='store_true', default=False)
+    parser.add_argument('--stochastic_spatial', '-6', action='store_true', default=False)
     args = parser.parse_args()
 
     if args.deterministic:
-        biocobra_out_dir = os.path.join(out_dir, 'deterministic')
         output = simulate_bioscrape_cobra(
             total_time=2000,
             output_type='timeseries')
 
-        # plot output
-        variables_plot_config = {
-            'out_dir': biocobra_out_dir, 'filename': 'variables',
-            'row_height': 2, 'row_padding': 0.2, 'column_width': 10,
-            'variables': plot_variables_list_deterministic}
-        plot_variables(
-            output, **variables_plot_config)
+        plot_single(
+            output,
+            variables=plot_variables_list_deterministic,
+            out_dir=os.path.join(out_dir, 'deterministic'),
+            filename='variables')
 
     if args.stochastic:
-        biocobra_out_dir = os.path.join(out_dir, 'stochastic')
+        initial_state = {
+            'species': {
+                'protein_Lactose_Permease': 10}}
+
         output = simulate_bioscrape_cobra(
             stochastic=True,
+            initial_state=initial_state,
             total_time=2000,
             output_type='timeseries')
 
-        # plot output
-        variables_plot_config = {
-            'out_dir': biocobra_out_dir, 'filename': 'variables',
-            'row_height': 2, 'row_padding': 0.2, 'column_width': 10,
-            'variables': plot_variables_list_stochastic}
-        plot_variables(
-            output, **variables_plot_config)
+        plot_single(
+            output,
+            variables=plot_variables_list_stochastic,
+            out_dir=os.path.join(out_dir, 'stochastic'),
+            filename='variables')
 
     if args.deterministic_divide:
-        biocobra_out_dir = os.path.join(out_dir, 'deterministic_divide')
         output = simulate_bioscrape_cobra(
             division=True,
             total_time=6000,
             output_type='unitless')
 
-        # multigen plot
-        plot_settings = {
-            'skip_paths': [
-                ('internal_counts',),
-                ('cobra_external',)],
-            'remove_zeros': True}
-        plot_agents_multigen(
+        plot_multigen(
             output,
-            plot_settings,
-            biocobra_out_dir,
-            'division_multigen')
+            out_dir=os.path.join(out_dir, 'deterministic_divide'),
+            filename='division_multigen')
 
     if args.stochastic_divide:
-        biocobra_out_dir = os.path.join(out_dir, 'stochastic_divide')
         output = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
             total_time=6000,
+            external_volume=1e-9*units.L,
+            divide_threshold=1500*units.fg,
             output_type='unitless')
 
-        # multigen plot
-        plot_settings = {
-            'skip_paths': [
-                ('internal_counts',),
-                ('cobra_external',)],
-            'remove_zeros': False}
-        plot_agents_multigen(
+        plot_multigen(
             output,
-            plot_settings,
-            biocobra_out_dir,
-            'division_multigen')
+            out_dir=os.path.join(out_dir, 'stochastic_divide'),
+            filename='division_multigen')
 
     if args.deterministic_spatial:
 
-        biocobra_out_dir = os.path.join(out_dir, 'deterministic_spatial')
+
         output = simulate_bioscrape_cobra(
             division=True,
             spatial=True,
             total_time=6000,
             output_type='unitless')
 
-        # multigen plots
-        plot_settings = {
-            'skip_paths': [
-                ('internal_counts',),
-                ('cobra_external',)],
-            'n_snapshots': 5,
-            'remove_zeros': True}
-        plot_agents_multigen(
-            output, plot_settings, biocobra_out_dir, 'spatial_multigen')
+        deterministic_spatial_out_dir = os.path.join(out_dir, 'deterministic_spatial')
+        plot_multigen(
+            output,
+            out_dir=deterministic_spatial_out_dir,
+            filename='spatial_multigen',
+        )
 
-        agents, fields = format_snapshot_data(output)
-        plot_snapshots(
+        plot_fields(
+            output,
             bounds=BOUNDS,
-            agents=agents,
-            fields=fields,
             include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
-            out_dir=biocobra_out_dir,
-            filename='spatial_snapshots')
-
-        tags_data = {
-            'agents': agents,
-            'fields': fields,
-            'config': {'bounds': BOUNDS}}
-        tags_config = {
-            'tagged_molecules': [
-                ('species', 'protein_Lactose_Permease',)],
-            'n_snapshots': 5,
-            'out_dir': biocobra_out_dir,
-            'filename': 'spatial_tags'}
-        plot_tags(
-            data=tags_data,
-            plot_config=tags_config)
+            tagged_molecules=[('species', 'protein_Lactose_Permease',)],
+            out_dir=deterministic_spatial_out_dir,
+            filename='spatial',
+        )
 
     if args.stochastic_spatial:
-        biocobra_out_dir = os.path.join(out_dir, 'stochastic_spatial')
+
         output = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
@@ -379,38 +341,21 @@ def main():
             total_time=6000,
             output_type='unitless')
 
-        # multigen plots
-        plot_settings = {
-            'skip_paths': [
-                ('internal_counts',),
-                ('cobra_external',)],
-            'n_snapshots': 5,
-            'remove_zeros': True}
-        plot_agents_multigen(
-            output, plot_settings, biocobra_out_dir, 'spatial_multigen')
+        stochastic_spatial_out_dir = os.path.join(out_dir, 'stochastic_spatial')
+        plot_multigen(
+            output,
+            out_dir=stochastic_spatial_out_dir,
+            filename='spatial_multigen',
+        )
 
-        agents, fields = format_snapshot_data(output)
-        plot_snapshots(
+        plot_fields(
+            output,
             bounds=BOUNDS,
-            agents=agents,
-            fields=fields,
             include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
-            out_dir=biocobra_out_dir,
-            filename='spatial_snapshots')
-
-        tags_data = {
-            'agents': agents,
-            'fields': fields,
-            'config': {'bounds': BOUNDS}}
-        tags_config = {
-            'tagged_molecules': [
-                ('species', 'protein_Lactose_Permease',)],
-            'n_snapshots': 5,
-            'out_dir': biocobra_out_dir,
-            'filename': 'spatial_tags'}
-        plot_tags(
-            data=tags_data,
-            plot_config=tags_config)
+            tagged_molecules=[('species', 'protein_Lactose_Permease',)],
+            out_dir=stochastic_spatial_out_dir,
+            filename='spatial',
+        )
 
 
 if __name__ == '__main__':

@@ -105,7 +105,6 @@ class BioscrapeCOBRAstochastic(Composer):
         'cobra_timestep': COBRA_TIMESTEP,
         'divide_on': False,  # is division turned on?
         'fields_on': False,  # are spatial dynamics used?
-        'characteristic_external_volume': 1 * units.fL,  # converts external nutrient concentrations to counts
 
         # process configs
         'bioscrape': stochastic_bioscrape_config,
@@ -143,12 +142,6 @@ class BioscrapeCOBRAstochastic(Composer):
         # configure local fields
         if not self.config['fields_on']:
             self.config['local_fields'].update({'nonspatial': True})
-
-    def initial_state(self, config=None):
-        initial_state = super().initial_state(config)
-        initial_state['boundary']['characteristic_volume'] = self.config[
-            'characteristic_external_volume']
-        return initial_state
 
     def generate_processes(self, config):
         processes = {
@@ -263,10 +256,7 @@ class BioscrapeCOBRAstochastic(Composer):
             'field_counts_deriver': {
                 'concentrations': boundary_path + ('external',),
                 'counts': ('species',),
-                'global': {
-                    # connect to a fixed characteristic volume
-                    '_path': boundary_path,
-                    'volume': ('characteristic_volume',)},
+                'global': boundary_path,
             },
         }
 
