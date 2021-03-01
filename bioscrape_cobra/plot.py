@@ -46,11 +46,6 @@ def plot_multigen(
         'tick_label_size': 10,
         'title_size': 10}
 
-    # plot_settings = {
-    #     'skip_paths': [
-    #         ('internal_counts',),
-    #         ('cobra_external',)],
-    #     'remove_zeros': False}
     fig = plot_agents_multigen(
         output,
         plot_settings,
@@ -85,7 +80,7 @@ def plot_fields(
         'tagged_molecules': tagged_molecules,
         'n_snapshots': n_snapshots,
         'out_dir': out_dir,
-        'filename': 'tags_' + filename}
+        'filename': ('tags_' + filename) if filename else None}
     fig2 = plot_tags(
         data=tags_data,
         plot_config=tags_config)
