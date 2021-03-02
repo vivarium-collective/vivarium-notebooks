@@ -10,10 +10,36 @@ import argparse
 from vivarium.core.experiment import Experiment
 from vivarium.library.units import units
 from vivarium.library.dict_utils import deep_merge
+from vivarium.core.composition import simulate_composer, composer_in_experiment
+from vivarium.core.process import Composite
+from vivarium.library.units import remove_units
+from vivarium.core.process import deserialize_value
 
 # vivarium-multibody imports
 from vivarium_multibody.composites.lattice import (
     Lattice, make_lattice_config)
+from vivarium_multibody.processes.multibody_physics import test_growth_division
+from vivarium_multibody.processes.multibody_physics import agent_body_config, volume_from_length
+from vivarium_multibody.composites.grow_divide import GrowDivide
+from vivarium_multibody.plots.snapshots import (
+    plot_snapshots,
+    format_snapshot_data,
+    make_snapshots_figure,
+    get_field_range,
+    get_agent_colors,
+)
+from vivarium_multibody.processes.diffusion_field import DiffusionField, get_gaussian_config
+
+#cobra imports
+from vivarium_cobra.processes.dynamic_fba import (
+    DynamicFBA, 
+    get_iAF1260b_config, 
+    print_growth
+)
+from vivarium_cobra.composites.cobra_composite import CobraComposite
+
+#Bioscrape imports
+from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
 # local import
 from bioscrape_cobra.bioscrape_cobra_stochastic import (
@@ -27,8 +53,8 @@ from bioscrape_cobra.plot import (
 # default variables, which can be varied by simulate_bioscrape_cobra
 DEFAULT_EXTERNAL_VOLUME = 1e-13 * units.L
 DEFAULT_DIVIDE_THRESHOLD = 2000 * units.fg
-INITIAL_GLC = 1e0  # mmolar
-INITIAL_LAC = 1e0  # mmolar
+INITIAL_GLC = 10e0  # mmolar
+INITIAL_LAC = 10e0  # mmolar
 BOUNDS = [20, 20]
 NBINS = [10, 10]
 DEPTH = 20
@@ -50,6 +76,183 @@ divide_config = {
 # spatial config
 spatial_config = dict(divide_config)
 spatial_config['fields_on'] = True
+
+#Simulates Cobra Model on its Own
+def simulate_cobra(
+    total_time=100,
+    initial_state = None):
+    # get the configuration for the iAF1260b BiGG model
+    iAF1260b_config = get_iAF1260b_config()
+    iAF1260b_config.update({'time_step': COBRA_TIMESTEP})
+
+    iAF1260b_config['name'] = 'Cobra' #Rename the process
+    dynamic_fba = DynamicFBA(iAF1260b_config)
+
+    cobra_composite = Composite({
+        'processes': dynamic_fba, 
+        'topology': dynamic_fba.generate_topology()
+        })
+
+    # get the initial state
+    if initial_state is None:
+        initial_state = dynamic_fba.initial_state({})
+
+    # run simulation
+    cobra_sim_settings = {
+        'initial_state': initial_state,
+        'total_time': total_time
+        }
+
+    cobra_timeseries = simulate_composer(dynamic_fba, cobra_sim_settings)
+
+    return cobra_timeseries, dynamic_fba
+
+#simulates Cobra Model in a Composite with some Derivers
+def simulate_cobra_composite(
+    total_time=100,
+    initial_state = None):
+
+    # get the configuration for the iAF1260b BiGG model
+    iAF1260b_config = get_iAF1260b_config()
+    iAF1260b_config.update({'time_step': COBRA_TIMESTEP})
+
+    #Place the Process into a Composite level dictionary
+    composite_config = {'cobra': iAF1260b_config}
+    cobra_composite = CobraComposite(composite_config)
+
+    # get the initial state
+    if initial_state is None:
+        initial_state = cobra_composite.initial_state({})
+
+    # run simulation
+    cobra_sim_settings = {
+        'initial_state': initial_state,
+        'total_time': total_time
+        }
+
+    cobra_timeseries = simulate_composer(cobra_composite, cobra_sim_settings)
+
+    return cobra_timeseries, cobra_composite
+
+def simulate_bioscrape(
+        stochastic=False,
+        initial_glucose=None,
+        initial_lactose=None,
+        initial_state=None,
+        total_time=100,
+        initial_volume = 1.0
+    ):
+    
+    #create configs
+    if not stochastic:
+        bioscrape_config = {
+            'sbml_file': 'LacOperon_deterministic.xml',
+            'stochastic': False,
+            'initial_volume': initial_volume,
+            'internal_dt': BIOSCRAPE_TIMESTEP/100,
+            'time_step':BIOSCRAPE_TIMESTEP}
+    else:
+        bioscrape_config = {
+            'sbml_file': 'LacOperon_stochastic.xml',
+            'stochastic': True,
+            'safe_mode': False,
+            'initial_volume': initial_volume,
+            'internal_dt': BIOSCRAPE_TIMESTEP/100,
+            'time_step':BIOSCRAPE_TIMESTEP
+        }
+    
+    bioscrape_process = Bioscrape(bioscrape_config)
+
+
+    #Create an Empty Composite for Plotting Purposes
+    bioscrape_composite = Composite({
+        'processes': bioscrape_process, 
+        'topology': bioscrape_process.generate_topology()
+        })
+
+    # get the initial state
+    if initial_state is None:
+        initial_state = bioscrape_process.initial_state({})
+
+    if initial_glucose is not None:
+        initial_state["species"]["Glucose_external"] = initial_glucose
+
+    if initial_lactose is not None:
+        initial_state["species"]["Lactose_external"] = initial_lactose
+
+    # run simulation
+    bioscrape_sim_settings = {
+        'initial_state': initial_state,
+        'total_time': total_time
+        }
+
+    bioscrape_timeseries = simulate_composer(bioscrape_process, bioscrape_sim_settings)
+
+    return bioscrape_timeseries, bioscrape_composite
+
+
+#Simulate a System of Cells that grow and divde in a well mixed spatial environment
+def simulate_grow_divide(total_time = 100, growth_rate = .03, initial_state = None, growth_noise = 10**-6):
+    # configure
+    growth_config = {'default_growth_rate': growth_rate, "default_growth_noise": growth_noise}
+    grow_divide_composite = GrowDivide({'agent_id': "0", 'growth' : growth_config})
+
+    if initial_state is None:
+        initial_state = {
+        'agents': {
+            '0': {
+                'global': {
+                    'mass': 1000 * units.femtogram}
+            }}}
+
+    grow_divide_sim_settings = {
+        'total_time': total_time,
+        "initial_state": initial_state,
+        "outer_path":('agents', '0'),
+        'return_raw_data': True,
+    }
+
+
+    grow_divide_data = simulate_composer(grow_divide_composite, grow_divide_sim_settings)
+    grow_divide_data = deserialize_value(grow_divide_data)
+    grow_divide_data = remove_units(grow_divide_data)
+
+    return grow_divide_data, grow_divide_composite
+
+#Simulate a System of Cells that grow and divde in a well mixed spatial environment
+def simulate_diffusion(total_time = 100, diffusion_rate = .001, initial_state = {}, bins = [10, 10], bounds = [10, 10]):
+    # configure
+    
+
+    config = {
+        'n_bins':bins,
+        'bounds':bounds,
+        'diffusion':diffusion_rate,
+        'initial_state':{'glc':initial_state}
+    }
+
+    diffusion_process = DiffusionField(config)
+
+    diffusion_composite = Composite({
+        'processes': diffusion_process, 
+        'topology': diffusion_process.generate_topology()
+        })
+
+    if initial_state is None:
+        initial_state = diffusion_process.initial_state
+
+    diffusion_sim_settings = {
+        'total_time': total_time,
+        'return_raw_data': True,
+    }
+
+    diffusion_data = simulate_composer(diffusion_process, diffusion_sim_settings)
+
+    #Add empty agents to reuse plotting functionality
+    for t in diffusion_data:
+        diffusion_data[t]['agents'] = {}
+
+    return diffusion_data, diffusion_composite
 
 
 # helper functions
