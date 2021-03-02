@@ -8,6 +8,7 @@ from vivarium_multibody.plots.snapshots import (
 from vivarium_multibody.plots.snapshots import plot_tags
 
 
+
 def plot_single(
         output,
         variables=None,
@@ -62,8 +63,16 @@ def plot_fields(
         n_snapshots=5,
         out_dir=None,
         filename=None
-):
-    agents, fields = format_snapshot_data(output)
+):  
+    try:
+        agents, fields = format_snapshot_data(output)
+    except AttributeError:
+        agents = {}
+        fields = {}
+        for time, time_data in output.items():
+            fields[time] = time_data.get('fields', {})
+
+
     fig1 = plot_snapshots(
         bounds=bounds,
         agents=agents,
@@ -84,6 +93,7 @@ def plot_fields(
     fig2 = plot_tags(
         data=tags_data,
         plot_config=tags_config)
+    
     return fig1, fig2
 
 
@@ -105,7 +115,13 @@ def move_to_end(data, d):
 
 def plot_metabolism(data, tags=tags_dict):
     # initialize subplots
-    n_rows = 3
+
+    #If Volume is available, plot it too
+    if ('volume', 'femtoliter') in data['global']:
+        n_rows = 4
+    else:
+        n_rows = 3
+
     n_cols = 1
     fig = plt.figure(figsize=(n_cols * 8, n_rows * 2))
     grid = plt.GridSpec(n_rows, n_cols)
@@ -159,12 +175,32 @@ def plot_metabolism(data, tags=tags_dict):
     ax.plot(
         time_vec,
         data['global'][('mass', 'femtogram')],
-        color='tab:blue',
+        color='tab:blue', label = "biomass (fg)"
     )
+    ax.set_ylabel('cell mass')
     ax.set_title('global')
-    ax.set_ylabel('total mass (fg)')
     ax.set_xlabel('time (sec)')
     ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+
+    #Plot volume if it is available
+    if ('volume', 'femtoliter') in data['global']:
+        ax = fig.add_subplot(grid[2, 0])
+        ax.plot(
+            time_vec,
+            data['global'][('volume', 'femtoliter')],
+            color='tab:orange', label = "biomass (fg)"
+        )
+        ax.set_ylabel('cell volume')
+        ax.set_title('global')
+        ax.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+
+    #Set the x label for the last axis, whichever it is
+    ax.set_xlabel('time (sec)')
+        
+
+    
+    
+    
 
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
