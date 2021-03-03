@@ -142,8 +142,14 @@ class BioscrapeCOBRAstochastic(Composer):
         self.config['clock']['time_step'] = min(
             self.config['cobra_timestep'], self.config['bioscrape_timestep'])
 
+        #configure parallelization
+        self.config['cobra']['_parallel'] = self.config['_parallel']
+
+        if self.config['fields_on']:
+            self.config['multibody']['_parallel'] = self.config['_parallel']
+
         # configure local fields
-        if not self.config['fields_on']:
+        elif not self.config['fields_on']:
             self.config['local_fields'].update({'nonspatial': True})
 
     def generate_processes(self, config):

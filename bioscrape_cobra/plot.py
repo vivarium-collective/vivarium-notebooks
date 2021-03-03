@@ -64,13 +64,8 @@ def plot_fields(
         out_dir=None,
         filename=None
 ):  
-    try:
-        agents, fields = format_snapshot_data(output)
-    except AttributeError:
-        agents = {}
-        fields = {}
-        for time, time_data in output.items():
-            fields[time] = time_data.get('fields', {})
+
+    agents, fields = format_snapshot_data(output)
 
 
     fig1 = plot_snapshots(

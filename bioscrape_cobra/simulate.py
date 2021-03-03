@@ -53,8 +53,8 @@ from bioscrape_cobra.plot import (
 # default variables, which can be varied by simulate_bioscrape_cobra
 DEFAULT_EXTERNAL_VOLUME = 1e-13 * units.L
 DEFAULT_DIVIDE_THRESHOLD = 2000 * units.fg
-INITIAL_GLC = 10e0  # mmolar
-INITIAL_LAC = 10e0  # mmolar
+INITIAL_GLC = 10e1  # mmolar
+INITIAL_LAC = 10e1  # mmolar
 BOUNDS = [20, 20]
 NBINS = [10, 10]
 DEPTH = 20
@@ -316,6 +316,7 @@ def get_bioscrape_cobra_config(
         config = {
             'divide_on': True,
             'fields_on': True,
+            '_parallel': True,
             'agent_id': agent_id,
             'agents_path': ('..', '..', 'agents',),
             'fields_path': ('..', '..', 'fields',),
@@ -326,6 +327,7 @@ def get_bioscrape_cobra_config(
     elif division:
         config = {
             'divide_on': True,
+            '_parallel': True,
             'agent_id': agent_id,
             'agents_path': ('..', '..', 'agents',),
             'fields_path': ('..', '..', 'fields',),
@@ -336,7 +338,8 @@ def get_bioscrape_cobra_config(
     else:
         config = {
             'local_fields': {
-                'bin_volume': external_volume}}
+                'bin_volume': external_volume},
+            '_parallel': False}
 
     return config
 

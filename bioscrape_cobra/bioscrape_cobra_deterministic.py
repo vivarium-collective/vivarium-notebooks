@@ -100,6 +100,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         'cobra_timestep': COBRA_TIMESTEP,
         'divide_on': False,  # is division turned on?
         'fields_on': False,  # are spatial dynamics used?
+        '_parallel': False, #Are multiple cores used?
 
         # process configs
         'bioscrape': deterministic_bioscrape_config,
@@ -136,8 +137,14 @@ class BioscrapeCOBRAdeterministic(Composer):
         self.config['clock']['time_step'] = min(
             self.config['cobra_timestep'], self.config['bioscrape_timestep'])
 
+        #configure parallelization
+        self.config['cobra']['_parallel'] = self.config['_parallel']
+
+        if self.config['fields_on']:
+            self.config['multibody']['_parallel'] = self.config['_parallel']
+
         # configure local fields
-        if not self.config['fields_on']:
+        elif not self.config['fields_on']:
             self.config['local_fields'].update({'nonspatial': True})
 
     def generate_processes(self, config):
