@@ -28,15 +28,15 @@ from bioscrape_cobra.helper import get_package_path
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-package_path = get_package_path()
-SBML_FILE_DETERMINISTIC = os.path.join(
-    package_path, 'bioscrape_cobra', 'LacOperon_deterministic.xml')
+#package_path = get_package_path()
+#SBML_FILE_DETERMINISTIC = os.path.join(
+#    package_path, 'bioscrape_cobra', 'LacOperon_deterministic.xml')
 COBRA_TIMESTEP = 10
 BIOSCRAPE_TIMESTEP = 10
 
 # choose the SBML file and set other bioscrape parameters
 deterministic_bioscrape_config = {
-    'sbml_file': SBML_FILE_DETERMINISTIC,
+    'sbml_file': "LacOperon_deterministic.xml",
     'stochastic': False,
     'initial_volume': 1,
     'internal_dt': 0.01}

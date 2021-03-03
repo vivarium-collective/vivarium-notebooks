@@ -29,9 +29,9 @@ from bioscrape_cobra.helper import get_package_path
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-package_path = get_package_path()
-SBML_FILE_STOCHASTIC = os.path.join(
-    package_path, 'bioscrape_cobra', 'LacOperon_stochastic.xml')
+#package_path = get_package_path()
+#SBML_FILE_STOCHASTIC = os.path.join(
+#    package_path, 'bioscrape_cobra', 'LacOperon_stochastic.xml')
 COBRA_TIMESTEP = 10
 BIOSCRAPE_TIMESTEP = 10
 
@@ -41,7 +41,7 @@ divide_config = {
 
 # choose the SBML file and set other bioscrape parameters
 stochastic_bioscrape_config = {
-    'sbml_file': SBML_FILE_STOCHASTIC,
+    'sbml_file': 'LacOperon_stochastic.xml',
     'stochastic': True,
     'safe_mode': False,
     'initial_volume': 1,
