@@ -10,7 +10,7 @@ import argparse
 from vivarium.core.experiment import Experiment
 from vivarium.library.units import units
 from vivarium.library.dict_utils import deep_merge
-from vivarium.core.composition import simulate_composer, composer_in_experiment
+from vivarium.core.composition import simulate_composer, composer_in_experiment, simulate_composite
 from vivarium.core.process import Composite
 from vivarium.library.units import remove_units
 from vivarium.core.process import deserialize_value
@@ -195,7 +195,7 @@ def simulate_bioscrape(
 def simulate_grow_divide(total_time = 100, growth_rate = .03, initial_state = None, growth_noise = 10**-6):
     # configure
     growth_config = {'default_growth_rate': growth_rate, "default_growth_noise": growth_noise}
-    grow_divide_composite = GrowDivide({'agent_id': "0", 'growth' : growth_config})
+    grow_divide_composer = GrowDivide({'agent_id': "0", 'growth' : growth_config})
 
     if initial_state is None:
         initial_state = {
@@ -213,11 +213,11 @@ def simulate_grow_divide(total_time = 100, growth_rate = .03, initial_state = No
     }
 
 
-    grow_divide_data = simulate_composer(grow_divide_composite, grow_divide_sim_settings)
+    grow_divide_data = simulate_composer(grow_divide_composer, grow_divide_sim_settings)
     grow_divide_data = deserialize_value(grow_divide_data)
     grow_divide_data = remove_units(grow_divide_data)
 
-    return grow_divide_data, grow_divide_composite
+    return grow_divide_data, grow_divide_composer
 
 #Simulate a System of Cells that grow and divde in a well mixed spatial environment
 def simulate_diffusion(total_time = 100, diffusion_rate = .001, initial_state = {}, bins = [10, 10], bounds = [10, 10]):
@@ -233,7 +233,7 @@ def simulate_diffusion(total_time = 100, diffusion_rate = .001, initial_state = 
 
     diffusion_process = DiffusionField(config)
 
-    diffusion_composite = Composite({
+    diffusion_composer = Composite({
         'processes': diffusion_process, 
         'topology': diffusion_process.generate_topology()
         })
@@ -252,7 +252,53 @@ def simulate_diffusion(total_time = 100, diffusion_rate = .001, initial_state = 
     for t in diffusion_data:
         diffusion_data[t]['agents'] = {}
 
-    return diffusion_data, diffusion_composite
+    return diffusion_data, diffusion_composer
+
+
+def get_lattice_grow_divide_composite(diffusion_rate = .001, initial_concentration = {}, bins = [10, 10], bounds = [10, 10], growth_rate = .03, growth_noise = 10**-6):
+    lattice_config = make_lattice_config(
+            bounds=bounds,
+            n_bins=bins,
+            concentrations={'glc':initial_concentration},
+            diffusion=diffusion_rate)
+
+    lattice_composer = Lattice(lattice_config)
+    lattice_composite = lattice_composer.generate()
+
+
+    growth_config = {'default_growth_rate': growth_rate, "default_growth_noise": growth_noise}
+    grow_divide_composer = GrowDivide({'agent_id': "0", 'growth' : growth_config})
+
+    agent_id = "0"
+    lattice_grow_divide_composite = grow_divide_composer.generate(path=('agents', agent_id))
+    lattice_grow_divide_composite.merge(composite=lattice_composite)
+
+    return lattice_grow_divide_composite
+
+def simulate_grow_divide_lattice(lattice_grow_divide_composite, total_time = 100,  initial_state = None):
+
+    agent_id = "0"
+    if initial_state is None:
+        initial_state = {
+        'agents': {
+            agent_id: {
+                'global': {
+                    'mass': 1000 * units.femtogram}
+            }}}
+
+
+    
+
+    sim_settings = {
+        'total_time': total_time,
+        'return_raw_data': True,
+        "initial_state" : initial_state,
+        'return_raw_data': True,
+    }
+
+    lattice_grow_divide_data = simulate_composite(lattice_grow_divide_composite, sim_settings)
+
+    return lattice_grow_divide_data
 
 
 # helper functions
