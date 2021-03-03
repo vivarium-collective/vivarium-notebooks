@@ -179,7 +179,7 @@ def plot_metabolism(data, tags=tags_dict):
 
     #Plot volume if it is available
     if ('volume', 'femtoliter') in data['global']:
-        ax = fig.add_subplot(grid[2, 0])
+        ax = fig.add_subplot(grid[3, 0])
         ax.plot(
             time_vec,
             data['global'][('volume', 'femtoliter')],
