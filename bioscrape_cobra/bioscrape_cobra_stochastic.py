@@ -118,7 +118,8 @@ class BioscrapeCOBRAstochastic(Composer):
         'field_counts_deriver': field_counts_deriver_config,
         'strip_units': strip_units_config,
         'clock': {},
-        'local_fields': {},
+        'local_fields': {
+            'bin_volume': 1e-12 * units.L},
 
         # division config
         'agent_id': np.random.randint(0, 100),
@@ -151,6 +152,12 @@ class BioscrapeCOBRAstochastic(Composer):
         # configure local fields
         elif not self.config['fields_on']:
             self.config['local_fields'].update({'nonspatial': True})
+
+    def initial_state(self, config=None):
+         initial_state = super().initial_state(config)
+         initial_state['boundary']['bin_volume'] = self.config[
+             'local_fields']['bin_volume']
+         return initial_state
 
     def generate_processes(self, config):
         processes = {
@@ -265,7 +272,10 @@ class BioscrapeCOBRAstochastic(Composer):
             'field_counts_deriver': {
                 'concentrations': boundary_path + ('external',),
                 'counts': ('species',),
-                'global': boundary_path,
+                'global': {
+                     # connect to a fixed bin volume
+                     '_path': boundary_path,
+                     'volume': ('bin_volume',)},
             },
         }
 
