@@ -31,7 +31,7 @@ LACTOSE_EXTERNAL = 'Lactose_external'
 #package_path = get_package_path()
 #SBML_FILE_DETERMINISTIC = os.path.join(
 #    package_path, 'bioscrape_cobra', 'LacOperon_deterministic.xml')
-COBRA_TIMESTEP = 10
+COBRA_TIMESTEP = 50
 BIOSCRAPE_TIMESTEP = 10
 
 # choose the SBML file and set other bioscrape parameters
@@ -43,6 +43,8 @@ deterministic_bioscrape_config = {
 
 # set cobra constrained reactions config
 cobra_config = get_iAF1260b_config()
+cobra_config["external"] = {"glc__D_e":{"_divider": "set"}}
+cobra_config["external"] = {"lac__D_e":{"_divider": "set"}}
 
 # set up the config for the FluxAdaptor
 flux_config = {
@@ -52,6 +54,7 @@ flux_config = {
         'Glucose_internal': {'input_type': 'delta'}}}
 
 dilution_rate_flux_config = {
+    'time_step': COBRA_TIMESTEP,
     'flux_keys': {
         'mass': {
             'input_type': 'amount'}}}
@@ -83,9 +86,9 @@ schema_override = {
                 '_divider': 'set',
                 '_updater': 'null'},
             'Glucose_internal': {
-                '_divider': 'split'},
+                '_divider': 'set'},
             'Lactose_consumed': {
-                '_divider': 'split'},
+                '_divider': 'set'},
         },
         'rates': {
             'k_dilution__': {
@@ -140,11 +143,8 @@ class BioscrapeCOBRAdeterministic(Composer):
         #configure parallelization
         self.config['cobra']['_parallel'] = self.config['_parallel']
 
-        if self.config['fields_on']:
-            self.config['multibody']['_parallel'] = self.config['_parallel']
-
         # configure local fields
-        elif not self.config['fields_on']:
+        if not self.config['fields_on']:
             self.config['local_fields'].update({'nonspatial': True})
 
     def generate_processes(self, config):
