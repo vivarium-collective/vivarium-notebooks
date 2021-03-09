@@ -212,12 +212,14 @@ def simulate_grow_divide(total_time = 100, growth_rate = .03, initial_state = No
         'return_raw_data': True,
     }
 
+    grow_divide_composite = grow_divide_composer.generate(path=('agents', "0"))
 
-    grow_divide_data = simulate_composer(grow_divide_composer, grow_divide_sim_settings)
+    grow_divide_data = simulate_composite(grow_divide_composite, grow_divide_sim_settings)
     grow_divide_data = deserialize_value(grow_divide_data)
     grow_divide_data = remove_units(grow_divide_data)
 
-    return grow_divide_data, grow_divide_composer.generate(path=('agents', "0"))
+    #returns the data, the initial composite, and the final composite
+    return grow_divide_data, grow_divide_composer.generate(path=('agents', "0")), grow_divide_composite
 
 #Simulate a System of Cells that grow and divde in a well mixed spatial environment
 def simulate_diffusion(total_time = 100, diffusion_rate = .001, initial_state = {}, bins = [10, 10], bounds = [10, 10]):
@@ -287,8 +289,6 @@ def simulate_grow_divide_lattice(lattice_grow_divide_composite, total_time = 100
                     'mass': 1000 * units.femtogram}
             }}}
 
-
-    
 
     sim_settings = {
         'total_time': total_time,
