@@ -87,12 +87,14 @@ class DilutionFluxAdaptor(FluxAdaptor):
             # Convert to a percent of the previous input
             if self.prev_inputs[flux_key] is None or (
                     self.prev_inputs[flux_key] == 0 and states['inputs'][flux_key] == 0):
-                # Edge case: If both the current amount and the previous amount were 0, return 0
-                update['fluxes'][flux_key] = 0
+                # Edge case: If both the current amount and the previous amount were 0, don't update the value
+                pass
+                #update['fluxes'][flux_key] = 0
 
             elif self.prev_inputs[flux_key] == 0 and states['inputs'][flux_key] > 0:
-                # Edge case: If both the previous amount was 0, us the current amount for the normalization
-                update['fluxes'][flux_key] = flux / states['inputs'][flux_key]
+                # Edge case: If both the previous amount was 0, don't update the value
+                pass
+                #update['fluxes'][flux_key] = flux / states['inputs'][flux_key]
 
             else:
                 # Standard case
@@ -102,7 +104,7 @@ class DilutionFluxAdaptor(FluxAdaptor):
                 update['fluxes'][flux_key] = percent
 
             # Enforce non-negativity
-            if update['fluxes'][flux_key] < 0:
+            if flux_key in update['fluxes'] and update['fluxes'][flux_key] < 0:
                 update['fluxes'][flux_key] = 0
 
         self.prev_inputs = inputs

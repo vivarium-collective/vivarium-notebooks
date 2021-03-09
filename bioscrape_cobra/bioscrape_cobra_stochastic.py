@@ -32,7 +32,7 @@ LACTOSE_EXTERNAL = 'Lactose_external'
 #package_path = get_package_path()
 #SBML_FILE_STOCHASTIC = os.path.join(
 #    package_path, 'bioscrape_cobra', 'LacOperon_stochastic.xml')
-COBRA_TIMESTEP = 10
+COBRA_TIMESTEP = 50
 BIOSCRAPE_TIMESTEP = 10
 
 # set mass threshold for division
@@ -49,9 +49,12 @@ stochastic_bioscrape_config = {
 
 # set cobra constrained reactions config
 cobra_config = get_iAF1260b_config()
+cobra_config["external"] = {"glc__D_e":{"_divider": "set"}}
+cobra_config["external"] = {"lac__D_e":{"_divider": "set"}}
 
 # set up the config for the FluxAdaptor
 flux_config = {
+
     'flux_keys': {
         'Lactose_consumed': {
             'input_type': 'delta',
@@ -146,11 +149,8 @@ class BioscrapeCOBRAstochastic(Composer):
         #configure parallelization
         self.config['cobra']['_parallel'] = self.config['_parallel']
 
-        if self.config['fields_on']:
-            self.config['multibody']['_parallel'] = self.config['_parallel']
-
         # configure local fields
-        elif not self.config['fields_on']:
+        if not self.config['fields_on']:
             self.config['local_fields'].update({'nonspatial': True})
 
     def initial_state(self, config=None):

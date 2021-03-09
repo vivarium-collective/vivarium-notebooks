@@ -3,11 +3,7 @@ import matplotlib.pyplot as plt
 # plotting
 from vivarium.plots.simulation_output import plot_variables
 from vivarium.plots.agents_multigen import plot_agents_multigen
-from vivarium_multibody.plots.snapshots import (
-    format_snapshot_data, plot_snapshots)
-from vivarium_multibody.plots.snapshots import plot_tags
-
-
+from vivarium_multibody.plots.snapshots import format_snapshot_data, plot_snapshots, plot_tags
 
 def plot_single(
         output,
@@ -55,15 +51,13 @@ def plot_multigen(
     return fig
 
 
-def plot_fields(
+def plot_fields_snapshots(
         output,
         bounds=None,
         include_fields=None,
-        tagged_molecules=None,
-        n_snapshots=5,
+        n_snapshots=4,
         out_dir=None,
-        filename=None
-):  
+        filename=None):  
 
     agents, fields = format_snapshot_data(output)
 
@@ -72,10 +66,29 @@ def plot_fields(
         bounds=bounds,
         agents=agents,
         fields=fields,
+        n_snapshots = n_snapshots,
         include_fields=include_fields,
         out_dir=out_dir,
         filename=filename)
 
+    return fig1
+
+# plotting
+tags_dict = {
+    'glc__D_e': 'tab:cyan',
+    'co2_e': 'tab:orange',
+    'h2o_c': 'tab:cyan',
+    'atp_c': 'tab:orange',
+    'asp__L_c': 'tab:green'
+}
+def plot_fields_tags(
+        output,
+        bounds=None,
+        tagged_molecules=None,
+        n_snapshots=4,
+        out_dir=None,
+        filename=None):
+    agents, fields = format_snapshot_data(output)
     tags_data = {
         'agents': agents,
         'fields': fields,
@@ -89,17 +102,10 @@ def plot_fields(
         data=tags_data,
         plot_config=tags_config)
     
-    return fig1, fig2
+    return fig2
 
 
-# plotting
-tags_dict = {
-    'glc__D_e': 'tab:cyan',
-    'co2_e': 'tab:orange',
-    'h2o_c': 'tab:cyan',
-    'atp_c': 'tab:orange',
-    'asp__L_c': 'tab:green'
-}
+
 
 def move_to_end(data, d):
     for key in d.keys():
@@ -179,7 +185,7 @@ def plot_metabolism(data, tags=tags_dict):
 
     #Plot volume if it is available
     if ('volume', 'femtoliter') in data['global']:
-        ax = fig.add_subplot(grid[2, 0])
+        ax = fig.add_subplot(grid[3, 0])
         ax.plot(
             time_vec,
             data['global'][('volume', 'femtoliter')],
