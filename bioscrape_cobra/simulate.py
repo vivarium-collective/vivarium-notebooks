@@ -5,6 +5,7 @@ Simulation helper functions for BioscrapeCOBRA
 """
 import os
 import argparse
+import copy
 
 # vivarium imports
 from vivarium.core.experiment import Experiment
@@ -387,6 +388,10 @@ def simulate_bioscrape_cobra(
         biocobra_composite = biocobra_composer.generate(
             path=('agents', agent_id))
 
+        #create a second initial composite for plotting
+        initial_composite = biocobra_composer.generate(
+            path=('agents', "0"))
+
         # get initial state from the composite
 
         #set the bin volume based upon the lattice
@@ -416,12 +421,17 @@ def simulate_bioscrape_cobra(
 
         # merge bioscrapeCOBRA composite with lattice
         biocobra_composite.merge(composite=lattice_composite)
+        initial_composite.merge(composite=lattice_composer.generate())
 
     elif division:
         # division requires the agent to be embedded in a hierarchy
         # make the bioscrapeCOBRA composite under the path ('agents', agent_id)
         biocobra_composite = biocobra_composer.generate(
             path=('agents', agent_id))
+
+        #create a second initial composite for plotting
+        initial_composite = biocobra_composer.generate(
+            path=('agents', "0"))
 
         # get initial state from the composite
         state = biocobra_composite.initial_state()
@@ -432,12 +442,15 @@ def simulate_bioscrape_cobra(
     else:
         # make the composite
         biocobra_composite = biocobra_composer.generate()
+        #create a second initial composite for plotting
+        initial_composite = biocobra_composer.generate()
 
         # get initial state from the composite
         state = biocobra_composite.initial_state()
         state['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
+
 
     # update initial state with any value from function assignment
     initial_state = deep_merge(state, initial_state)
@@ -471,10 +484,10 @@ def simulate_bioscrape_cobra(
 
     # retrieve the data
     if output_type == 'timeseries':
-        return biocobra_experiment.emitter.get_timeseries()
+        return biocobra_experiment.emitter.get_timeseries(), initial_composite
     if output_type == 'unitless':
-        return biocobra_experiment.emitter.get_data_unitless()
-    return biocobra_experiment
+        return biocobra_experiment.emitter.get_data_unitless(), initial_composite
+    return biocobra_experiment, initial_composite
 
 
 # plotting
@@ -514,7 +527,7 @@ def main():
     args = parser.parse_args()
 
     if args.deterministic:
-        output = simulate_bioscrape_cobra(
+        output, comp0 = simulate_bioscrape_cobra(
             total_time=2000,
             output_type='timeseries')
 
@@ -529,7 +542,7 @@ def main():
             'species': {
                 'protein_Lactose_Permease': 10}}
 
-        output = simulate_bioscrape_cobra(
+        output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
             initial_state=initial_state,
             total_time=2000,
@@ -542,7 +555,7 @@ def main():
             filename='variables')
 
     if args.deterministic_divide:
-        output = simulate_bioscrape_cobra(
+        output, comp0 = simulate_bioscrape_cobra(
             division=True,
             total_time=6000,
             output_type='unitless')
@@ -553,7 +566,7 @@ def main():
             filename='division_multigen')
 
     if args.stochastic_divide:
-        output = simulate_bioscrape_cobra(
+        output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
             initial_glucose=1,  # mM
@@ -571,7 +584,7 @@ def main():
     if args.deterministic_spatial:
 
 
-        output = simulate_bioscrape_cobra(
+        output, comp0 = simulate_bioscrape_cobra(
             division=True,
             spatial=True,
             total_time=6000,
@@ -601,7 +614,7 @@ def main():
 
     if args.stochastic_spatial:
 
-        output = simulate_bioscrape_cobra(
+        output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
             spatial=True,
