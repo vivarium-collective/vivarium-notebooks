@@ -85,7 +85,7 @@ def simulate_cobra(
     iAF1260b_config = get_iAF1260b_config()
     iAF1260b_config.update({'time_step': COBRA_TIMESTEP})
 
-    iAF1260b_config['name'] = 'Cobra' #Rename the process
+    iAF1260b_config['name'] = 'cobra' #Rename the process
     dynamic_fba = DynamicFBA(iAF1260b_config)
 
     cobra_composite = Composite({
