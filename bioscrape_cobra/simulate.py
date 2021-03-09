@@ -466,6 +466,9 @@ def simulate_bioscrape_cobra(
     else:
         biocobra_experiment.update(total_time)
 
+    # end parallel processes
+    biocobra_experiment.end()
+
     # retrieve the data
     if output_type == 'timeseries':
         return biocobra_experiment.emitter.get_timeseries()
@@ -553,9 +556,11 @@ def main():
         output = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
-            total_time=6000,
-            external_volume=1e-9*units.L,
-            divide_threshold=1500*units.fg,
+            initial_glucose=1,  # mM
+            initial_lactose=5,  # mM
+            total_time=3000,
+            # external_volume=1e-9*units.L,
+            divide_threshold=2000*units.fg,
             output_type='unitless')
 
         plot_multigen(
