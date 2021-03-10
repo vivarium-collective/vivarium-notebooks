@@ -19,23 +19,13 @@ from vivarium.core.process import deserialize_value
 # vivarium-multibody imports
 from vivarium_multibody.composites.lattice import (
     Lattice, make_lattice_config)
-from vivarium_multibody.processes.multibody_physics import test_growth_division
-from vivarium_multibody.processes.multibody_physics import agent_body_config, volume_from_length
 from vivarium_multibody.composites.grow_divide import GrowDivide
-from vivarium_multibody.plots.snapshots import (
-    plot_snapshots,
-    format_snapshot_data,
-    make_snapshots_figure,
-    get_field_range,
-    get_agent_colors,
-)
-from vivarium_multibody.processes.diffusion_field import DiffusionField, get_gaussian_config
+from vivarium_multibody.processes.diffusion_field import DiffusionField
 
 #cobra imports
 from vivarium_cobra.processes.dynamic_fba import (
     DynamicFBA, 
     get_iAF1260b_config, 
-    print_growth
 )
 from vivarium_cobra.composites.cobra_composite import CobraComposite
 from vivarium_cobra.library.lattice_utils import get_bin_volume
@@ -81,7 +71,8 @@ spatial_config['fields_on'] = True
 #Simulates Cobra Model on its Own
 def simulate_cobra(
     total_time=100,
-    initial_state = None):
+    initial_state=None,
+):
     # get the configuration for the iAF1260b BiGG model
     iAF1260b_config = get_iAF1260b_config()
     iAF1260b_config.update({'time_step': COBRA_TIMESTEP})
@@ -101,9 +92,7 @@ def simulate_cobra(
     # run simulation
     cobra_sim_settings = {
         'initial_state': initial_state,
-        'total_time': total_time
-        }
-
+        'total_time': total_time}
     cobra_timeseries = simulate_composer(dynamic_fba, cobra_sim_settings)
 
     return cobra_timeseries, dynamic_fba
@@ -111,7 +100,8 @@ def simulate_cobra(
 #simulates Cobra Model in a Composite with some Derivers
 def simulate_cobra_composite(
     total_time=100,
-    initial_state = None):
+    initial_state=None,
+):
 
     # get the configuration for the iAF1260b BiGG model
     iAF1260b_config = get_iAF1260b_config()
@@ -128,9 +118,7 @@ def simulate_cobra_composite(
     # run simulation
     cobra_sim_settings = {
         'initial_state': initial_state,
-        'total_time': total_time
-        }
-
+        'total_time': total_time}
     cobra_timeseries = simulate_composer(cobra_composite, cobra_sim_settings)
 
     return cobra_timeseries, cobra_composite
@@ -176,10 +164,10 @@ def simulate_bioscrape(
         initial_state = bioscrape_process.initial_state({})
 
     if initial_glucose is not None:
-        initial_state["species"]["Glucose_external"] = initial_glucose
+        initial_state['species']['Glucose_external'] = initial_glucose
 
     if initial_lactose is not None:
-        initial_state["species"]["Lactose_external"] = initial_lactose
+        initial_state['species']['Lactose_external'] = initial_lactose
 
     # run simulation
     bioscrape_sim_settings = {
@@ -193,37 +181,50 @@ def simulate_bioscrape(
 
 
 #Simulate a System of Cells that grow and divde in a well mixed spatial environment
-def simulate_grow_divide(total_time = 100, growth_rate = .03, initial_state = None, growth_noise = 10**-6):
+def simulate_grow_divide(
+        total_time=100,
+        growth_rate=0.03,
+        initial_state=None,
+        growth_noise=10**-6
+):
     # config
-    growth_config = {'default_growth_rate': growth_rate, "default_growth_noise": growth_noise, 'agents_path': ('agents',)}
-    grow_divide_composer = GrowDivide({'agent_id': "0", 'growth' : growth_config})
+    growth_config = {
+        'default_growth_rate': growth_rate,
+        'default_growth_noise': growth_noise,
+        'agents_path': ('agents',)}
+    grow_divide_composer = GrowDivide({
+        'agent_id': '0', 'growth' : growth_config})
 
     if initial_state is None:
         initial_state = {
-        'agents': {
-            '0': {
-                'global': {
-                    'mass': 1000 * units.femtogram}
-            }}}
+            'agents': {
+                '0': {
+                    'global': {
+                        'mass': 1000 * units.femtogram}
+                }}}
 
     grow_divide_sim_settings = {
         'total_time': total_time,
-        "initial_state": initial_state,
-        "outer_path":('agents', '0'),
-        'return_raw_data': True,
-    }
-
-    grow_divide_composite = grow_divide_composer.generate(path=('agents', "0"))
+        'initial_state': initial_state,
+        'outer_path': ('agents', '0'),
+        'return_raw_data': True}
+    grow_divide_composite = grow_divide_composer.generate(path=('agents', '0'))
 
     grow_divide_data = simulate_composite(grow_divide_composite, grow_divide_sim_settings)
     grow_divide_data = deserialize_value(grow_divide_data)
     grow_divide_data = remove_units(grow_divide_data)
 
     #returns the data, the initial composite, and the final composite
-    return grow_divide_data, grow_divide_composer.generate(path=('agents', "0")), grow_divide_composite
+    return grow_divide_data, grow_divide_composer.generate(path=('agents', '0')), grow_divide_composite
 
 #Simulate a System of Cells that grow and divde in a well mixed spatial environment
-def simulate_diffusion(total_time = 100, diffusion_rate = .001, initial_state = {}, bins = [10, 10], bounds = [10, 10]):
+def simulate_diffusion(
+        total_time=100,
+        diffusion_rate=0.001,
+        initial_state={},
+        bins=[10, 10],
+        bounds=[10, 10]
+):
     # configure
     
 
@@ -258,7 +259,15 @@ def simulate_diffusion(total_time = 100, diffusion_rate = .001, initial_state = 
     return diffusion_data, diffusion_composer
 
 
-def get_lattice_grow_divide_composite(diffusion_rate = .001, initial_concentration = {}, bins = [10, 10], bounds = [10, 10], growth_rate = .03, growth_noise = 10**-6, depth = 10):
+def get_lattice_grow_divide_composite(
+        diffusion_rate=0.001,
+        initial_concentration={},
+        bins=[10, 10],
+        bounds=[10, 10],
+        growth_rate=0.03,
+        growth_noise=10**-6,
+        depth=10
+):
     lattice_config = make_lattice_config(
             bounds=bounds,
             n_bins=bins,
@@ -270,35 +279,38 @@ def get_lattice_grow_divide_composite(diffusion_rate = .001, initial_concentrati
     lattice_composite = lattice_composer.generate()
 
 
-    growth_config = {'default_growth_rate': growth_rate, "default_growth_noise": growth_noise}
-    grow_divide_composer = GrowDivide({'agent_id': "0", 'growth' : growth_config})
+    growth_config = {'default_growth_rate': growth_rate, 'default_growth_noise': growth_noise}
+    grow_divide_composer = GrowDivide({'agent_id': '0', 'growth': growth_config})
 
-    agent_id = "0"
+    agent_id = '0'
     lattice_grow_divide_composite = grow_divide_composer.generate(path=('agents', agent_id))
     lattice_grow_divide_composite.merge(composite=lattice_composite)
 
     return lattice_grow_divide_composite
 
-def simulate_grow_divide_lattice(lattice_grow_divide_composite, total_time = 100,  initial_state = None):
+def simulate_grow_divide_lattice(
+        lattice_grow_divide_composite,
+        total_time=100,
+        initial_state=None,
+):
 
-    agent_id = "0"
+    agent_id = '0'
     if initial_state is None:
         initial_state = {
-        'agents': {
-            agent_id: {
-                'global': {
-                    'mass': 1000 * units.femtogram}
-            }}}
+            'agents': {
+                agent_id: {
+                    'global': {
+                        'mass': 1000 * units.femtogram}
+                }}}
 
 
     sim_settings = {
         'total_time': total_time,
         'return_raw_data': True,
-        "initial_state" : initial_state,
-        'return_raw_data': True,
-    }
-
-    lattice_grow_divide_data = simulate_composite(lattice_grow_divide_composite, sim_settings)
+        'initial_state': initial_state,
+        'return_raw_data': True}
+    lattice_grow_divide_data = simulate_composite(
+        lattice_grow_divide_composite, sim_settings)
 
     return lattice_grow_divide_data
 
@@ -390,7 +402,7 @@ def simulate_bioscrape_cobra(
 
         #create a second initial composite for plotting
         initial_composite = biocobra_composer.generate(
-            path=('agents', "0"))
+            path=('agents', '0'))
 
         # get initial state from the composite
 
@@ -398,6 +410,7 @@ def simulate_bioscrape_cobra(
         bin_volume = get_bin_volume(n_bins, bounds, depth)
         bin_volume_config = config = {'local_fields': {'bin_volume': bin_volume}}
         state = biocobra_composite.initial_state(bin_volume_config)
+        state = deep_merge(state, {'agents': {agent_id: initial_state}})
         state['agents'][agent_id]['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
@@ -431,10 +444,11 @@ def simulate_bioscrape_cobra(
 
         #create a second initial composite for plotting
         initial_composite = biocobra_composer.generate(
-            path=('agents', "0"))
+            path=('agents', '0'))
 
         # get initial state from the composite
         state = biocobra_composite.initial_state()
+        state = deep_merge(state, {'agents': {agent_id: initial_state}})
         state['agents'][agent_id]['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
@@ -493,12 +507,14 @@ def simulate_bioscrape_cobra(
 # plotting
 plot_variables_list = [
     ('species', 'rna_M'),
+    ('species', 'monomer_betaGal'),
     ('species', 'protein_betaGal'),
     ('species', 'protein_Lactose_Permease'),
     ('flux_bounds', 'EX_glc__D_e'),
     ('flux_bounds', 'EX_lac__D_e'),
-    ('boundary', ('mass', 'femtogram')),
-    ('boundary', ('volume', 'femtoliter'))]
+    # ('boundary', ('mass', 'femtogram')),
+    # ('boundary', ('volume', 'femtoliter'))
+]
 
 plot_variables_list_deterministic = [
     ('boundary', 'external', GLUCOSE_EXTERNAL),
@@ -540,10 +556,14 @@ def main():
     if args.stochastic:
         initial_state = {
             'species': {
-                'protein_Lactose_Permease': 10}}
+                'monomer_betaGal': 100,
+                'protein_betaGal': 100,
+                'protein_Lactose_Permease': 100}}
 
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
+            initial_glucose=1e0,
+            initial_lactose=1e1,
             initial_state=initial_state,
             total_time=2000,
             output_type='timeseries')
@@ -566,18 +586,31 @@ def main():
             filename='division_multigen')
 
     if args.stochastic_divide:
+        initial_state = {
+            'species': {
+                'monomer_betaGal': 100,
+                'protein_betaGal': 100,
+                'protein_Lactose_Permease': 100}}
+
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
-            initial_glucose=1,  # mM
-            initial_lactose=5,  # mM
-            total_time=3000,
+            initial_glucose=1e-1,  # mM
+            initial_lactose=1e0,  # mM
+            initial_state=initial_state,
+            total_time=300,
             # external_volume=1e-9*units.L,
             divide_threshold=2000*units.fg,
             output_type='unitless')
 
+        # plot
+        var_list = copy.deepcopy(plot_variables_list_stochastic)
+        var_list.extend([
+            ('boundary', 'mass'),
+            ('boundary', 'volume')])
         plot_multigen(
             output,
+            variables=var_list,
             out_dir=os.path.join(out_dir, 'stochastic_divide'),
             filename='division_multigen')
 
