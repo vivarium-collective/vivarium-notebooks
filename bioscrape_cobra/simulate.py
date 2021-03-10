@@ -410,6 +410,7 @@ def simulate_bioscrape_cobra(
         bin_volume = get_bin_volume(n_bins, bounds, depth)
         bin_volume_config = config = {'local_fields': {'bin_volume': bin_volume}}
         state = biocobra_composite.initial_state(bin_volume_config)
+        state = deep_merge(state, {'agents': {agent_id: initial_state}})
         state['agents'][agent_id]['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
@@ -447,6 +448,7 @@ def simulate_bioscrape_cobra(
 
         # get initial state from the composite
         state = biocobra_composite.initial_state()
+        state = deep_merge(state, {'agents': {agent_id: initial_state}})
         state['agents'][agent_id]['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
@@ -505,12 +507,14 @@ def simulate_bioscrape_cobra(
 # plotting
 plot_variables_list = [
     ('species', 'rna_M'),
+    ('species', 'monomer_betaGal'),
     ('species', 'protein_betaGal'),
     ('species', 'protein_Lactose_Permease'),
     ('flux_bounds', 'EX_glc__D_e'),
     ('flux_bounds', 'EX_lac__D_e'),
-    ('boundary', ('mass', 'femtogram')),
-    ('boundary', ('volume', 'femtoliter'))]
+    # ('boundary', ('mass', 'femtogram')),
+    # ('boundary', ('volume', 'femtoliter'))
+]
 
 plot_variables_list_deterministic = [
     ('boundary', 'external', GLUCOSE_EXTERNAL),
@@ -552,7 +556,9 @@ def main():
     if args.stochastic:
         initial_state = {
             'species': {
-                'protein_Lactose_Permease': 10}}
+                'monomer_betaGal': 100,
+                'protein_betaGal': 100,
+                'protein_Lactose_Permease': 100}}
 
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
@@ -580,18 +586,31 @@ def main():
             filename='division_multigen')
 
     if args.stochastic_divide:
+        initial_state = {
+            'species': {
+                'monomer_betaGal': 100,
+                'protein_betaGal': 100,
+                'protein_Lactose_Permease': 100}}
+
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
-            initial_glucose=1,  # mM
-            initial_lactose=5,  # mM
-            total_time=3000,
+            initial_glucose=1e-1,  # mM
+            initial_lactose=1e0,  # mM
+            initial_state=initial_state,
+            total_time=300,
             # external_volume=1e-9*units.L,
             divide_threshold=2000*units.fg,
             output_type='unitless')
 
+        # plot
+        var_list = copy.deepcopy(plot_variables_list_stochastic)
+        var_list.extend([
+            ('boundary', 'mass'),
+            ('boundary', 'volume')])
         plot_multigen(
             output,
+            variables=var_list,
             out_dir=os.path.join(out_dir, 'stochastic_divide'),
             filename='division_multigen')
 
