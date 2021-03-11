@@ -377,6 +377,7 @@ def simulate_bioscrape_cobra(
         agent_id='1',
         halt_threshold=32,
         total_time=100,
+        emitter='timeseries',
         output_type=None,
 ):
     """ Simulation function for BioscrapeCOBRA """
@@ -480,7 +481,8 @@ def simulate_bioscrape_cobra(
         'topology': biocobra_composite.topology,
         'initial_state': initial_state,
         'display_info': False,
-        'experiment_id': experiment_id}
+        'experiment_id': experiment_id,
+        'emitter': {'type': emitter}}
     biocobra_experiment = Experiment(experiment_config)
 
     # run the experiment
@@ -538,6 +540,7 @@ def main():
         os.makedirs(out_dir)
 
     parser = argparse.ArgumentParser(description='bioscrape_cobra')
+    parser.add_argument('-emitter', '-e', default='timeseries', type=str, help='emitter type')
     parser.add_argument('--deterministic', '-1', action='store_true', default=False)
     parser.add_argument('--stochastic', '-2', action='store_true', default=False)
     parser.add_argument('--deterministic_divide', '-3', action='store_true', default=False)
@@ -546,9 +549,13 @@ def main():
     parser.add_argument('--stochastic_spatial', '-6', action='store_true', default=False)
     args = parser.parse_args()
 
+    # emitter type
+    emitter = str(args.emitter)
+
     if args.deterministic:
         output, comp0 = simulate_bioscrape_cobra(
             total_time=2000,
+            emitter=emitter,
             output_type='timeseries')
 
         plot_single(
@@ -570,6 +577,7 @@ def main():
             initial_lactose=1e1,
             initial_state=initial_state,
             total_time=2000,
+            emitter=emitter,
             output_type='timeseries')
 
         plot_single(
@@ -582,6 +590,7 @@ def main():
         output, comp0 = simulate_bioscrape_cobra(
             division=True,
             total_time=6000,
+            emitter=emitter,
             output_type='unitless')
 
         plot_multigen(
@@ -605,6 +614,7 @@ def main():
             total_time=6000,
             # external_volume=1e-9*units.L,
             divide_threshold=2000*units.fg,
+            emitter=emitter,
             output_type='unitless')
 
         # plot
@@ -624,6 +634,7 @@ def main():
             division=True,
             spatial=True,
             total_time=6000,
+            emitter=emitter,
             output_type='unitless')
 
         deterministic_spatial_out_dir = os.path.join(out_dir, 'deterministic_spatial')
@@ -655,6 +666,7 @@ def main():
             division=True,
             spatial=True,
             total_time=6000,
+            emitter=emitter,
             output_type='unitless')
 
         stochastic_spatial_out_dir = os.path.join(out_dir, 'stochastic_spatial')
