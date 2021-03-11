@@ -102,7 +102,16 @@ schema_override = {
                 '_updater': 'null'},
             'dna_Lac_Operon': {
                 '_divider': 'set'}},
-    }}
+    },
+    'field_counts_deriver': {
+        'counts': {
+            'Glucose_external': {
+                '_divider': 'set'},
+            'Lactose_external': {
+                '_divider': 'set'}}
+    },
+}
+
 
 
 # The stochastic Bioscrape/COBRA composer

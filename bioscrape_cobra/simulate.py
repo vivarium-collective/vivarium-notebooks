@@ -6,6 +6,8 @@ Simulation helper functions for BioscrapeCOBRA
 import os
 import argparse
 import copy
+import time as clock
+from tqdm import tqdm
 
 # vivarium imports
 from vivarium.core.experiment import Experiment
@@ -470,30 +472,32 @@ def simulate_bioscrape_cobra(
     initial_state = deep_merge(state, initial_state)
 
     # make the experiment
+    experiment_id = (f"{'stochastic' if stochastic else 'deterministic'}"
+                     f"{'_division' if division else ''}"
+                     f"{'_spatial' if spatial else ''}")
     experiment_config = {
         'processes': biocobra_composite.processes,
         'topology': biocobra_composite.topology,
         'initial_state': initial_state,
-        # 'display_info': False,
-        'experiment_id': f"{'stochastic' if stochastic else 'deterministic'}"
-                         f"{'_division' if division else ''}"
-                         f"{'_spatial' if spatial else ''}"}
+        'display_info': False,
+        'experiment_id': experiment_id}
     biocobra_experiment = Experiment(experiment_config)
 
     # run the experiment
+    clock_start = clock.time()
     if division:
         # terminate upon reaching total_time or halt_threshold
-        time = 0
-        sim_step = 1000
-        n_agents = len(biocobra_experiment.state.get_value()['agents'])
-        while n_agents < halt_threshold and time <= total_time:
-            biocobra_experiment.update(sim_step)
-            time += sim_step
+        sim_step = 200
+        for _ in tqdm(range(0, total_time, sim_step)):
             n_agents = len(biocobra_experiment.state.get_value()['agents'])
+            if n_agents < halt_threshold:
+                biocobra_experiment.update(sim_step)
     else:
         biocobra_experiment.update(total_time)
 
-    # end parallel processes
+    # print runtime and finalize
+    clock_finish = clock.time() - clock_start
+    print(f'Simulation {experiment_id} completed in {clock_finish:.2f} seconds')
     biocobra_experiment.end()
 
     # retrieve the data
@@ -595,10 +599,10 @@ def main():
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
-            initial_glucose=1e-1,  # mM
-            initial_lactose=1e0,  # mM
+            initial_glucose=1e0,  # mM
+            initial_lactose=1e1,  # mM
             initial_state=initial_state,
-            total_time=300,
+            total_time=6000,
             # external_volume=1e-9*units.L,
             divide_threshold=2000*units.fg,
             output_type='unitless')
@@ -615,7 +619,6 @@ def main():
             filename='division_multigen')
 
     if args.deterministic_spatial:
-
 
         output, comp0 = simulate_bioscrape_cobra(
             division=True,
