@@ -323,7 +323,8 @@ def get_bioscrape_cobra_config(
         division=False,
         divide_threshold=DEFAULT_DIVIDE_THRESHOLD,
         external_volume=DEFAULT_EXTERNAL_VOLUME,
-        agent_id=INITIAL_AGENT_ID
+        agent_id=INITIAL_AGENT_ID,
+        parallel=False,
 ):
     """ create a generic config dict for bioscrape_cobra composers """
     agent_id = agent_id
@@ -332,7 +333,7 @@ def get_bioscrape_cobra_config(
         config = {
             'divide_on': True,
             'fields_on': True,
-            '_parallel': True,
+            '_parallel': parallel,
             'agent_id': agent_id,
             'agents_path': ('..', '..', 'agents',),
             'fields_path': ('..', '..', 'fields',),
@@ -343,7 +344,7 @@ def get_bioscrape_cobra_config(
     elif division:
         config = {
             'divide_on': True,
-            '_parallel': True,
+            '_parallel': parallel,
             'agent_id': agent_id,
             'agents_path': ('..', '..', 'agents',),
             'fields_path': ('..', '..', 'fields',),
@@ -379,6 +380,7 @@ def simulate_bioscrape_cobra(
         total_time=100,
         emitter='timeseries',
         output_type=None,
+        parallel=False,
 ):
     """ Simulation function for BioscrapeCOBRA """
     initial_state = initial_state or {}
@@ -389,7 +391,8 @@ def simulate_bioscrape_cobra(
         division=division,
         divide_threshold=divide_threshold,
         external_volume=external_volume,
-        agent_id=agent_id)
+        agent_id=agent_id,
+        parallel=parallel)
 
     # get the BioscrapeCOBRA composer -- either stochastic or deterministic
     if stochastic:
@@ -408,12 +411,11 @@ def simulate_bioscrape_cobra(
             path=('agents', '0'))
 
         # get initial state from the composite
-
         #set the bin volume based upon the lattice
-        bin_volume = get_bin_volume(n_bins, bounds, depth)
-        bin_volume_config = config = {'local_fields': {'bin_volume': bin_volume}}
-        state = biocobra_composite.initial_state(bin_volume_config)
+        bin_volume = get_bin_volume(n_bins, bounds, depth) * units.L
+        state = biocobra_composite.initial_state()
         state = deep_merge(state, {'agents': {agent_id: initial_state}})
+        state['agents'][agent_id]['boundary']['bin_volume'] = bin_volume
         state['agents'][agent_id]['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
@@ -429,7 +431,7 @@ def simulate_bioscrape_cobra(
             concentrations=field_concentrations,
             diffusion=diffusion_rate,
             time_step=COBRA_TIMESTEP)
-        lattice_config['multibody']['_parallel'] = True
+        lattice_config['multibody']['_parallel'] = parallel
         lattice_config['multibody']['timestep'] = BIOSCRAPE_TIMESTEP
 
         lattice_composer = Lattice(lattice_config)
@@ -481,7 +483,7 @@ def simulate_bioscrape_cobra(
         'topology': biocobra_composite.topology,
         'initial_state': initial_state,
         'display_info': False,
-        'experiment_id': experiment_id,
+        'experiment_name': experiment_id,
         'emitter': {'type': emitter}}
     biocobra_experiment = Experiment(experiment_config)
 
@@ -489,7 +491,7 @@ def simulate_bioscrape_cobra(
     clock_start = clock.time()
     if division:
         # terminate upon reaching total_time or halt_threshold
-        sim_step = 200
+        sim_step = max(BIOSCRAPE_TIMESTEP, COBRA_TIMESTEP) * 10
         for _ in tqdm(range(0, total_time, sim_step)):
             n_agents = len(biocobra_experiment.state.get_value()['agents'])
             if n_agents < halt_threshold:
@@ -540,7 +542,8 @@ def main():
         os.makedirs(out_dir)
 
     parser = argparse.ArgumentParser(description='bioscrape_cobra')
-    parser.add_argument('-emitter', '-e', default='timeseries', type=str, help='emitter type')
+    parser.add_argument('-database', '-d', action='store_true', default=False, help='emit to database')
+    parser.add_argument('-parallel', '-p', action='store_true', default=False, help='run parallel processes')
     parser.add_argument('--deterministic', '-1', action='store_true', default=False)
     parser.add_argument('--stochastic', '-2', action='store_true', default=False)
     parser.add_argument('--deterministic_divide', '-3', action='store_true', default=False)
@@ -550,7 +553,8 @@ def main():
     args = parser.parse_args()
 
     # emitter type
-    emitter = str(args.emitter)
+    emitter = 'database' if args.database else 'timeseries'
+    parallel = True if args.parallel else False
 
     if args.deterministic:
         output, comp0 = simulate_bioscrape_cobra(
@@ -660,33 +664,39 @@ def main():
             filename='spatial_tags')
 
     if args.stochastic_spatial:
+        bounds = [10, 10]
+        n_bins = [30, 30]
 
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
             spatial=True,
-            total_time=6000,
+            initial_glucose=1e1,
+            initial_lactose=1e1,
+            initial_state=None,
+            bounds=bounds,
+            n_bins=n_bins,
+            total_time=3000,
             emitter=emitter,
+            parallel=parallel,
             output_type='unitless')
 
         stochastic_spatial_out_dir = os.path.join(out_dir, 'stochastic_spatial')
         plot_multigen(
             output,
             out_dir=stochastic_spatial_out_dir,
-            filename='spatial_multigen',
-        )
+            filename='spatial_multigen')
 
         plot_fields_snapshots(
             output,
-            bounds=BOUNDS,
+            bounds=bounds,
             include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
             out_dir=stochastic_spatial_out_dir,
-            filename='spatial_snapshots',
-        )
+            filename='spatial_snapshots')
 
         plot_fields_tags(
             output,
-            bounds=BOUNDS,
+            bounds=bounds,
             tagged_molecules=[('species', 'protein_Lactose_Permease',)],
             out_dir=stochastic_spatial_out_dir,
             filename='spatial_tags')

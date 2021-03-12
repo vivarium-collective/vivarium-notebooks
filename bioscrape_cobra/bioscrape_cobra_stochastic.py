@@ -157,7 +157,7 @@ class BioscrapeCOBRAstochastic(Composer):
             self.config['cobra_timestep'], self.config['bioscrape_timestep'])
 
         #configure parallelization
-        self.config['cobra']['_parallel'] = self.config['_parallel']
+        self.config['cobra']['_parallel'] = self.config.get('_parallel', False)
 
         # configure local fields
         if not self.config['fields_on']:
