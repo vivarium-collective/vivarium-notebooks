@@ -430,9 +430,11 @@ def simulate_bioscrape_cobra(
             depth=depth,
             concentrations=field_concentrations,
             diffusion=diffusion_rate,
-            time_step=COBRA_TIMESTEP)
+            # time_step=min(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP)
+        )
         lattice_config['multibody']['_parallel'] = parallel
-        lattice_config['multibody']['timestep'] = BIOSCRAPE_TIMESTEP
+        lattice_config['multibody']['time_step'] = max(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP)
+        lattice_config['diffusion']['time_step'] = min(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP)
 
         lattice_composer = Lattice(lattice_config)
         lattice_composite = lattice_composer.generate()
@@ -664,7 +666,7 @@ def main():
             filename='spatial_tags')
 
     if args.stochastic_spatial:
-        bounds = [10, 10]
+        bounds = [20, 20]
         n_bins = [30, 30]
 
         output, comp0 = simulate_bioscrape_cobra(
@@ -673,10 +675,12 @@ def main():
             spatial=True,
             initial_glucose=1e1,
             initial_lactose=1e1,
+            depth=2,
+            diffusion_rate=1e1,
             initial_state=None,
             bounds=bounds,
             n_bins=n_bins,
-            total_time=3000,
+            total_time=1000,
             emitter=emitter,
             parallel=parallel,
             output_type='unitless')

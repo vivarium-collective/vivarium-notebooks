@@ -8,14 +8,17 @@ from vivarium_multibody.plots.snapshots import format_snapshot_data, plot_snapsh
 def plot_single(
         output,
         variables=None,
+        config=None,
         out_dir=None,
         filename=None
 ):
     variables = variables or []
+    config = config or {}
     variables_plot_config = {
         'out_dir': out_dir, 'filename': filename,
         'row_height': 2, 'row_padding': 0.2, 'column_width': 10,
         'variables': variables}
+    variables_plot_config.update(config)
     fig = plot_variables(
         output, **variables_plot_config)
     return fig
