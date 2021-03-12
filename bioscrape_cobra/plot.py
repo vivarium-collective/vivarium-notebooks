@@ -17,7 +17,7 @@ def plot_single(
     config = config or {}
     variables_plot_config = {
         'out_dir': out_dir, 'filename': filename,
-        'row_height': 2, 'row_padding': 0.2, 'column_width': 10,
+        'row_height': 1, 'row_padding': 0.6, 'column_width': 3,
         'variables': variables}
     variables_plot_config.update(config)
     fig = plot_variables(
@@ -123,7 +123,7 @@ def plot_metabolism(data, tags=tags_dict):
 
     n_rows = 3
     n_cols = 1
-    fig = plt.figure(figsize=(n_cols * 8, n_rows * 2.5))
+    fig = plt.figure(figsize=(n_cols * 6, n_rows * 4/3))
     grid = plt.GridSpec(n_rows, n_cols)
 
     time_vec = data['time']
