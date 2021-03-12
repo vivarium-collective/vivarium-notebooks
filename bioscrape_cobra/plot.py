@@ -217,7 +217,8 @@ cobra_topology_config = {
     'node_labels':{
         'mass_deriver':'mass\nderiver',
         'volume_deriver':'volume\nderiver',
-        'internal_counts':'internal\ncounts'
+        'internal_counts':'internal\ncounts',
+        'flux_bounds':'flux\nbounds',
     },
     'coordinates':{
         
