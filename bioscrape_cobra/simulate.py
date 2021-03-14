@@ -36,10 +36,9 @@ from vivarium_cobra.library.lattice_utils import get_bin_volume
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
 # local import
-# from bioscrape_cobra.bioscrape_cobra_stochastic import (
-#     BioscrapeCOBRAstochastic, GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL)
-from bioscrape_cobra.bioscrape_cobra_stochastic_initialized import (
-    BioscrapeCOBRAstochastic, GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL)
+# from bioscrape_cobra.bioscrape_cobra_stochastic import BioscrapeCOBRAstochastic
+from bioscrape_cobra.bioscrape_cobra_stochastic import GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL
+from bioscrape_cobra.bioscrape_cobra_stochastic_initialized import BioscrapeCOBRAstochastic_initialized as BioscrapeCOBRAstochastic
 from bioscrape_cobra.bioscrape_cobra_deterministic import BioscrapeCOBRAdeterministic
 
 # plotting
@@ -497,6 +496,8 @@ def simulate_bioscrape_cobra(
     else:
         biocobra_experiment.update(total_time)
 
+    import ipdb; ipdb.set_trace()
+
     # print runtime and finalize
     clock_finish = clock.time() - clock_start
     print(f'Completed in {clock_finish:.2f} seconds')
@@ -676,7 +677,7 @@ def main():
             initial_state=None,
             bounds=bounds,
             n_bins=n_bins,
-            total_time=4000,
+            total_time=2500,
             emitter=emitter,
             parallel=parallel,
             output_type='unitless')
