@@ -10,7 +10,7 @@ import time as clock
 from tqdm import tqdm
 
 # vivarium imports
-from vivarium.core.experiment import Experiment
+from vivarium.core.experiment import Experiment, timestamp
 from vivarium.library.units import units
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.composition import simulate_composer, composer_in_experiment, simulate_composite
@@ -430,11 +430,11 @@ def simulate_bioscrape_cobra(
             depth=depth,
             concentrations=field_concentrations,
             diffusion=diffusion_rate,
-            # time_step=min(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP)
+            time_step=min(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP)
         )
         lattice_config['multibody']['_parallel'] = parallel
-        lattice_config['multibody']['time_step'] = max(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP)
-        lattice_config['diffusion']['time_step'] = min(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP)
+        # lattice_config['multibody']['time_step'] = max(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP)
+        # lattice_config['diffusion']['time_step'] = min(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP)
 
         lattice_composer = Lattice(lattice_config)
         lattice_composite = lattice_composer.generate()
@@ -479,13 +479,14 @@ def simulate_bioscrape_cobra(
     # make the experiment
     experiment_id = (f"{'stochastic' if stochastic else 'deterministic'}"
                      f"{'_division' if division else ''}"
-                     f"{'_spatial' if spatial else ''}")
+                     f"{'_spatial' if spatial else ''}"
+                     f"_{timestamp()}")
     experiment_config = {
         'processes': biocobra_composite.processes,
         'topology': biocobra_composite.topology,
         'initial_state': initial_state,
         'display_info': False,
-        'experiment_name': experiment_id,
+        'experiment_id': experiment_id,
         'emitter': {'type': emitter}}
     biocobra_experiment = Experiment(experiment_config)
 
@@ -639,7 +640,9 @@ def main():
         output, comp0 = simulate_bioscrape_cobra(
             division=True,
             spatial=True,
-            total_time=6000,
+            initial_glucose=1e1,
+            initial_lactose=1e1,
+            total_time=12000,
             emitter=emitter,
             output_type='unitless')
 
@@ -667,7 +670,7 @@ def main():
 
     if args.stochastic_spatial:
         bounds = [20, 20]
-        n_bins = [30, 30]
+        n_bins = [20, 20]
 
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
@@ -675,7 +678,7 @@ def main():
             spatial=True,
             initial_glucose=1e1,
             initial_lactose=1e1,
-            depth=2,
+            depth=5,
             diffusion_rate=1e1,
             initial_state=None,
             bounds=bounds,
@@ -695,6 +698,7 @@ def main():
             output,
             bounds=bounds,
             include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
+            n_snapshots=5,
             out_dir=stochastic_spatial_out_dir,
             filename='spatial_snapshots')
 
@@ -702,6 +706,7 @@ def main():
             output,
             bounds=bounds,
             tagged_molecules=[('species', 'protein_Lactose_Permease',)],
+            n_snapshots=5,
             out_dir=stochastic_spatial_out_dir,
             filename='spatial_tags')
 
