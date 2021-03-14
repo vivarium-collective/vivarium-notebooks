@@ -13,7 +13,7 @@ from tqdm import tqdm
 from vivarium.core.experiment import Experiment, timestamp
 from vivarium.library.units import units
 from vivarium.library.dict_utils import deep_merge
-from vivarium.core.composition import simulate_composer, composer_in_experiment, simulate_composite
+from vivarium.core.composition import simulate_composer, simulate_composite
 from vivarium.core.process import Composite
 from vivarium.library.units import remove_units
 from vivarium.core.process import deserialize_value
@@ -36,7 +36,9 @@ from vivarium_cobra.library.lattice_utils import get_bin_volume
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
 # local import
-from bioscrape_cobra.bioscrape_cobra_stochastic import (
+# from bioscrape_cobra.bioscrape_cobra_stochastic import (
+#     BioscrapeCOBRAstochastic, GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL)
+from bioscrape_cobra.bioscrape_cobra_stochastic_initialized import (
     BioscrapeCOBRAstochastic, GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL)
 from bioscrape_cobra.bioscrape_cobra_deterministic import BioscrapeCOBRAdeterministic
 
@@ -674,7 +676,7 @@ def main():
             initial_state=None,
             bounds=bounds,
             n_bins=n_bins,
-            total_time=6000,
+            total_time=4000,
             emitter=emitter,
             parallel=parallel,
             output_type='unitless')
