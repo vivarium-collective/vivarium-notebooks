@@ -100,6 +100,7 @@ def plot_fields_tags(
     tags_config = {
         'tagged_molecules': tagged_molecules,
         'n_snapshots': n_snapshots,
+        'background_color': 'w',
         'out_dir': out_dir,
         'filename': ('tags_' + filename) if filename else None}
     fig2 = plot_tags(

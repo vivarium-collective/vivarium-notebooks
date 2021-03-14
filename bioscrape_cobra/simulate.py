@@ -403,12 +403,10 @@ def simulate_bioscrape_cobra(
     # make the composite
     if spatial:
         # make a bioscrapeCOBRA composite
-        biocobra_composite = biocobra_composer.generate(
-            path=('agents', agent_id))
+        biocobra_composite = biocobra_composer.generate(path=('agents', agent_id))
 
         #create a second initial composite for plotting
-        initial_composite = biocobra_composer.generate(
-            path=('agents', '0'))
+        initial_composite = biocobra_composer.generate(path=('agents', '0'))
 
         # get initial state from the composite
         #set the bin volume based upon the lattice
@@ -430,11 +428,8 @@ def simulate_bioscrape_cobra(
             depth=depth,
             concentrations=field_concentrations,
             diffusion=diffusion_rate,
-            time_step=min(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP)
-        )
+            time_step=min(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP))
         lattice_config['multibody']['_parallel'] = parallel
-        # lattice_config['multibody']['time_step'] = max(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP)
-        # lattice_config['diffusion']['time_step'] = min(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP)
 
         lattice_composer = Lattice(lattice_config)
         lattice_composite = lattice_composer.generate()
@@ -446,12 +441,10 @@ def simulate_bioscrape_cobra(
     elif division:
         # division requires the agent to be embedded in a hierarchy
         # make the bioscrapeCOBRA composite under the path ('agents', agent_id)
-        biocobra_composite = biocobra_composer.generate(
-            path=('agents', agent_id))
+        biocobra_composite = biocobra_composer.generate(path=('agents', agent_id))
 
         #create a second initial composite for plotting
-        initial_composite = biocobra_composer.generate(
-            path=('agents', '0'))
+        initial_composite = biocobra_composer.generate(path=('agents', '0'))
 
         # get initial state from the composite
         state = biocobra_composite.initial_state()
@@ -488,12 +481,12 @@ def simulate_bioscrape_cobra(
         'display_info': False,
         'experiment_id': experiment_id,
         'emitter': {'type': emitter}}
+    print(f'Initializing experiment {experiment_id}')
     biocobra_experiment = Experiment(experiment_config)
 
     # run the experiment
     clock_start = clock.time()
-    if division:
-        # terminate upon reaching total_time or halt_threshold
+    if division: # terminate upon reaching total_time or halt_threshold
         sim_step = max(BIOSCRAPE_TIMESTEP, COBRA_TIMESTEP) * 10
         for _ in tqdm(range(0, total_time, sim_step)):
             n_agents = len(biocobra_experiment.state.get_value()['agents'])
@@ -504,7 +497,7 @@ def simulate_bioscrape_cobra(
 
     # print runtime and finalize
     clock_finish = clock.time() - clock_start
-    print(f'Simulation {experiment_id} completed in {clock_finish:.2f} seconds')
+    print(f'Completed in {clock_finish:.2f} seconds')
     biocobra_experiment.end()
 
     # retrieve the data
@@ -650,16 +643,14 @@ def main():
         plot_multigen(
             output,
             out_dir=deterministic_spatial_out_dir,
-            filename='spatial_multigen',
-        )
+            filename='spatial_multigen')
 
         plot_fields_snapshots(
             output,
             bounds=BOUNDS,
             include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
             out_dir=deterministic_spatial_out_dir,
-            filename='spatial_snapshots',
-        )
+            filename='spatial_snapshots')
 
         plot_fields_tags(
                         output,
@@ -678,12 +669,12 @@ def main():
             spatial=True,
             initial_glucose=1e1,
             initial_lactose=1e1,
-            depth=5,
-            diffusion_rate=1e1,
+            depth=2,
+            # diffusion_rate=1e1,
             initial_state=None,
             bounds=bounds,
             n_bins=n_bins,
-            total_time=1000,
+            total_time=6000,
             emitter=emitter,
             parallel=parallel,
             output_type='unitless')
