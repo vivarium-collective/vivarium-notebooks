@@ -70,7 +70,8 @@ def plot_fields_snapshots(
         bounds=bounds,
         agents=agents,
         fields=fields,
-        n_snapshots = n_snapshots,
+        phylogeny_names=False,
+        n_snapshots=n_snapshots,
         include_fields=include_fields,
         out_dir=out_dir,
         filename=filename)

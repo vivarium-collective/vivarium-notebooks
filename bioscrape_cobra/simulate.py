@@ -377,13 +377,34 @@ def simulate_bioscrape_cobra(
         divide_threshold=2000 * units.fg,
         external_volume=1e-13 * units.L,
         agent_id='1',
-        halt_threshold=32,
+        halt_threshold=100,
         total_time=100,
         emitter='timeseries',
         output_type=None,
         parallel=False,
 ):
-    """ Simulation function for BioscrapeCOBRA """
+    """ Simulation function for BioscrapeCOBRA
+
+    Args:
+        * division:
+        * stochastic:
+        * spatial:
+        * initial_glucose:
+        * initial_lactose:
+        * initial_state:
+        * bounds:
+        * n_bins:
+        * depth:
+        * diffusion_rate:
+        * divide_threshold:
+        * external_volume:
+        * agent_id:
+        * halt_threshold:
+        * total_time:
+        * emitter:
+        * output_type:
+        * parallel:
+    """
     initial_state = initial_state or {}
 
     # make the BioscrapeCOBRA config
@@ -481,6 +502,7 @@ def simulate_bioscrape_cobra(
         'initial_state': initial_state,
         'display_info': False,
         'experiment_id': experiment_id,
+        'emit_step': max(BIOSCRAPE_TIMESTEP, COBRA_TIMESTEP),
         'emitter': {'type': emitter}}
     print(f'Initializing experiment {experiment_id}')
     biocobra_experiment = Experiment(experiment_config)
@@ -495,8 +517,6 @@ def simulate_bioscrape_cobra(
                 biocobra_experiment.update(sim_step)
     else:
         biocobra_experiment.update(total_time)
-
-    import ipdb; ipdb.set_trace()
 
     # print runtime and finalize
     clock_finish = clock.time() - clock_start
@@ -663,7 +683,7 @@ def main():
             filename='spatial_tags')
 
     if args.stochastic_spatial:
-        bounds = [20, 20]
+        bounds = [25, 25]
         n_bins = [20, 20]
 
         output, comp0 = simulate_bioscrape_cobra(
@@ -672,12 +692,12 @@ def main():
             spatial=True,
             initial_glucose=1e1,
             initial_lactose=1e1,
-            depth=2,
+            depth=1,
             # diffusion_rate=1e1,
             initial_state=None,
             bounds=bounds,
             n_bins=n_bins,
-            total_time=2500,
+            total_time=16000,
             emitter=emitter,
             parallel=parallel,
             output_type='unitless')
