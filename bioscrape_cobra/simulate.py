@@ -24,7 +24,7 @@ from vivarium_multibody.composites.lattice import (
 from vivarium_multibody.composites.grow_divide import GrowDivide
 from vivarium_multibody.processes.diffusion_field import DiffusionField
 
-#cobra imports
+# cobra imports
 from vivarium_cobra.processes.dynamic_fba import (
     DynamicFBA, 
     get_iAF1260b_config, 
@@ -32,13 +32,12 @@ from vivarium_cobra.processes.dynamic_fba import (
 from vivarium_cobra.composites.cobra_composite import CobraComposite
 from vivarium_cobra.library.lattice_utils import get_bin_volume
 
-#Bioscrape imports
+# Bioscrape imports
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
 # local import
-# from bioscrape_cobra.bioscrape_cobra_stochastic import BioscrapeCOBRAstochastic
+from bioscrape_cobra.bioscrape_cobra_stochastic import BioscrapeCOBRAstochastic
 from bioscrape_cobra.bioscrape_cobra_stochastic import GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL
-from bioscrape_cobra.bioscrape_cobra_stochastic_initialized import BioscrapeCOBRAstochastic_initialized as BioscrapeCOBRAstochastic
 from bioscrape_cobra.bioscrape_cobra_deterministic import BioscrapeCOBRAdeterministic
 
 # plotting
@@ -509,7 +508,7 @@ def simulate_bioscrape_cobra(
 
     # run the experiment
     clock_start = clock.time()
-    if division: # terminate upon reaching total_time or halt_threshold
+    if division:  # terminate upon reaching total_time or halt_threshold
         sim_step = max(BIOSCRAPE_TIMESTEP, COBRA_TIMESTEP) * 10
         for _ in tqdm(range(0, total_time, sim_step)):
             n_agents = len(biocobra_experiment.state.get_value()['agents'])
@@ -684,20 +683,21 @@ def main():
 
     if args.stochastic_spatial:
         bounds = [25, 25]
-        n_bins = [20, 20]
+        n_bins = [25, 25]
 
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
             spatial=True,
             initial_glucose=1e1,
-            initial_lactose=1e1,
+            initial_lactose=1e3,
             depth=1,
             # diffusion_rate=1e1,
             initial_state=None,
             bounds=bounds,
             n_bins=n_bins,
-            total_time=16000,
+            halt_threshold=200,
+            total_time=40000,
             emitter=emitter,
             parallel=parallel,
             output_type='unitless')

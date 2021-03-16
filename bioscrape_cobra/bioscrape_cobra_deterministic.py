@@ -101,7 +101,8 @@ class BioscrapeCOBRAdeterministic(Composer):
         'cobra_timestep': COBRA_TIMESTEP,
         'divide_on': False,  # is division turned on?
         'fields_on': False,  # are spatial dynamics used?
-        '_parallel': False, #Are multiple cores used?
+        '_parallel': False,  # Are multiple cores used?
+        'reuse_processes': True,  # reuse the same processes for all agents?
 
         # process configs
         'bioscrape': deterministic_bioscrape_config,
@@ -145,21 +146,43 @@ class BioscrapeCOBRAdeterministic(Composer):
         if not self.config['fields_on']:
             self.config['local_fields'].update({'nonspatial': True})
 
+        # no processes initialized
+        self.processes_initialized = False
+
+    def initialize_processes(self, config):
+        # Processes
+        self.cobra = DynamicFBA(config['cobra'])
+        self.bioscrape = Bioscrape(config['bioscrape'])
+        self.clock = Clock(config['clock'])
+
+        # Derivers
+        self.mass_deriver = TreeMass()
+        self.volume_deriver = Volume()
+        self.biomass_adaptor = MassToMolar(config['mass_to_molar'])
+        self.strip_units = StripUnits(config['strip_units'])
+        self.local_field = LocalField(config['local_fields'])
+
+        if self.config['reuse_processes']:
+            self.processes_initialized = True
+
     def generate_processes(self, config):
+        if not self.processes_initialized:
+            self.initialize_processes(config)
+
         processes = {
             # Processes
-            'cobra': DynamicFBA(config['cobra']),
-            'bioscrape': Bioscrape(config['bioscrape']),
-            'flux_adaptor': FluxAdaptor(config['flux_adaptor']),
-            'dilution_rate_adaptor': DilutionFluxAdaptor(config['dilution_rate_flux']),
-            'clock': Clock(config['clock']),
+            'cobra': self.cobra,
+            'bioscrape': self.bioscrape,
+            'flux_adaptor': FluxAdaptor(config['flux_adaptor']),  # has internal state
+            'dilution_rate_adaptor': DilutionFluxAdaptor(config['dilution_rate_flux']),  # has internal state
+            'clock': self.clock,
 
             # Derivers
-            'mass_deriver': TreeMass(),
-            'volume_deriver': Volume(),
-            'biomass_adaptor': MassToMolar(config['mass_to_molar']),
-            'strip_units': StripUnits(config['strip_units']),
-            'local_field': LocalField(config['local_fields'])}
+            'mass_deriver': self.mass_deriver,
+            'volume_deriver': self.volume_deriver,
+            'biomass_adaptor': self.biomass_adaptor,
+            'strip_units': self.strip_units,
+            'local_field': self.local_field}
 
         # Division Logic
         if config['divide_on']:

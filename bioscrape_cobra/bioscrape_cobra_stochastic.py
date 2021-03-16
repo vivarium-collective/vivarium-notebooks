@@ -118,6 +118,7 @@ class BioscrapeCOBRAstochastic(Composer):
         'cobra_timestep': COBRA_TIMESTEP,
         'divide_on': False,  # is division turned on?
         'fields_on': False,  # are spatial dynamics used?
+        'reuse_processes': True,  # reuse the same processes for all agents?
 
         # process configs
         'bioscrape': stochastic_bioscrape_config,
@@ -153,12 +154,15 @@ class BioscrapeCOBRAstochastic(Composer):
         self.config['clock']['time_step'] = min(
             self.config['cobra_timestep'], self.config['bioscrape_timestep'])
 
-        #configure parallelization
+        # configure parallelization
         self.config['cobra']['_parallel'] = self.config.get('_parallel', False)
 
         # configure local fields
         if not self.config['fields_on']:
             self.config['local_fields'].update({'nonspatial': True})
+
+        # no processes initialized
+        self.processes_initialized = False
 
     def initial_state(self, config=None):
          initial_state = super().initial_state(config)
@@ -166,22 +170,43 @@ class BioscrapeCOBRAstochastic(Composer):
              'local_fields']['bin_volume']
          return initial_state
 
+    def initialize_processes(self, config):
+        # Processes
+        self.cobra = DynamicFBA(config['cobra'])
+        self.bioscrape = Bioscrape(config['bioscrape'])
+        self.clock = Clock(config['clock'])
+
+        # Derivers
+        self.mass_deriver = TreeMass()
+        self.volume_deriver = Volume()
+        self.delta_counts_to_concs = CountsToMolar(config['delta_counts_to_concs'])
+        self.biomass_adaptor = MassToCount(config['mass_to_counts'])
+        self.strip_units = StripUnits(config['strip_units'])
+        self.local_field = LocalField(config['local_fields'])
+        self.field_counts_deriver = MolarToCounts(config['field_counts_deriver'])
+
+        if self.config['reuse_processes']:
+            self.processes_initialized = True
+
     def generate_processes(self, config):
+        if not self.processes_initialized:
+            self.initialize_processes(config)
+
         processes = {
             # Processes
-            'cobra': DynamicFBA(config['cobra']),
-            'bioscrape': Bioscrape(config['bioscrape']),
-            'clock': Clock(config['clock']),
-            'flux_adaptor': AverageFluxAdaptor(config['flux_adaptor']),
+            'cobra': self.cobra,
+            'bioscrape': self.bioscrape,
+            'clock': self.clock,
+            'flux_adaptor': AverageFluxAdaptor(config['flux_adaptor']),  # has internal state
 
             # Derivers
-            'mass_deriver': TreeMass(),
-            'volume_deriver': Volume(),
-            'delta_counts_to_concs': CountsToMolar(config['delta_counts_to_concs']),
-            'biomass_adaptor': MassToCount(config['mass_to_counts']),
-            'strip_units': StripUnits(config['strip_units']),
-            'local_field': LocalField(config['local_fields']),
-            'field_counts_deriver': MolarToCounts(config['field_counts_deriver'])}
+            'mass_deriver': self.mass_deriver,
+            'volume_deriver': self.volume_deriver,
+            'delta_counts_to_concs': self.delta_counts_to_concs,
+            'biomass_adaptor': self.biomass_adaptor,
+            'strip_units': self.strip_units,
+            'local_field': self.local_field,
+            'field_counts_deriver': self.field_counts_deriver}
 
         # Division Logic
         if config['divide_on']:
