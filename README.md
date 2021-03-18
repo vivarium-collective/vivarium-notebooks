@@ -2,6 +2,13 @@
 This repository includes Jupyter notebooks and some Python files for running the simulations described in 
 "Vivarium: an interface and engine for integrative multiscale modeling in computational biology."
 
+## Installation
+To run the code used in this work, you will need to install the following modules: `vivarium-core`, `vivarium-cobra`, 
+`vivarium-bioscrape`, and `vivarium-multibody`.
+These modules can be installed locally by executing the following command in the root directory:
+
+> pip install -e ./
+
 ## Notebooks
 Notebooks can be found under `notebooks/`. These include `Vivarium_interface_basics.ipynb` and `Multi-Paradigm-Composites.ipynb`.
 
