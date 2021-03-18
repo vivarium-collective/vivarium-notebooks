@@ -7,13 +7,11 @@ with open("README.md", 'r') as readme:
     long_description = readme.read()
 
 setup(
-    name='bioscrape-cobra',
+    name='vivarium-notebooks',
     version='0.0.1',
-    packages=[
-        'bioscrape_cobra',
-    ],
+    packages=[],
     author='Eran Agmon, William Poole',
-    author_email='',
+    author_email='eagmon@stanford.edu, wpoole@caltech.edu',
     url='https://github.com/vivarium-collective/vivarium-notebooks',
     license='',
     entry_points={
