@@ -690,7 +690,7 @@ def main():
             division=True,
             spatial=True,
             initial_glucose=1e1,
-            initial_lactose=1e4,
+            initial_lactose=1e5,
             depth=1,
             diffusion_rate=1e-1,
             initial_state=None,

@@ -61,7 +61,8 @@ def plot_fields_snapshots(
         include_fields=None,
         n_snapshots=4,
         out_dir=None,
-        filename=None):  
+        filename=None,
+        **kwargs):
 
     agents, fields = format_snapshot_data(output)
 
@@ -74,7 +75,8 @@ def plot_fields_snapshots(
         n_snapshots=n_snapshots,
         include_fields=include_fields,
         out_dir=out_dir,
-        filename=filename)
+        filename=filename,
+        **kwargs)
 
     return fig1
 
@@ -93,20 +95,16 @@ def plot_fields_tags(
         n_snapshots=4,
         out_dir=None,
         filename=None):
-    agents, fields = format_snapshot_data(output)
-    tags_data = {
-        'agents': agents,
-        'fields': fields,
-        'config': {'bounds': bounds}}
-    tags_config = {
-        'tagged_molecules': tagged_molecules,
-        'n_snapshots': n_snapshots,
-        'background_color': 'w',
-        'out_dir': out_dir,
-        'filename': ('tags_' + filename) if filename else None}
+
     fig2 = plot_tags(
-        data=tags_data,
-        plot_config=tags_config)
+        data=output,
+        bounds=bounds,
+        tagged_molecules=tagged_molecules,
+        n_snapshots=n_snapshots,
+        background_color='w',
+        out_dir=out_dir,
+        filename=('tags_' + filename) if filename else None
+    )
     
     return fig2
 
