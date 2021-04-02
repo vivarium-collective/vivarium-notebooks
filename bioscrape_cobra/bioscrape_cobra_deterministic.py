@@ -27,8 +27,23 @@ from bioscrape_cobra.flux_adaptor import (
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-dirname = os.path.dirname(__file__)
-SBML_FILE_DETERMINISTIC = os.path.join(dirname, 'LacOperon_deterministic.xml')
+
+#Helps find the right file name for both jupyter notebooks and running from the terminal
+SBML_FILE_DETERMINISTIC = 'LacOperon_deterministic.xml' 
+def set_deterministic_model(filepath = None):
+    try:
+        if filepath is None:
+            dirname = os.path.dirname(__file__)
+            filepath = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
+
+            f = open(filepath)
+            f.close()
+        SBML_FILE_DETERMINISTIC = filepath
+    except:
+        pass
+        
+set_deterministic_model()
+
 COBRA_TIMESTEP = 50
 BIOSCRAPE_TIMESTEP = 10
 
