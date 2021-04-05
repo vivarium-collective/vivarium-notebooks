@@ -697,7 +697,7 @@ def main():
             bounds=bounds,
             n_bins=n_bins,
             halt_threshold=200,
-            total_time=30000,
+            total_time=60000,
             emitter=emitter,
             parallel=parallel,
             output_type='unitless')

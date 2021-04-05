@@ -94,7 +94,8 @@ def plot_fields_tags(
         tagged_molecules=None,
         n_snapshots=4,
         out_dir=None,
-        filename=None):
+        filename=None,
+        **kwargs):
 
     fig2 = plot_tags(
         data=output,
@@ -103,7 +104,8 @@ def plot_fields_tags(
         n_snapshots=n_snapshots,
         background_color='w',
         out_dir=out_dir,
-        filename=('tags_' + filename) if filename else None
+        filename=('tags_' + filename) if filename else None,
+        **kwargs
     )
     
     return fig2
