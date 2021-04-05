@@ -199,12 +199,16 @@ custom_widths = {
     'multibody':8
 }
 
+embedded_custom_widths = {"agents\n0\n"+k:custom_widths[k] for k in custom_widths if k not in ["diffusion", "multibody"]}
+embedded_custom_widths['diffusion'] = custom_widths['diffusion']
+embedded_custom_widths['multibody'] = custom_widths['multibody']
+
 u = 1.0
 r0 = 0
 r1 = 1.5*u
 cobra_topology_config = {
     'graph_format': 'hierarchy',
-    #'dashed_edges': True,
+    'dashed_edges': True,
     'show_ports': False,
     'remove_nodes':[
         'exchanges', 'field_deriver', 'global\nlocation', 'dimensions',
@@ -261,6 +265,7 @@ bioscrape_topology_config = {
     'custom_widths':custom_widths
 }
 
+
 u = 0.9
 config_grow_divide_topology_i = {
     'graph_format': 'hierarchy',
@@ -270,10 +275,10 @@ config_grow_divide_topology_i = {
         'agents\n0\nrates\ngrowth_rate', 'agents\n0\nrates\ngrowth_noise', 'dimensions'
     ],
     'process_colors':{
-        'agent 0\ndivide\ncondition':'tab:cyan',
-        'agent 0\ndivision':'tab:cyan',
-        'agent 0\nglobals\nderiver':'tab:gray',
-        'agent 0\ngrowth':'tab:gray',
+        'agents\n0\ndivide_condition':'tab:cyan',
+        'agents\n0\ndivision':'tab:cyan',
+        'agents\n0\nglobals_deriver':'tab:gray',
+        'agents\n0\ngrowth':'tab:gray',
     },
     'store_colors':{
         'agents':'tab:cyan',
@@ -284,8 +289,8 @@ config_grow_divide_topology_i = {
         'agents\n0\nboundary\ndivide':'tab:brown',
     },
     'coordinates':{
-        'agents\n0\ndivision':(u, 0),
-        'agents\n0\ndivide_condition':(2*u, 0),
+        'agents\n0\ndivision':(u, -3*u),
+        'agents\n0\ndivide_condition':(2*u, -3*u),
         
         'agents':(0,  u),
         'agents\n0':(0, 0),
@@ -294,8 +299,8 @@ config_grow_divide_topology_i = {
         'agents\n0\nboundary\nmass':(1*u, -1.5*u),
         'agents\n0\nboundary\ndivide':(2*u, -1.5*u),
         
-        'agents\n0\ngrowth':(-.5*u, -3*u),
-        'agents\n0\nglobals_deriver':(.5*u, -3*u)
+        'agents\n0\ngrowth':(-1*u, -3*u),
+        'agents\n0\nglobals_deriver':(0*u, -3*u)
     },
     'node_labels':{
         'agents\n0':"agent\n0",
@@ -309,8 +314,14 @@ config_grow_divide_topology_i = {
         'agents\n0\nboundary\nmass':'agent 0\nboundary\nmass',
         'agents\n0\nboundary\ndivide':'agent 0\nboundary\ndivide',
     },
-    'custom_widths':custom_widths
+    'custom_widths':embedded_custom_widths
 }
+
+embedded_custom_widths_f = {}
+embedded_custom_widths_00 = {"agents\n00\n"+k:custom_widths[k] for k in custom_widths if k not in ["diffusion", "multibody"]}
+embedded_custom_widths_01 = {"agents\n01\n"+k:custom_widths[k] for k in custom_widths if k not in ["diffusion", "multibody"]}
+embedded_custom_widths_f.update(embedded_custom_widths_00)
+embedded_custom_widths_f.update(embedded_custom_widths_01)
 
 config_grow_divide_topology_f = {
     'graph_format': 'hierarchy',
@@ -350,25 +361,25 @@ config_grow_divide_topology_f = {
         
         'agents':(3*u,  u),
         
-        'agents\n00\ndivision':(u, 0),
-        'agents\n00\ndivide_condition':(2*u, 0),
+        'agents\n00\ndivision':(u, -3*u),
+        'agents\n00\ndivide_condition':(2*u,  -3*u),
         'agents\n00':(0, 0),
         'agents\n00\nrates':(-1*u, -u),
         'agents\n00\nboundary':(0*u, -u),
         'agents\n00\nboundary\nmass':(1*u, -1.5*u),
         'agents\n00\nboundary\ndivide':(2*u, -1.5*u),
-        'agents\n00\ngrowth':(-.5*u, -3*u),
-        'agents\n00\nglobals_deriver':(.5*u, -3*u),
+        'agents\n00\ngrowth':(-1*u, -3*u),
+        'agents\n00\nglobals_deriver':(0*u, -3*u),
         
-        'agents\n01\ndivision':(5.5*u, 0),
-        'agents\n01\ndivide_condition':(6.5*u, 0),
+        'agents\n01\ndivision':(5.5*u, -3*u),
+        'agents\n01\ndivide_condition':(6.5*u, -3*u),
         'agents\n01':(4.5*u, 0),
         'agents\n01\nrates':(3.5*u, -u),
         'agents\n01\nboundary':(4.5*u, -u),
         'agents\n01\nboundary\nmass':(5.5*u, -1.5*u),
         'agents\n01\nboundary\ndivide':(6.5*u, -1.5*u),
-        'agents\n01\ngrowth':(4*u, -3*u),
-        'agents\n01\nglobals_deriver':(5*u, -3*u)
+        'agents\n01\ngrowth':(3.5*u, -3*u),
+        'agents\n01\nglobals_deriver':(4.5*u, -3*u)
 
     },
     'node_labels':{
@@ -394,7 +405,7 @@ config_grow_divide_topology_f = {
         'agents\n01\nboundary\nmass':'agent 1\nboundary\nmass',
         'agents\n01\nboundary\ndivide':'agent 1\nboundary\ndivide',
     },
-    'custom_widths':custom_widths
+    'custom_widths':embedded_custom_widths_f
 }
 
 config_diffusion_topology = {
@@ -411,7 +422,9 @@ config_diffusion_topology = {
     'node_labels':{
         'diffusion_field':'diffusion'
     },
-    'custom_widths':custom_widths
+    'custom_widths':{
+        'diffusion_field':8
+        }
 }
 
 config_lattice_topology = {
@@ -459,8 +472,8 @@ config_grow_divide_lattice_topology = {
         'agents\n0\nboundary\ndivide':'tab:brown',
     },
     'coordinates':{
-        'agents\n0\ndivision':(2*u, u),
-        'agents\n0\ndivide_condition':(3*u, u),
+        'agents\n0\ndivision':(1.5*u, -3*u),
+        'agents\n0\ndivide_condition':(2.5*u, -3*u),
         'multibody':(2*u, 2*u),
         'diffusion':(3*u, 2*u),
         
@@ -472,7 +485,7 @@ config_grow_divide_lattice_topology = {
         'agents\n0\nboundary\nmass':(2*u, -1.5*u),
         'agents\n0\nboundary\ndivide':(3*u, -1.5*u),
         
-        'fields':(4*u, -1*u),
+        'fields':(4*u, 1*u),
         'agents\n0\ngrowth':(-.5*u, -3*u),
         'agents\n0\nglobals_deriver':(.5*u, -3*u)
     },
@@ -489,7 +502,7 @@ config_grow_divide_lattice_topology = {
         'agents\n0\nboundary\nmass':'boundary\nmass',
         'agents\n0\nboundary\ndivide':'boundary\ndivide',
     },
-    'custom_widths':custom_widths
+    'custom_widths':embedded_custom_widths
 }
 
 
