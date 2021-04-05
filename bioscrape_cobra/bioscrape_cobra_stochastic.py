@@ -28,8 +28,25 @@ from bioscrape_cobra.flux_adaptor import AverageFluxAdaptor
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-dirname = os.path.dirname(__file__)
-SBML_FILE_STOCHASTIC = os.path.join(dirname, 'LacOperon_stochastic.xml')
+
+#Helps find the right file name for both jupyter notebooks and running from the terminal
+SBML_FILE_STOCHASTIC = 'LacOperon_stochastic.xml'
+
+def set_stochastic_model(filepath = None):
+    try:
+        if filepath is None:
+            dirname = os.path.dirname(__file__)
+            filepath = os.path.join(dirname, SBML_FILE_STOCHASTIC)
+
+            #tests the default path
+            f = open(filepath)
+            f.close()
+        SBML_FILE_STOCHASTIC = filepath
+    except:
+        pass
+
+set_stochastic_model()
+
 COBRA_TIMESTEP = 50
 BIOSCRAPE_TIMESTEP = 10
 

@@ -50,7 +50,7 @@ INITIAL_GLC = 10e1  # mmolar
 INITIAL_LAC = 10e1  # mmolar
 BOUNDS = [20, 20]
 NBINS = [10, 10]
-DEPTH = 20
+DEPTH = 2
 
 # fixed global variables
 COBRA_TIMESTEP = 50

@@ -193,6 +193,14 @@ def plot_metabolism(data, tags=tags_dict):
 
 
 # Below are different configs for the topology plots
+custom_widths = {
+    'cobra':8,
+    'bioscrape':8,
+    'division':8,
+    'diffusion':8,
+    'multibody':8
+}
+
 u = 1.0
 r0 = 0
 r1 = 1.5*u
@@ -233,7 +241,8 @@ cobra_topology_config = {
         'external':(0*u, r0),
         'flux_bounds':(1*u, r0),
         'global':(2*u, r0)
-    }
+    },
+    'custom_widths':custom_widths
 }
 
 bioscrape_topology_config = {
@@ -250,7 +259,8 @@ bioscrape_topology_config = {
     },
     'node_labels':{
         'delta_species':'delta\nspecies'
-    }
+    },
+    'custom_widths':custom_widths
 }
 
 u = 0.9
@@ -301,6 +311,7 @@ config_grow_divide_topology_i = {
         'agents\n0\nboundary\nmass':'agent 0\nboundary\nmass',
         'agents\n0\nboundary\ndivide':'agent 0\nboundary\ndivide',
     },
+    'custom_widths':custom_widths
 }
 
 config_grow_divide_topology_f = {
@@ -385,6 +396,7 @@ config_grow_divide_topology_f = {
         'agents\n01\nboundary\nmass':'agent 1\nboundary\nmass',
         'agents\n01\nboundary\ndivide':'agent 1\nboundary\ndivide',
     },
+    'custom_widths':custom_widths
 }
 
 config_diffusion_topology = {
@@ -400,7 +412,8 @@ config_diffusion_topology = {
     },
     'node_labels':{
         'diffusion_field':'diffusion'
-    }
+    },
+    'custom_widths':custom_widths
 }
 
 config_lattice_topology = {
@@ -418,7 +431,8 @@ config_lattice_topology = {
     'coordinates': {
         'diffusion': (1.5, 1),
         'multibody': (2.5, 1),
-    }
+    },
+    'custom_widths':custom_widths
 }
 
 u = .8
@@ -477,6 +491,7 @@ config_grow_divide_lattice_topology = {
         'agents\n0\nboundary\nmass':'boundary\nmass',
         'agents\n0\nboundary\ndivide':'boundary\ndivide',
     },
+    'custom_widths':custom_widths
 }
 
 
@@ -487,42 +502,42 @@ RP = -2.5*su #process row
 # node coordinates
 agent_coordinates = {       
         # cobra
-        'cobra':(-3*su, RP),
-        'mass_deriver':(-2*su, RP),
-        'volume_deriver':(-1*su, RP),
+        'cobra':(-4*su, RP),
+        'mass_deriver':(-3*su, RP),
+        'volume_deriver':(-2*su, RP),
         'reactions':(-4*su, RS),
         'internal_counts':(-3*su, RS),
         'cobra_external':(-2*su, RS),
         'flux_bounds':(-1*su, RS),
 
         # bioscrape
-        'flux_adaptor':(0*su, RP),
-        'bioscrape':(1*su, RP),
-        'dilution_rate_adaptor':(2*su, RP),
-        'biomass_adaptor':(3*su, RP),
-        'delta_counts_to_concs':(2*su, RP),
+        'flux_adaptor':(-1*su, RP),
+        'bioscrape':(0*su, RP),
+        'dilution_rate_adaptor':(1*su, RP),
+        'biomass_adaptor':(2*su, RP),
+        'delta_counts_to_concs':(1*su, RP),
         'species':(0, RS),
         'rates':(su, RS),
         'delta_species':(2*su, RS),
         'delta_concs':(3*su, RS),
         
         # boundary/division
-        'local_field':(4*su, RP),
-        'field_counts_deriver':(5*su, RP),
-        'division':(3*su, RS+2*su),
-        'divide_condition':(4*su, RS+2*su),
+        'local_field':(5*su, RP),
+        'field_counts_deriver':(6*su, RP),
+        'division':(3*su, RP),
+        'divide_condition':(4*su, RP),
         'boundary':(3*su, RS),
-        'boundary\nexternal':(4*su, RS-.5*su),
-        'boundary\nlocation':(5*su, RS-.5*su),
+        'boundary\nexternal':(5*su, RS+.5*su),
+        'boundary\nlocation':(4*su, RS+.5*su),
         'boundary\nexchanges':(5.5*su, RS-su),
-        'boundary\nmass':(4*su, RS+.5*su),
-        'boundary\ndivide':(5*su, RS+.5*su)}
+        'boundary\nmass':(4*su, RS-.5*su),
+        'boundary\ndivide':(5*su, RS-.5*su)}
 global_coordinates = {
         'agents':(0, RS+2*su),
         'agents\n0':(0, RS+su),
         'multibody':(3*su, RS+3*su),
         'diffusion':(4*su, RS+3*su),
-        'fields':(6*su, RS)}
+        'fields':(6*su, RS+2*su)}
 embedded_coordinates = {
     'agents\n0\n'+node_id: coord 
     for node_id, coord in agent_coordinates.items()}
@@ -647,6 +662,9 @@ embedded_store_colors = {
 embedded_process_colors.update(global_process_colors)
 embedded_store_colors.update(global_store_colors)
 
+embedded_custom_widths = {"agents\n0\n"+k:custom_widths[k] for k in custom_widths if k not in ["diffusion", "multibody"]}
+embedded_custom_widths['diffusion'] = custom_widths['diffusion']
+embedded_custom_widths['multibody'] = custom_widths['multibody']
 
 config_bioscrape_cobra_topology = {
     'graph_format': 'hierarchy',
@@ -680,10 +698,11 @@ config_single_cell_bioscrape_cobra_topology['coordinates'] = agent_coordinates
 config_single_cell_bioscrape_cobra_topology['node_labels'] = agent_node_labels
 config_single_cell_bioscrape_cobra_topology['store_colors'] = agent_store_colors
 config_single_cell_bioscrape_cobra_topology['process_colors'] = agent_process_colors
-
+config_single_cell_bioscrape_cobra_topology['custom_widths'] = custom_widths
 
 config_embedded_bioscrape_cobra_topology = copy.deepcopy(config_bioscrape_cobra_topology)
 config_embedded_bioscrape_cobra_topology['coordinates'] = embedded_coordinates
 config_embedded_bioscrape_cobra_topology['node_labels'] = embedded_node_labels
 config_embedded_bioscrape_cobra_topology['process_colors'] = embedded_process_colors
 config_embedded_bioscrape_cobra_topology['store_colors'] = embedded_store_colors
+config_embedded_bioscrape_cobra_topology['custom_widths'] = embedded_custom_widths
