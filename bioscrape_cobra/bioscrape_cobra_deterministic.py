@@ -27,29 +27,12 @@ from bioscrape_cobra.flux_adaptor import (
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-
-#Helps find the right file name for both jupyter notebooks and running from the terminal
-SBML_FILE_DETERMINISTIC = 'LacOperon_deterministic.xml' 
-def set_deterministic_model(filepath = None):
-    try:
-        if filepath is None:
-            dirname = os.path.dirname(__file__)
-            filepath = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
-
-            f = open(filepath)
-            f.close()
-        SBML_FILE_DETERMINISTIC = filepath
-    except:
-        pass
-        
-set_deterministic_model()
-
+SBML_FILE_DETERMINISTIC = 'LacOperon_deterministic.xml'
 COBRA_TIMESTEP = 50
 BIOSCRAPE_TIMESTEP = 10
 
 # choose the SBML file and set other bioscrape parameters
 deterministic_bioscrape_config = {
-    'sbml_file': SBML_FILE_DETERMINISTIC,
     'stochastic': False,
     'initial_volume': 1,
     'internal_dt': 0.01}
@@ -72,7 +55,9 @@ dilution_rate_flux_config = {
         'mass': {
             'input_type': 'amount'}}}
 
+# set characteristic volume (default)
 mass_mw_config = {
+    'default_volume': 1 * units.fL,
     'molecular_weights': {
         'mass': 1.0 * units.fg / units.molec}}
 
@@ -118,6 +103,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         'fields_on': False,  # are spatial dynamics used?
         '_parallel': False,  # Are multiple cores used?
         'reuse_processes': True,  # reuse the same processes for all agents?
+        'sbml_file': SBML_FILE_DETERMINISTIC,
 
         # process configs
         'bioscrape': deterministic_bioscrape_config,
@@ -154,7 +140,10 @@ class BioscrapeCOBRAdeterministic(Composer):
         self.config['clock']['time_step'] = min(
             self.config['cobra_timestep'], self.config['bioscrape_timestep'])
 
-        #configure parallelization
+        # sbml file
+        self.config['bioscrape']['sbml_file'] = self.config['sbml_file']
+
+        # configure parallelization
         self.config['cobra']['_parallel'] = self.config.get('_parallel', False)
 
         # configure local fields
@@ -163,6 +152,10 @@ class BioscrapeCOBRAdeterministic(Composer):
 
         # no processes initialized
         self.processes_initialized = False
+
+    def initial_state(self, config=None):
+         initial_state = super().initial_state(config)
+         return initial_state
 
     def initialize_processes(self, config):
         # Processes
@@ -177,8 +170,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         self.strip_units = StripUnits(config['strip_units'])
         self.local_field = LocalField(config['local_fields'])
 
-        if self.config['reuse_processes']:
-            self.processes_initialized = True
+        self.processes_initialized = self.config['reuse_processes']
 
     def generate_processes(self, config):
         if not self.processes_initialized:
@@ -278,7 +270,9 @@ class BioscrapeCOBRAdeterministic(Composer):
                 'output': {
                     '_path': boundary_path,
                     'mass': ('biomass',)},
-                'global': boundary_path,
+                'global': {
+                    '_path': boundary_path,
+                    'volume': ('characteristic_volume',)},
             },
             'clock': {
                 'global_time': boundary_path + ('time',)

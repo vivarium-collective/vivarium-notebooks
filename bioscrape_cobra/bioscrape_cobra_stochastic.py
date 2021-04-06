@@ -28,25 +28,7 @@ from bioscrape_cobra.flux_adaptor import AverageFluxAdaptor
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
-
-#Helps find the right file name for both jupyter notebooks and running from the terminal
 SBML_FILE_STOCHASTIC = 'LacOperon_stochastic.xml'
-
-def set_stochastic_model(filepath = None):
-    try:
-        if filepath is None:
-            dirname = os.path.dirname(__file__)
-            filepath = os.path.join(dirname, SBML_FILE_STOCHASTIC)
-
-            #tests the default path
-            f = open(filepath)
-            f.close()
-        SBML_FILE_STOCHASTIC = filepath
-    except:
-        pass
-
-set_stochastic_model()
-
 COBRA_TIMESTEP = 50
 BIOSCRAPE_TIMESTEP = 10
 
@@ -56,7 +38,6 @@ divide_config = {
 
 # choose the SBML file and set other bioscrape parameters
 stochastic_bioscrape_config = {
-    'sbml_file': SBML_FILE_STOCHASTIC,
     'stochastic': True,
     'safe_mode': False,
     'initial_volume': 1,
@@ -136,6 +117,7 @@ class BioscrapeCOBRAstochastic(Composer):
         'divide_on': False,  # is division turned on?
         'fields_on': False,  # are spatial dynamics used?
         'reuse_processes': True,  # reuse the same processes for all agents?
+        'sbml_file': SBML_FILE_STOCHASTIC,
 
         # process configs
         'bioscrape': stochastic_bioscrape_config,
@@ -174,6 +156,9 @@ class BioscrapeCOBRAstochastic(Composer):
         # configure parallelization
         self.config['cobra']['_parallel'] = self.config.get('_parallel', False)
 
+        # sbml file
+        self.config['bioscrape']['sbml_file'] = self.config['sbml_file']
+
         # configure local fields
         if not self.config['fields_on']:
             self.config['local_fields'].update({'nonspatial': True})
@@ -202,8 +187,7 @@ class BioscrapeCOBRAstochastic(Composer):
         self.local_field = LocalField(config['local_fields'])
         self.field_counts_deriver = MolarToCounts(config['field_counts_deriver'])
 
-        if self.config['reuse_processes']:
-            self.processes_initialized = True
+        self.processes_initialized = self.config['reuse_processes']
 
     def generate_processes(self, config):
         if not self.processes_initialized:

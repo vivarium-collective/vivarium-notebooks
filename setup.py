@@ -24,8 +24,8 @@ setup(
     install_requires=[
         'vivarium-core>=0.2.8',
         'vivarium-bioscrape>=0.0.0.6',
-        'vivarium-cobra>=0.0.8',
-        'vivarium-multibody>=0.0.7',
+        'vivarium-cobra>=0.0.9',
+        'vivarium-multibody>=0.0.9',
         'pytest',
         'tqdm',
     ],

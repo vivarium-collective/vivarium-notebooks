@@ -36,12 +36,13 @@ from vivarium_cobra.library.lattice_utils import get_bin_volume
 from vivarium_bioscrape.processes.bioscrape import Bioscrape
 
 # local import
-from bioscrape_cobra.bioscrape_cobra_stochastic import BioscrapeCOBRAstochastic
+from bioscrape_cobra.bioscrape_cobra_stochastic import BioscrapeCOBRAstochastic, SBML_FILE_STOCHASTIC
 from bioscrape_cobra.bioscrape_cobra_stochastic import GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL
-from bioscrape_cobra.bioscrape_cobra_deterministic import BioscrapeCOBRAdeterministic
+from bioscrape_cobra.bioscrape_cobra_deterministic import BioscrapeCOBRAdeterministic, SBML_FILE_DETERMINISTIC
 
 # plotting
-from bioscrape_cobra.plot import (plot_multigen, plot_single, plot_fields_tags, plot_fields_snapshots)
+from bioscrape_cobra.plot import (
+    plot_multigen, plot_single, plot_fields_tags, plot_fields_snapshots)
 
 # default variables, which can be varied by simulate_bioscrape_cobra
 DEFAULT_EXTERNAL_VOLUME = 1e-13 * units.L
@@ -323,6 +324,7 @@ def get_bioscrape_cobra_config(
         division=False,
         divide_threshold=DEFAULT_DIVIDE_THRESHOLD,
         external_volume=DEFAULT_EXTERNAL_VOLUME,
+        sbml_file=None,
         agent_id=INITIAL_AGENT_ID,
         parallel=False,
 ):
@@ -340,7 +342,9 @@ def get_bioscrape_cobra_config(
             'dimensions_path': ('..', '..', 'dimensions',),
             'local_fields': {},
             'divide_condition': {
-                'threshold': divide_threshold}}
+                'threshold': divide_threshold},
+            **({'sbml_file': sbml_file} if sbml_file is not None else {}),
+        }
     elif division:
         config = {
             'divide_on': True,
@@ -351,12 +355,16 @@ def get_bioscrape_cobra_config(
             'dimensions_path': ('..', '..', 'dimensions',),
             'local_fields': {},
             'divide_condition': {
-                'threshold': divide_threshold}}
+                'threshold': divide_threshold},
+            **({'sbml_file': sbml_file} if sbml_file is not None else {}),
+        }
     else:
         config = {
             'local_fields': {
                 'bin_volume': external_volume},
-            '_parallel': False}
+            '_parallel': False,
+            **({'sbml_file': sbml_file} if sbml_file is not None else {}),
+        }
 
     return config
 
@@ -378,6 +386,7 @@ def simulate_bioscrape_cobra(
         agent_id='1',
         halt_threshold=100,
         total_time=100,
+        sbml_file=None,
         emitter='timeseries',
         output_type=None,
         parallel=False,
@@ -400,6 +409,7 @@ def simulate_bioscrape_cobra(
         * agent_id:
         * halt_threshold:
         * total_time:
+        * sbml_file:
         * emitter:
         * output_type:
         * parallel:
@@ -412,6 +422,7 @@ def simulate_bioscrape_cobra(
         division=division,
         divide_threshold=divide_threshold,
         external_volume=external_volume,
+        sbml_file=sbml_file,
         agent_id=agent_id,
         parallel=parallel)
 
@@ -574,10 +585,16 @@ def main():
     emitter = 'database' if args.database else 'timeseries'
     parallel = True if args.parallel else False
 
+    # set sbml file path
+    dirname = os.path.dirname(__file__)
+    sbml_deterministic = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
+    sbml_stochastic = os.path.join(dirname, SBML_FILE_STOCHASTIC)
+
     if args.deterministic:
         output, comp0 = simulate_bioscrape_cobra(
             total_time=2000,
             emitter=emitter,
+            sbml_file=sbml_deterministic,
             output_type='timeseries')
 
         plot_single(
@@ -600,6 +617,7 @@ def main():
             initial_state=initial_state,
             total_time=2000,
             emitter=emitter,
+            sbml_file=sbml_stochastic,
             output_type='timeseries')
 
         plot_single(
@@ -611,8 +629,11 @@ def main():
     if args.deterministic_divide:
         output, comp0 = simulate_bioscrape_cobra(
             division=True,
+            initial_glucose=1e0,  # mM
+            initial_lactose=1e1,  # mM
             total_time=6000,
             emitter=emitter,
+            sbml_file=sbml_deterministic,
             output_type='unitless')
 
         plot_multigen(
@@ -633,10 +654,11 @@ def main():
             initial_glucose=1e0,  # mM
             initial_lactose=1e1,  # mM
             initial_state=initial_state,
-            total_time=6000,
+            total_time=4000,
             # external_volume=1e-9*units.L,
             divide_threshold=2000*units.fg,
             emitter=emitter,
+            sbml_file=sbml_stochastic,
             output_type='unitless')
 
         # plot
@@ -659,6 +681,7 @@ def main():
             initial_lactose=1e1,
             total_time=12000,
             emitter=emitter,
+            sbml_file=sbml_deterministic,
             output_type='unitless')
 
         deterministic_spatial_out_dir = os.path.join(out_dir, 'deterministic_spatial')
@@ -699,6 +722,7 @@ def main():
             halt_threshold=200,
             total_time=60000,
             emitter=emitter,
+            sbml_file=sbml_stochastic,
             parallel=parallel,
             output_type='unitless')
 
