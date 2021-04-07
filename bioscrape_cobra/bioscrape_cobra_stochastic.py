@@ -166,12 +166,6 @@ class BioscrapeCOBRAstochastic(Composer):
         # no processes initialized
         self.processes_initialized = False
 
-    def initial_state(self, config=None):
-         initial_state = super().initial_state(config)
-         initial_state['boundary']['bin_volume'] = self.config[
-             'local_fields']['bin_volume']
-         return initial_state
-
     def initialize_processes(self, config):
         # Processes
         self.cobra = DynamicFBA(config['cobra'])

@@ -414,7 +414,12 @@ def simulate_bioscrape_cobra(
         * output_type:
         * parallel:
     """
-    initial_state = initial_state or {}
+    agent_state = initial_state or {}
+
+    # set initial flux values based on COBRA defaults.
+    agent_state['flux_bounds'] = {
+        'EX_lac__D_e': 0.0,
+        'EX_glc__D_e': 0.099195}
 
     # make the BioscrapeCOBRA config
     biocobra_config = get_bioscrape_cobra_config(
@@ -429,6 +434,12 @@ def simulate_bioscrape_cobra(
     # get the BioscrapeCOBRA composer -- either stochastic or deterministic
     if stochastic:
         biocobra_composer = BioscrapeCOBRAstochastic(biocobra_config)
+        # use the local_field's bin_volume for field_counts_deriver's bin_volume
+        if 'boundary' not in agent_state:
+            agent_state['boundary'] = {}
+        agent_state['boundary']['bin_volume'] = biocobra_composer.config[
+            'local_fields']['bin_volume']
+
     else:
         biocobra_composer = BioscrapeCOBRAdeterministic(biocobra_config)
 
@@ -444,9 +455,9 @@ def simulate_bioscrape_cobra(
         #set the bin volume based upon the lattice
         bin_volume = get_bin_volume(n_bins, bounds, depth) * units.L
         state = biocobra_composite.initial_state()
-        state = deep_merge(state, {'agents': {agent_id: initial_state}})
-        state['agents'][agent_id]['boundary']['bin_volume'] = bin_volume
-        state['agents'][agent_id]['boundary']['external'] = {
+        initial_state_full = deep_merge(state, {'agents': {agent_id: agent_state}})
+        initial_state_full['agents'][agent_id]['boundary']['bin_volume'] = bin_volume
+        initial_state_full['agents'][agent_id]['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
 
@@ -480,8 +491,8 @@ def simulate_bioscrape_cobra(
 
         # get initial state from the composite
         state = biocobra_composite.initial_state()
-        state = deep_merge(state, {'agents': {agent_id: initial_state}})
-        state['agents'][agent_id]['boundary']['external'] = {
+        initial_state_full = deep_merge(state, {'agents': {agent_id: agent_state}})
+        initial_state_full['agents'][agent_id]['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
 
@@ -496,10 +507,7 @@ def simulate_bioscrape_cobra(
         state['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
-
-
-    # update initial state with any value from function assignment
-    initial_state = deep_merge(state, initial_state)
+        initial_state_full = deep_merge(state, agent_state)
 
     # make the experiment
     experiment_id = (f"{'stochastic' if stochastic else 'deterministic'}"
@@ -509,7 +517,7 @@ def simulate_bioscrape_cobra(
     experiment_config = {
         'processes': biocobra_composite.processes,
         'topology': biocobra_composite.topology,
-        'initial_state': initial_state,
+        'initial_state': initial_state_full,
         'display_info': False,
         'experiment_id': experiment_id,
         'emit_step': max(BIOSCRAPE_TIMESTEP, COBRA_TIMESTEP),
@@ -549,8 +557,6 @@ plot_variables_list = [
     ('species', 'protein_Lactose_Permease'),
     ('flux_bounds', 'EX_glc__D_e'),
     ('flux_bounds', 'EX_lac__D_e'),
-    # ('boundary', ('mass', 'femtogram')),
-    # ('boundary', ('volume', 'femtoliter'))
 ]
 
 plot_variables_list_deterministic = [
@@ -642,21 +648,21 @@ def main():
             filename='division_multigen')
 
     if args.stochastic_divide:
-        initial_state = {
-            'species': {
-                'monomer_betaGal': 100,
-                'protein_betaGal': 100,
-                'protein_Lactose_Permease': 100}}
+        # initial_state = {
+        #     'species': {
+        #         'monomer_betaGal': 100,
+        #         'protein_betaGal': 100,
+        #         'protein_Lactose_Permease': 100}}
 
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
-            initial_glucose=1e0,  # mM
+            initial_glucose=1e-1,  # mM
             initial_lactose=1e1,  # mM
-            initial_state=initial_state,
+            # initial_state=initial_state,
             total_time=4000,
             # external_volume=1e-9*units.L,
-            divide_threshold=2000*units.fg,
+            # divide_threshold=2000*units.fg,
             emitter=emitter,
             sbml_file=sbml_stochastic,
             output_type='unitless')
