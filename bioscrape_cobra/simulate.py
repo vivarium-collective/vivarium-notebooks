@@ -6,6 +6,7 @@ Simulation helper functions for BioscrapeCOBRA
 import os
 import argparse
 import copy
+import random
 import time as clock
 from tqdm import tqdm
 
@@ -56,21 +57,8 @@ DEPTH = 2
 COBRA_TIMESTEP = 50
 BIOSCRAPE_TIMESTEP = 10
 
-# divide config
-INITIAL_AGENT_ID = '1'
-divide_config = {
-    'divide_on': True,
-    'agent_id': INITIAL_AGENT_ID,  # TODO -- this should be configured below in case it is overwritten
-    'agents_path': ('..', '..', 'agents',),
-    'fields_path': ('..', '..', 'fields',),
-    'dimensions_path': ('..', '..', 'dimensions',),
-    'local_fields': {}}
 
-# spatial config
-spatial_config = dict(divide_config)
-spatial_config['fields_on'] = True
-
-#Simulates Cobra Model on its Own
+# Simulates Cobra Model on its Own
 def simulate_cobra(
     total_time=100,
     initial_state=None,
@@ -99,7 +87,7 @@ def simulate_cobra(
 
     return cobra_timeseries, dynamic_fba
 
-#simulates Cobra Model in a Composite with some Derivers
+# Simulates Cobra Model in a Composite with some Derivers
 def simulate_cobra_composite(
     total_time=100,
     initial_state=None,
@@ -182,7 +170,7 @@ def simulate_bioscrape(
     return bioscrape_timeseries, bioscrape_composite
 
 
-#Simulate a System of Cells that grow and divde in a well mixed spatial environment
+# Simulate a System of Cells that grow and divde in a well mixed spatial environment
 def simulate_grow_divide(
         total_time=100,
         growth_rate=0.03,
@@ -219,7 +207,7 @@ def simulate_grow_divide(
     #returns the data, the initial composite, and the final composite
     return grow_divide_data, grow_divide_composer.generate(path=('agents', '0')), grow_divide_composite
 
-#Simulate a System of Cells that grow and divde in a well mixed spatial environment
+# Simulate a System of Cells that grow and divde in a well mixed spatial environment
 def simulate_diffusion(
         total_time=100,
         diffusion_rate=0.001,
@@ -305,7 +293,6 @@ def simulate_grow_divide_lattice(
                         'mass': 1000 * units.femtogram}
                 }}}
 
-
     sim_settings = {
         'total_time': total_time,
         'return_raw_data': True,
@@ -324,12 +311,9 @@ def get_bioscrape_cobra_config(
         divide_threshold=DEFAULT_DIVIDE_THRESHOLD,
         external_volume=None,
         sbml_file=None,
-        agent_id=INITIAL_AGENT_ID,
         parallel=False,
 ):
     """ create a generic config dict for bioscrape_cobra composers """
-    agent_id = agent_id
-
     config = {
         '_parallel': parallel,
         **({'local_fields': {'bin_volume': external_volume}}
@@ -340,7 +324,6 @@ def get_bioscrape_cobra_config(
     if spatial or division:
         config.update({
             'divide_on': True,
-            'agent_id': agent_id,
             'agents_path': ('..', '..', 'agents',),
             'fields_path': ('..', '..', 'fields',),
             'dimensions_path': ('..', '..', 'dimensions',),
@@ -355,6 +338,19 @@ def get_bioscrape_cobra_config(
     return config
 
 
+def get_initial_state(initial_states, n=None):
+    """ return an initial state from the initial_states argument """
+    state_copy = copy.deepcopy(initial_states)
+    if isinstance(state_copy, list):
+        if n is not None and len(state_copy) > n:
+            return state_copy[n]
+        else:
+            return random.choice(state_copy)
+    elif isinstance(state_copy, dict):
+        return state_copy
+    else:
+        return {}
+
 
 def simulate_bioscrape_cobra(
         division=False,
@@ -362,14 +358,14 @@ def simulate_bioscrape_cobra(
         spatial=False,
         initial_glucose=1e1,
         initial_lactose=1e1,
-        initial_state=None,
+        initial_agent_states=None,
         bounds=[20, 20],
         n_bins=[10, 10],
         depth=10,
         diffusion_rate=1e-1,
         divide_threshold=2000 * units.fg,
         external_volume=None,
-        agent_id='1',
+        n_agents=1,
         halt_threshold=100,
         total_time=100,
         sbml_file=None,
@@ -385,14 +381,14 @@ def simulate_bioscrape_cobra(
         * spatial:
         * initial_glucose:
         * initial_lactose:
-        * initial_state:
+        * initial_agent_states:
         * bounds:
         * n_bins:
         * depth:
         * diffusion_rate:
         * divide_threshold:
         * external_volume:
-        * agent_id:
+        * n_agents:
         * halt_threshold:
         * total_time:
         * sbml_file:
@@ -400,16 +396,21 @@ def simulate_bioscrape_cobra(
         * output_type:
         * parallel:
     """
-    agent_state = initial_state or {}
 
-    # set initial flux values based on COBRA defaults.
-    agent_state['flux_bounds'] = {
-        'EX_lac__D_e': 0.0,
-        'EX_glc__D_e': 0.099195}
-
-    # set the bin volume based upon the lattice
+    # get the bin volume based upon the lattice
     bin_volume = (external_volume or get_bin_volume(n_bins, bounds, depth)) * units.L
-    agent_state['boundary'] = {'bin_volume': bin_volume}  # field_counts_deriver needs the bin volume
+    agent_state = {
+        # set initial flux values based on COBRA defaults.
+        'flux_bounds': {
+            'EX_lac__D_e': 0.0,
+            'EX_glc__D_e': 0.099195},
+        # field_counts_deriver needs the bin volume
+        'boundary': {
+            'bin_volume': bin_volume,
+            'external': {
+                GLUCOSE_EXTERNAL: initial_glucose,
+                LACTOSE_EXTERNAL: initial_lactose}
+        }}
 
     # make the BioscrapeCOBRA config
     biocobra_config = get_bioscrape_cobra_config(
@@ -418,7 +419,6 @@ def simulate_bioscrape_cobra(
         divide_threshold=divide_threshold,
         external_volume=bin_volume,
         sbml_file=sbml_file,
-        agent_id=agent_id,
         parallel=parallel)
 
     # get the BioscrapeCOBRA composer -- either stochastic or deterministic
@@ -430,18 +430,33 @@ def simulate_bioscrape_cobra(
 
     # make the composite
     if spatial:
+        # make n_agents dividing agents and combine them with a Lattice environment
+
         # make a bioscrapeCOBRA composite
-        biocobra_composite = biocobra_composer.generate(path=('agents', agent_id))
+        biocobra_composite = Composite({})
+        agents_initial = {'agents': {}}
+        for n in range(n_agents):
+            agent_id = str(n)
+            config = {'agent_id': agent_id}
+            agent = biocobra_composer.generate(config=config)
+            biocobra_composite.merge(
+                composite=agent,
+                path=('agents', agent_id))
+
+            # initial state for agent
+            agents_initial['agents'][agent_id] = get_initial_state(
+                initial_agent_states, n=n)
+            agents_initial['agents'][agent_id] = deep_merge(
+                agents_initial['agents'][agent_id], agent_state)
 
         # create a second initial composite for plotting
-        initial_composite = biocobra_composer.generate(path=('agents', '0'))
+        initial_composite = biocobra_composer.generate(
+            path=('agents', '0'),
+            config={'agent_id': '0'})
 
-        # get initial state from the composite
+        # get initial state from the composite and merge declared initial
         state = biocobra_composite.initial_state()
-        initial_state_full = deep_merge(state, {'agents': {agent_id: agent_state}})
-        initial_state_full['agents'][agent_id]['boundary']['external'] = {
-            GLUCOSE_EXTERNAL: initial_glucose,
-            LACTOSE_EXTERNAL: initial_lactose}
+        initial_state_full = deep_merge(state, agents_initial)
 
         # make a lattice composite for the environment
         field_concentrations = {
@@ -464,32 +479,48 @@ def simulate_bioscrape_cobra(
         initial_composite.merge(composite=lattice_composer.generate())
 
     elif division:
+        # make n_agents dividing agents, without an explicit environment
+
         # division requires the agent to be embedded in a hierarchy
         # make the bioscrapeCOBRA composite under the path ('agents', agent_id)
-        biocobra_composite = biocobra_composer.generate(path=('agents', agent_id))
+        biocobra_composite = Composite({})
+        agents_initial = {'agents': {}}
+        for n in range(n_agents):
+            agent_id = str(n)
+            config = {'agent_id': agent_id}
+            agent = biocobra_composer.generate(config=config)
+            biocobra_composite.merge(
+                composite=agent,
+                path=('agents', agent_id))
 
-        #create a second initial composite for plotting
-        initial_composite = biocobra_composer.generate(path=('agents', '0'))
+            # initial state for agent
+            agents_initial['agents'][agent_id] = get_initial_state(initial_agent_states, n=n)
+            agents_initial['agents'][agent_id] = deep_merge(
+                agents_initial['agents'][agent_id], agent_state)
 
-        # get initial state from the composite
+        # create a second initial composite for plotting
+        initial_composite = biocobra_composer.generate(
+            path=('agents', '0'),
+            config={'agent_id': '0'})
+
+        # get initial state from the composite and merge declared initial
         state = biocobra_composite.initial_state()
-        initial_state_full = deep_merge(state, {'agents': {agent_id: agent_state}})
-        initial_state_full['agents'][agent_id]['boundary']['external'] = {
-            GLUCOSE_EXTERNAL: initial_glucose,
-            LACTOSE_EXTERNAL: initial_lactose}
+        initial_state_full = deep_merge(state, agents_initial)
 
     else:
+        # single agent without division
+
         # make the composite
         biocobra_composite = biocobra_composer.generate()
-        #create a second initial composite for plotting
+
+        # create a second initial composite for plotting
         initial_composite = biocobra_composer.generate()
 
-        # get initial state from the composite
-        state = biocobra_composite.initial_state()
-        state['boundary']['external'] = {
-            GLUCOSE_EXTERNAL: initial_glucose,
-            LACTOSE_EXTERNAL: initial_lactose}
-        initial_state_full = deep_merge(state, agent_state)
+        # get initial state from the composite and merge declared initial
+        agents_initial = biocobra_composite.initial_state()
+        initial_declared = get_initial_state(initial_agent_states)
+        agents_initial = deep_merge(agents_initial, initial_declared)
+        initial_state_full = deep_merge(agents_initial, agent_state)
 
     # make the experiment
     experiment_id = (f"{'stochastic' if stochastic else 'deterministic'}"
@@ -580,7 +611,10 @@ def main():
 
     if args.deterministic:
         output, comp0 = simulate_bioscrape_cobra(
-            total_time=2000,
+            initial_glucose=1e0,
+            initial_lactose=1e0,
+            external_volume=1e-13,
+            total_time=3000,
             emitter=emitter,
             sbml_file=sbml_deterministic,
             output_type='timeseries')
@@ -592,18 +626,12 @@ def main():
             filename='variables')
 
     if args.stochastic:
-        initial_state = {
-            'species': {
-                'monomer_betaGal': 100,
-                'protein_betaGal': 100,
-                'protein_Lactose_Permease': 100}}
-
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
             initial_glucose=1e0,
-            initial_lactose=1e1,
-            initial_state=initial_state,
-            total_time=2000,
+            initial_lactose=1e0,
+            external_volume=1e-14,
+            total_time=3000,
             emitter=emitter,
             sbml_file=sbml_stochastic,
             output_type='timeseries')
@@ -615,12 +643,28 @@ def main():
             filename='variables')
 
     if args.deterministic_divide:
+        initial_agent_states = [{
+            'species': {
+                'monomer_betaGal': 0.0,
+                'protein_betaGal': 0.0,
+                'protein_Lactose_Permease': 0.0},
+            },
+            {
+                'species': {
+                    'monomer_betaGal': 0.0,
+                    'protein_betaGal': 0.1,
+                    'protein_Lactose_Permease': 0.1},
+            },
+        ]
+
         output, comp0 = simulate_bioscrape_cobra(
+            n_agents=2,
+            initial_agent_states=initial_agent_states,
             division=True,
-            initial_glucose=1e0,  # mM
+            initial_glucose=1e1,  # mM
             initial_lactose=1e1,  # mM
             external_volume=1e-12,
-            total_time=6000,
+            total_time=4000,
             emitter=emitter,
             sbml_file=sbml_deterministic,
             output_type='unitless')
@@ -631,20 +675,26 @@ def main():
             filename='division_multigen')
 
     if args.stochastic_divide:
-        # initial_state = {
-        #     'species': {
-        #         'monomer_betaGal': 100,
-        #         'protein_betaGal': 100,
-        #         'protein_Lactose_Permease': 100}}
+        initial_agent_states = [{
+            'species': {
+                'monomer_betaGal': 0,
+                'protein_betaGal': 0,
+                'protein_Lactose_Permease': 0},
+            'species': {
+                'monomer_betaGal': 100,
+                'protein_betaGal': 100,
+                'protein_Lactose_Permease': 100}
+        }]
 
         output, comp0 = simulate_bioscrape_cobra(
+            n_agents=2,
             stochastic=True,
             division=True,
             initial_glucose=1e0,  # mM
             initial_lactose=1e1,  # mM
-            # initial_state=initial_state,
-            total_time=4000,
-            external_volume=1e-12,
+            initial_agent_states=initial_agent_states,
+            total_time=1000,
+            external_volume=1e-14,
             emitter=emitter,
             sbml_file=sbml_stochastic,
             output_type='unitless')
