@@ -407,9 +407,12 @@ def simulate_bioscrape_cobra(
         # field_counts_deriver needs the bin volume
         'boundary': {
             'bin_volume': bin_volume,
-            'external': {
+            **({'external': {
                 GLUCOSE_EXTERNAL: initial_glucose,
-                LACTOSE_EXTERNAL: initial_lactose}
+                LACTOSE_EXTERNAL: initial_lactose}} if spatial else {}),
+            # 'external': {
+            #     GLUCOSE_EXTERNAL: initial_glucose,
+            #     LACTOSE_EXTERNAL: initial_lactose}
         }}
 
     # make the BioscrapeCOBRA config
@@ -507,6 +510,11 @@ def simulate_bioscrape_cobra(
         state = biocobra_composite.initial_state()
         initial_state_full = deep_merge(state, agents_initial)
 
+        # simple, 1D field
+        initial_state_full['fields'] = {
+                GLUCOSE_EXTERNAL: initial_glucose,
+                LACTOSE_EXTERNAL: initial_lactose}
+
     else:
         # single agent without division
 
@@ -521,6 +529,11 @@ def simulate_bioscrape_cobra(
         initial_declared = get_initial_state(initial_agent_states)
         agents_initial = deep_merge(agents_initial, initial_declared)
         initial_state_full = deep_merge(agents_initial, agent_state)
+
+        # simple, 1D field
+        initial_state_full['fields'] = {
+                GLUCOSE_EXTERNAL: initial_glucose,
+                LACTOSE_EXTERNAL: initial_lactose}
 
     # make the experiment
     experiment_id = (f"{'stochastic' if stochastic else 'deterministic'}"
@@ -679,7 +692,9 @@ def main():
             'species': {
                 'monomer_betaGal': 0,
                 'protein_betaGal': 0,
-                'protein_Lactose_Permease': 0},
+                'protein_Lactose_Permease': 0}
+        },
+        {
             'species': {
                 'monomer_betaGal': 100,
                 'protein_betaGal': 100,
@@ -693,7 +708,7 @@ def main():
             initial_glucose=1e0,  # mM
             initial_lactose=1e1,  # mM
             initial_agent_states=initial_agent_states,
-            total_time=1000,
+            total_time=3000,
             external_volume=1e-14,
             emitter=emitter,
             sbml_file=sbml_stochastic,
