@@ -113,8 +113,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         'mass_to_molar': mass_mw_config,
         'strip_units': strip_units_config,
         'clock': {},
-        'local_fields': {
-            'bin_volume': 1e-12 * units.L},
+        'local_fields': {},
 
         # division config
         'agent_id': np.random.randint(0, 1000),
@@ -166,6 +165,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         self.strip_units = StripUnits(config['strip_units'])
         self.local_field = LocalField(config['local_fields'])
 
+        # set processes_initialized
         self.processes_initialized = self.config['reuse_processes']
 
     def generate_processes(self, config):

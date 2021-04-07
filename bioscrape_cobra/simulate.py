@@ -45,10 +45,9 @@ from bioscrape_cobra.plot import (
     plot_multigen, plot_single, plot_fields_tags, plot_fields_snapshots)
 
 # default variables, which can be varied by simulate_bioscrape_cobra
-DEFAULT_EXTERNAL_VOLUME = 1e-13 * units.L
 DEFAULT_DIVIDE_THRESHOLD = 2000 * units.fg
-INITIAL_GLC = 10e1  # mmolar
-INITIAL_LAC = 10e1  # mmolar
+INITIAL_GLC = 1e2  # mmolar
+INITIAL_LAC = 1e2  # mmolar
 BOUNDS = [20, 20]
 NBINS = [10, 10]
 DEPTH = 2
@@ -132,7 +131,7 @@ def simulate_bioscrape(
         initial_lactose=None,
         initial_state=None,
         total_time=100,
-        initial_volume = 1.0
+        initial_volume=1.0
     ):
     
     #create configs
@@ -276,7 +275,7 @@ def get_lattice_grow_divide_composite(
             n_bins=bins,
             concentrations={'glc':initial_concentration},
             diffusion=diffusion_rate,
-            depth = 10)
+            depth=depth)
 
     lattice_composer = Lattice(lattice_config)
     lattice_composite = lattice_composer.generate()
@@ -323,7 +322,7 @@ def get_bioscrape_cobra_config(
         spatial=False,
         division=False,
         divide_threshold=DEFAULT_DIVIDE_THRESHOLD,
-        external_volume=DEFAULT_EXTERNAL_VOLUME,
+        external_volume=None,
         sbml_file=None,
         agent_id=INITIAL_AGENT_ID,
         parallel=False,
@@ -331,40 +330,27 @@ def get_bioscrape_cobra_config(
     """ create a generic config dict for bioscrape_cobra composers """
     agent_id = agent_id
 
+    config = {
+        '_parallel': parallel,
+        **({'local_fields': {'bin_volume': external_volume}}
+           if external_volume is not None else {}),
+        **({'sbml_file': sbml_file} if sbml_file is not None else {}),
+    }
+
+    if spatial or division:
+        config.update({
+            'divide_on': True,
+            'agent_id': agent_id,
+            'agents_path': ('..', '..', 'agents',),
+            'fields_path': ('..', '..', 'fields',),
+            'dimensions_path': ('..', '..', 'dimensions',),
+            'divide_condition': {
+                'threshold': divide_threshold},
+        })
+
     if spatial:
-        config = {
-            'divide_on': True,
-            'fields_on': True,
-            '_parallel': parallel,
-            'agent_id': agent_id,
-            'agents_path': ('..', '..', 'agents',),
-            'fields_path': ('..', '..', 'fields',),
-            'dimensions_path': ('..', '..', 'dimensions',),
-            'local_fields': {},
-            'divide_condition': {
-                'threshold': divide_threshold},
-            **({'sbml_file': sbml_file} if sbml_file is not None else {}),
-        }
-    elif division:
-        config = {
-            'divide_on': True,
-            '_parallel': parallel,
-            'agent_id': agent_id,
-            'agents_path': ('..', '..', 'agents',),
-            'fields_path': ('..', '..', 'fields',),
-            'dimensions_path': ('..', '..', 'dimensions',),
-            'local_fields': {},
-            'divide_condition': {
-                'threshold': divide_threshold},
-            **({'sbml_file': sbml_file} if sbml_file is not None else {}),
-        }
-    else:
-        config = {
-            'local_fields': {
-                'bin_volume': external_volume},
-            '_parallel': False,
-            **({'sbml_file': sbml_file} if sbml_file is not None else {}),
-        }
+        config.update({
+            'fields_on': True})
 
     return config
 
@@ -382,7 +368,7 @@ def simulate_bioscrape_cobra(
         depth=10,
         diffusion_rate=1e-1,
         divide_threshold=2000 * units.fg,
-        external_volume=1e-13 * units.L,
+        external_volume=None,
         agent_id='1',
         halt_threshold=100,
         total_time=100,
@@ -421,12 +407,16 @@ def simulate_bioscrape_cobra(
         'EX_lac__D_e': 0.0,
         'EX_glc__D_e': 0.099195}
 
+    # set the bin volume based upon the lattice
+    bin_volume = (external_volume or get_bin_volume(n_bins, bounds, depth)) * units.L
+    agent_state['boundary'] = {'bin_volume': bin_volume}  # field_counts_deriver needs the bin volume
+
     # make the BioscrapeCOBRA config
     biocobra_config = get_bioscrape_cobra_config(
         spatial=spatial,
         division=division,
         divide_threshold=divide_threshold,
-        external_volume=external_volume,
+        external_volume=bin_volume,
         sbml_file=sbml_file,
         agent_id=agent_id,
         parallel=parallel)
@@ -434,11 +424,6 @@ def simulate_bioscrape_cobra(
     # get the BioscrapeCOBRA composer -- either stochastic or deterministic
     if stochastic:
         biocobra_composer = BioscrapeCOBRAstochastic(biocobra_config)
-        # use the local_field's bin_volume for field_counts_deriver's bin_volume
-        if 'boundary' not in agent_state:
-            agent_state['boundary'] = {}
-        agent_state['boundary']['bin_volume'] = biocobra_composer.config[
-            'local_fields']['bin_volume']
 
     else:
         biocobra_composer = BioscrapeCOBRAdeterministic(biocobra_config)
@@ -448,15 +433,12 @@ def simulate_bioscrape_cobra(
         # make a bioscrapeCOBRA composite
         biocobra_composite = biocobra_composer.generate(path=('agents', agent_id))
 
-        #create a second initial composite for plotting
+        # create a second initial composite for plotting
         initial_composite = biocobra_composer.generate(path=('agents', '0'))
 
         # get initial state from the composite
-        #set the bin volume based upon the lattice
-        bin_volume = get_bin_volume(n_bins, bounds, depth) * units.L
         state = biocobra_composite.initial_state()
         initial_state_full = deep_merge(state, {'agents': {agent_id: agent_state}})
-        initial_state_full['agents'][agent_id]['boundary']['bin_volume'] = bin_volume
         initial_state_full['agents'][agent_id]['boundary']['external'] = {
             GLUCOSE_EXTERNAL: initial_glucose,
             LACTOSE_EXTERNAL: initial_lactose}
@@ -637,6 +619,7 @@ def main():
             division=True,
             initial_glucose=1e0,  # mM
             initial_lactose=1e1,  # mM
+            external_volume=1e-12,
             total_time=6000,
             emitter=emitter,
             sbml_file=sbml_deterministic,
@@ -657,12 +640,11 @@ def main():
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
             division=True,
-            initial_glucose=1e-1,  # mM
+            initial_glucose=1e0,  # mM
             initial_lactose=1e1,  # mM
             # initial_state=initial_state,
             total_time=4000,
-            # external_volume=1e-9*units.L,
-            # divide_threshold=2000*units.fg,
+            external_volume=1e-12,
             emitter=emitter,
             sbml_file=sbml_stochastic,
             output_type='unitless')

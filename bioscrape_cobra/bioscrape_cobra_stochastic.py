@@ -128,8 +128,7 @@ class BioscrapeCOBRAstochastic(Composer):
         'field_counts_deriver': field_counts_deriver_config,
         'strip_units': strip_units_config,
         'clock': {},
-        'local_fields': {
-            'bin_volume': 1e-12 * units.L},
+        'local_fields': {},
 
         # division config
         'agent_id': np.random.randint(0, 100),
@@ -181,6 +180,7 @@ class BioscrapeCOBRAstochastic(Composer):
         self.local_field = LocalField(config['local_fields'])
         self.field_counts_deriver = MolarToCounts(config['field_counts_deriver'])
 
+        # set processes_initialized
         self.processes_initialized = self.config['reuse_processes']
 
     def generate_processes(self, config):
