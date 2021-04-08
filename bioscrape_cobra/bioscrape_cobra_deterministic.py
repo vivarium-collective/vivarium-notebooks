@@ -10,7 +10,7 @@ import numpy as np
 from vivarium import (
     TreeMass, Clock, MassToMolar,
     DivideCondition, MetaDivision, StripUnits)
-from vivarium.core.process import Composer
+from vivarium.core.process import Composer, Deriver
 from vivarium.library.units import units
 
 # vivarium-bioscrape imports
@@ -79,11 +79,11 @@ schema_override = {
                 '_emit': True,
                 '_updater': 'set'},  # override bioscrape ('species', 'Biomass') with a 'set' updater
             'Glucose_external': {
-                '_emit': True,
+                # '_emit': True,
                 '_divider': 'set',
                 '_updater': 'null'},
             'Lactose_external': {
-                '_emit': True,
+                # '_emit': True,
                 '_divider': 'set',
                 '_updater': 'null'},
             'Glucose_internal': {
@@ -95,6 +95,21 @@ schema_override = {
             'k_dilution__': {
                 '_emit': True,  # k_dilution should be emitted so it can be plotted
                 '_updater': 'set'}}}}
+
+
+class MapVariable(Deriver):
+    """Process to move variables between stores"""
+    def ports_schema(self):
+        return {
+            'source': {'*': {'_default': 0.0}},
+            'target': {'*': {'_default': 0.0}}}
+    def next_update(self, timestep, states):
+        target_update = {
+            key: {
+                '_value': value,
+                '_updater': 'set'}
+            for key, value in states['source'].items()}
+        return {'target': target_update}
 
 
 # The deterministic Bioscrape/COBRA composer
@@ -167,6 +182,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         self.biomass_adaptor = MassToMolar(config['mass_to_molar'])
         self.strip_units = StripUnits(config['strip_units'])
         self.local_field = LocalField(config['local_fields'])
+        self.connect_external = MapVariable()
 
         # set processes_initialized
         self.processes_initialized = self.config['reuse_processes']
@@ -188,7 +204,8 @@ class BioscrapeCOBRAdeterministic(Composer):
             'volume_deriver': self.volume_deriver,
             'biomass_adaptor': self.biomass_adaptor,
             'strip_units': self.strip_units,
-            'local_field': self.local_field}
+            'local_field': self.local_field,
+            'connect_external': self.connect_external}
 
         # Division Logic
         if config['divide_on']:
@@ -212,7 +229,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         dimensions_path = config['dimensions_path']
         boundary_path = config['boundary_path']
         unitless_boundary_path = boundary_path + ('no_units',)
-        external_path = boundary_path + ('external',) if config['fields_on'] else fields_path
+        # external_path = boundary_path + ('external',) if config['fields_on'] else fields_path
         exchanges_path = boundary_path + ('exchanges',)
 
         topology = {
@@ -234,8 +251,6 @@ class BioscrapeCOBRAdeterministic(Composer):
                 'species': {
                     '_path': ('species',),
                     'Biomass': ('..',) + unitless_boundary_path + ('biomass',),
-                    GLUCOSE_EXTERNAL: ('..',) + external_path + (GLUCOSE_EXTERNAL,),
-                    LACTOSE_EXTERNAL: ('..',) + external_path + (LACTOSE_EXTERNAL,),
                 },
                 'delta_species': ('delta_species',),
                 'rates': ('rates',),
@@ -246,6 +261,11 @@ class BioscrapeCOBRAdeterministic(Composer):
                 'location': boundary_path + ('location',),
                 'fields': fields_path,
                 'dimensions': dimensions_path,
+            },
+            # TODO -- what about when fields on???
+            'connect_external': {
+                'source': fields_path,
+                'target': ('species',),
             },
             'flux_adaptor': {
                 'inputs': ('delta_species',),

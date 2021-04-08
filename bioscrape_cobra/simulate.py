@@ -581,19 +581,18 @@ plot_variables_list = [
     ('species', 'monomer_betaGal'),
     ('species', 'protein_betaGal'),
     ('species', 'protein_Lactose_Permease'),
+    ('species', GLUCOSE_EXTERNAL),
+    ('species', LACTOSE_EXTERNAL),
     ('flux_bounds', 'EX_glc__D_e'),
     ('flux_bounds', 'EX_lac__D_e'),
+    ('boundary', 'no_units', 'biomass'),
 ]
 
 plot_variables_list_deterministic = [
-    ('boundary', 'external', GLUCOSE_EXTERNAL),
-    ('boundary', 'external', LACTOSE_EXTERNAL),
     ('rates', 'k_dilution__',)]
 plot_variables_list_deterministic.extend(plot_variables_list)
 
-plot_variables_list_stochastic = [
-    ('species', GLUCOSE_EXTERNAL),
-    ('species', LACTOSE_EXTERNAL)]
+plot_variables_list_stochastic = []
 plot_variables_list_stochastic.extend(plot_variables_list)
 
 def main():
@@ -682,8 +681,10 @@ def main():
             sbml_file=sbml_deterministic,
             output_type='unitless')
 
+        var_list = copy.deepcopy(plot_variables_list_deterministic)
         plot_multigen(
             output,
+            variables=var_list,
             out_dir=os.path.join(out_dir, 'deterministic_divide'),
             filename='division_multigen')
 
