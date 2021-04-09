@@ -20,7 +20,7 @@ from vivarium_bioscrape.processes.bioscrape import Bioscrape
 # vivarium-cobra imports
 from vivarium_cobra import Volume, LocalField
 from vivarium_cobra.processes.configurations import get_iAF1260b_config
-from vivarium_cobra.processes.dynamic_fba import DynamicFBA
+from vivarium_cobra.processes.cobra_fba import COBRA_FBA
 
 # local imports
 from bioscrape_cobra.flux_adaptor import AverageFluxAdaptor
@@ -167,7 +167,7 @@ class BioscrapeCOBRAstochastic(Composer):
 
     def initialize_processes(self, config):
         # Processes
-        self.cobra = DynamicFBA(config['cobra'])
+        self.cobra = COBRA_FBA(config['cobra'])
         self.bioscrape = Bioscrape(config['bioscrape'])
         self.clock = Clock(config['clock'])
 

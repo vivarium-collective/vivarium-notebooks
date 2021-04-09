@@ -25,8 +25,8 @@ from vivarium_multibody.composites.grow_divide import GrowDivide
 from vivarium_multibody.processes.diffusion_field import DiffusionField
 
 # cobra imports
-from vivarium_cobra.processes.dynamic_fba import (
-    DynamicFBA, 
+from vivarium_cobra.processes.cobra_fba import (
+    COBRA_FBA, 
     get_iAF1260b_config, 
 )
 from vivarium_cobra.composites.cobra_composite import CobraComposite
@@ -80,7 +80,7 @@ def simulate_cobra(
     iAF1260b_config.update({'time_step': COBRA_TIMESTEP})
 
     iAF1260b_config['name'] = 'cobra' #Rename the process
-    dynamic_fba = DynamicFBA(iAF1260b_config)
+    dynamic_fba = COBRA_FBA(iAF1260b_config)
 
     cobra_composite = Composite({
         'processes': dynamic_fba, 
