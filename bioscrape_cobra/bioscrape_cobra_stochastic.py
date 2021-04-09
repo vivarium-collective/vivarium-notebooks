@@ -54,10 +54,10 @@ flux_config = {
     'flux_keys': {
         'Lactose_consumed': {
             'input_type': 'delta',
-            'window_size': COBRA_TIMESTEP},
+            'window_size': int(COBRA_TIMESTEP / BIOSCRAPE_TIMESTEP)},
         'Glucose_internal': {
             'input_type': 'delta',
-            'window_size': COBRA_TIMESTEP}}}
+            'window_size': int(COBRA_TIMESTEP / BIOSCRAPE_TIMESTEP)}}}
 
 mass_mw_config = {
     'molecular_weights': {
