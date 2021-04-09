@@ -16,8 +16,13 @@ def plot_single(
     variables = variables or []
     config = config or {}
     variables_plot_config = {
-        'out_dir': out_dir, 'filename': filename,
-        'row_height': 1, 'row_padding': 0.6, 'column_width': 3,
+        'out_dir': out_dir,
+        'filename': filename,
+        'row_height': 1.2,
+        'row_padding': 0.6,
+        'column_width': 4,
+        'default_color': 'tab:gray',
+        'linewidth': 2.0,
         'variables': variables}
     variables_plot_config.update(config)
     fig = plot_variables(
