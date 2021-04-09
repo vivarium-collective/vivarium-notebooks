@@ -622,9 +622,18 @@ def main():
     sbml_stochastic = os.path.join(dirname, SBML_FILE_STOCHASTIC)
 
     if args.deterministic:
+
+        initial_agent_state = {
+            'species': {
+                'monomer_betaGal': 0.0,
+                'protein_betaGal': 0.1,
+                'protein_Lactose_Permease': 0.1}
+        }
+
         output, comp0 = simulate_bioscrape_cobra(
             initial_glucose=1e0,
             initial_lactose=1e0,
+            initial_agent_states=initial_agent_state,
             external_volume=1e-13,
             total_time=3000,
             emitter=emitter,
@@ -638,10 +647,19 @@ def main():
             filename='variables')
 
     if args.stochastic:
+
+        initial_agent_state = {
+            'species': {
+                'monomer_betaGal': 100,
+                'protein_betaGal': 100,
+                'protein_Lactose_Permease': 100}
+        }
+
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
             initial_glucose=1e0,
             initial_lactose=1e0,
+            initial_agent_states=initial_agent_state,
             external_volume=1e-14,
             total_time=3000,
             emitter=emitter,
