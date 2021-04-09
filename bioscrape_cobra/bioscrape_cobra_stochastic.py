@@ -225,7 +225,6 @@ class BioscrapeCOBRAstochastic(Composer):
         dimensions_path = config['dimensions_path']
         boundary_path = config['boundary_path']
         unitless_boundary_path = boundary_path + ('no_units',)
-        external_path = boundary_path + ('external',) if config['fields_on'] else fields_path
         exchanges_path = boundary_path + ('exchanges',)
 
         topology = {
@@ -298,7 +297,9 @@ class BioscrapeCOBRAstochastic(Composer):
             },
             # convert external concentrations to external counts, for Bioscrape to read from
             'field_counts_deriver': {
-                'concentrations': external_path,
+                # if fields_on, connect to value saved under (boundary, external),
+                # otherwise connect directly to the fields_path, where a single value will be held
+                'concentrations': boundary_path + ('external',) if config['fields_on'] else fields_path,
                 'counts': ('species',),
                 'global': {
                      # connect to a fixed bin volume

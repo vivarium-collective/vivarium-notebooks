@@ -79,11 +79,9 @@ schema_override = {
                 '_emit': True,
                 '_updater': 'set'},  # override bioscrape ('species', 'Biomass') with a 'set' updater
             'Glucose_external': {
-                # '_emit': True,
                 '_divider': 'set',
                 '_updater': 'null'},
             'Lactose_external': {
-                # '_emit': True,
                 '_divider': 'set',
                 '_updater': 'null'},
             'Glucose_internal': {
@@ -205,7 +203,13 @@ class BioscrapeCOBRAdeterministic(Composer):
             'biomass_adaptor': self.biomass_adaptor,
             'strip_units': self.strip_units,
             'local_field': self.local_field,
-            'connect_external': self.connect_external}
+            }
+
+        # if there is no external field, connect_external is used to connect the external states back to species
+        # this does the job of field_counts_deriver in bioscrape_cobra_stochastic
+        if not config['fields_on']:
+            processes.update({
+                'connect_external': self.connect_external})
 
         # Division Logic
         if config['divide_on']:
@@ -229,7 +233,6 @@ class BioscrapeCOBRAdeterministic(Composer):
         dimensions_path = config['dimensions_path']
         boundary_path = config['boundary_path']
         unitless_boundary_path = boundary_path + ('no_units',)
-        # external_path = boundary_path + ('external',) if config['fields_on'] else fields_path
         exchanges_path = boundary_path + ('exchanges',)
 
         topology = {
@@ -261,11 +264,6 @@ class BioscrapeCOBRAdeterministic(Composer):
                 'location': boundary_path + ('location',),
                 'fields': fields_path,
                 'dimensions': dimensions_path,
-            },
-            # TODO -- what about when fields on???
-            'connect_external': {
-                'source': fields_path,
-                'target': ('species',),
             },
             'flux_adaptor': {
                 'inputs': ('delta_species',),
@@ -310,6 +308,14 @@ class BioscrapeCOBRAdeterministic(Composer):
                     'mass': ('k_dilution__',)}
             }
         }
+
+        # if there is no external field, the 'field' is a single variable that has to connect back to species
+        if not config['fields_on']:
+            topology.update({
+                'connect_external': {
+                    'source': fields_path,
+                    'target': ('species',),
+                }})
 
         if config['divide_on']:
             topology.update({

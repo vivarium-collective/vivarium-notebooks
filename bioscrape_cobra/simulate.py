@@ -709,8 +709,8 @@ def main():
             initial_glucose=1e0,  # mM
             initial_lactose=1e1,  # mM
             initial_agent_states=initial_agent_states,
-            total_time=3000,
-            external_volume=1e-14,
+            total_time=4000,
+            external_volume=1e-12,
             emitter=emitter,
             sbml_file=sbml_stochastic,
             output_type='unitless')
