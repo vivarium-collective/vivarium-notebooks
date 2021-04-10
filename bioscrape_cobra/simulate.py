@@ -47,8 +47,8 @@ from bioscrape_cobra.plot import (
 
 # default variables, which can be varied by simulate_bioscrape_cobra
 DEFAULT_DIVIDE_THRESHOLD = 2000 * units.fg
-INITIAL_GLC = 1e2  # mmolar
-INITIAL_LAC = 1e2  # mmolar
+INITIAL_GLC = 10  # mmolar
+INITIAL_LAC = 20  # mmolar
 BOUNDS = [20, 20]
 NBINS = [10, 10]
 DEPTH = 2
