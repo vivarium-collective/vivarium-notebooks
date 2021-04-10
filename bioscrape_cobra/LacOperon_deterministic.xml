@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
-  <model id="biocrnpyler_286335" name="biocrnpyler_286335" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
+  <model id="biocrnpyler_49246" name="biocrnpyler_49246" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
     <listOfUnitDefinitions>
       <unitDefinition id="square_metre">
         <listOfUnits>
@@ -15,9 +15,9 @@
       <species id="rna_M" name="M" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="monomer_betaGal" name="betaGal" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="protein_betaGal" name="betaGal" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
-      <species id="Lactose_external" name="Lactose" compartment="default" initialConcentration="100" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="Lactose_external" name="Lactose" compartment="default" initialConcentration="1000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="Lactose_internal" name="Lactose" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
-      <species id="Glucose_external" name="Glucose" compartment="default" initialConcentration="100" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="Glucose_external" name="Glucose" compartment="default" initialConcentration="1000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="Glucose_internal" name="Glucose" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="protein_Lactose_Permease" name="Lactose_Permease" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="dna_Lac_Operon" name="Lac_Operon" compartment="default" initialConcentration="3.2e-06" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
@@ -30,7 +30,7 @@
       <parameter id="BGal_tetramerization__" value="1000" constant="true"/>
       <parameter id="BGal_vmax__" value="300" constant="true"/>
       <parameter id="Bgal_Kd__" value="1.4" constant="true"/>
-      <parameter id="GluPermease_vmax__" value="302" constant="true"/>
+      <parameter id="GluPermease_vmax__" value="301" constant="true"/>
       <parameter id="GluPermease_Kd__" value="0.015" constant="true"/>
       <parameter id="LacPermease_reverse_vmax__" value="1.18966666666667" constant="true"/>
       <parameter id="LacPermease_Kd__" value="14.62" constant="true"/>
@@ -91,14 +91,14 @@
                     <cn type="integer"> 1 </cn>
                     <apply>
                       <plus/>
+                      <cn type="integer"> 1 </cn>
                       <apply>
                         <power/>
-                        <ci> K_G </ci>
-                        <ci> n_G </ci>
-                      </apply>
-                      <apply>
-                        <power/>
-                        <ci> Glucose_external </ci>
+                        <apply>
+                          <divide/>
+                          <ci> Glucose_external </ci>
+                          <ci> K_G </ci>
+                        </apply>
                         <ci> n_G </ci>
                       </apply>
                     </apply>
