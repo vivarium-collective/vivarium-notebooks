@@ -389,9 +389,9 @@ def simulate_bioscrape_cobra(
         initial_lactose=1e1,
         lactose_leak_rate=0.05,
         initial_agent_states=None,
-        bounds=[20, 20],
-        n_bins=[10, 10],
-        depth=2,
+        bounds=BOUNDS,
+        n_bins=NBINS,
+        depth=DEPTH,
         diffusion_rate=1e-1,
         divide_threshold=2000 * units.fg,
         external_volume=None,
@@ -772,26 +772,25 @@ def main():
             filename='division_multigen')
 
     if args.deterministic_spatial:
+        bounds = [30, 30]
+        n_bins = [30, 30]
+        depth = 1
 
         initial_agent_states = [
-            {'species': {
-                'monomer_betaGal': 0,
-                'protein_betaGal': 0,
-                'protein_Lactose_Permease': 0}},
             {'rates': {
                 'LacPermease_vmax': 3580.0},  # 35.8
-            'species': {
-                'monomer_betaGal': 0.1,
-                'protein_betaGal': 0.1,
-                'protein_Lactose_Permease': 0.1}}]
+            }
+        ]
 
         output, comp0 = simulate_bioscrape_cobra(
-            n_agents=2,
             initial_agent_states=initial_agent_states,
             division=True,
             spatial=True,
             initial_glucose=1e1,
             initial_lactose=2e1,
+            bounds=bounds,
+            n_bins=n_bins,
+            depth=depth,
             total_time=7200,  # 7 hrs = 25200 sec
             emitter=emitter,
             sbml_file=sbml_deterministic,
@@ -806,14 +805,14 @@ def main():
 
         plot_fields_snapshots(
             output,
-            bounds=BOUNDS,
+            bounds=bounds,
             include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
             out_dir=deterministic_spatial_out_dir,
             filename='spatial_snapshots')
 
         plot_fields_tags(
             output,
-            bounds=BOUNDS,
+            bounds=bounds,
             tagged_molecules=[('species', 'protein_Lactose_Permease',)],
             out_dir=deterministic_spatial_out_dir,
             filename='spatial_tags')
@@ -823,7 +822,6 @@ def main():
         n_bins = [30, 30]
 
         output, comp0 = simulate_bioscrape_cobra(
-            n_agents=1,
             stochastic=True,
             division=True,
             spatial=True,
@@ -858,6 +856,7 @@ def main():
         plot_fields_tags(
             output,
             bounds=bounds,
+            convert_to_concs=False,
             tagged_molecules=[('species', 'protein_Lactose_Permease',)],
             out_dir=stochastic_spatial_out_dir,
             filename='spatial_tags')

@@ -203,13 +203,8 @@ class BioscrapeCOBRAdeterministic(Composer):
             'biomass_adaptor': self.biomass_adaptor,
             'strip_units': self.strip_units,
             'local_field': self.local_field,
+            'connect_external': self.connect_external,
             }
-
-        # if there is no external field, connect_external is used to connect the external states back to species
-        # this does the job of field_counts_deriver in bioscrape_cobra_stochastic
-        if not config['fields_on']:
-            processes.update({
-                'connect_external': self.connect_external})
 
         # Division Logic
         if config['divide_on']:
@@ -306,16 +301,25 @@ class BioscrapeCOBRAdeterministic(Composer):
                 'fluxes': {
                     '_path': ('rates',),
                     'mass': ('k_dilution__',)}
-            }
+            },
         }
 
         # if there is no external field, the 'field' is a single variable that has to connect back to species
+        # if there is an external field, connect to bioscrape through the boundary, which is updated by diffusion process
         if not config['fields_on']:
             topology.update({
                 'connect_external': {
                     'source': fields_path,
                     'target': ('species',),
-                }})
+                }
+            })
+        else:
+            topology.update({
+                'connect_external': {
+                    'source': boundary_path + ('external',),
+                    'target': ('species',),
+                }
+            })
 
         if config['divide_on']:
             topology.update({
