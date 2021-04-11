@@ -10,7 +10,7 @@ import numpy as np
 from vivarium import (
     TreeMass, Clock, MassToMolar,
     DivideCondition, MetaDivision, StripUnits)
-from vivarium.core.process import Composer
+from vivarium.core.process import Composer, Deriver
 from vivarium.library.units import units
 
 # vivarium-bioscrape imports
@@ -76,6 +76,7 @@ schema_override = {
         'species': {
             'Biomass': {
                 '_default': 0.00166,
+                '_emit': True,
                 '_updater': 'set'},  # override bioscrape ('species', 'Biomass') with a 'set' updater
             'Glucose_external': {
                 '_divider': 'set',
@@ -92,6 +93,21 @@ schema_override = {
             'k_dilution__': {
                 '_emit': True,  # k_dilution should be emitted so it can be plotted
                 '_updater': 'set'}}}}
+
+
+class MapVariable(Deriver):
+    """Process to move variables between stores"""
+    def ports_schema(self):
+        return {
+            'source': {'*': {'_default': 0.0}},
+            'target': {'*': {'_default': 0.0}}}
+    def next_update(self, timestep, states):
+        target_update = {
+            key: {
+                '_value': value,
+                '_updater': 'set'}
+            for key, value in states['source'].items()}
+        return {'target': target_update}
 
 
 # The deterministic Bioscrape/COBRA composer
@@ -164,6 +180,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         self.biomass_adaptor = MassToMolar(config['mass_to_molar'])
         self.strip_units = StripUnits(config['strip_units'])
         self.local_field = LocalField(config['local_fields'])
+        self.connect_external = MapVariable()
 
         # set processes_initialized
         self.processes_initialized = self.config['reuse_processes']
@@ -185,7 +202,14 @@ class BioscrapeCOBRAdeterministic(Composer):
             'volume_deriver': self.volume_deriver,
             'biomass_adaptor': self.biomass_adaptor,
             'strip_units': self.strip_units,
-            'local_field': self.local_field}
+            'local_field': self.local_field,
+            }
+
+        # if there is no external field, connect_external is used to connect the external states back to species
+        # this does the job of field_counts_deriver in bioscrape_cobra_stochastic
+        if not config['fields_on']:
+            processes.update({
+                'connect_external': self.connect_external})
 
         # Division Logic
         if config['divide_on']:
@@ -209,6 +233,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         dimensions_path = config['dimensions_path']
         boundary_path = config['boundary_path']
         unitless_boundary_path = boundary_path + ('no_units',)
+        exchanges_path = boundary_path + ('exchanges',)
 
         topology = {
             'cobra': {
@@ -217,8 +242,8 @@ class BioscrapeCOBRAdeterministic(Composer):
                 'exchanges': {
                     # connect glc__D_e and lac__D_e to boundary exchanges that update fields
                     '_path': ('hidden_exchanges',),
-                    'glc__D_e': ('..',) + boundary_path + ('exchanges', GLUCOSE_EXTERNAL,),
-                    'lac__D_e': ('..',) + boundary_path + ('exchanges', LACTOSE_EXTERNAL,)},
+                    'glc__D_e': ('..',) + exchanges_path + (GLUCOSE_EXTERNAL,),
+                    'lac__D_e': ('..',) + exchanges_path + (LACTOSE_EXTERNAL,)},
                 'reactions': ('reactions',),
                 'flux_bounds': ('flux_bounds',),
                 'global': boundary_path,
@@ -229,17 +254,15 @@ class BioscrapeCOBRAdeterministic(Composer):
                 'species': {
                     '_path': ('species',),
                     'Biomass': ('..',) + unitless_boundary_path + ('biomass',),
-                    GLUCOSE_EXTERNAL: ('..',) + boundary_path + ('external', GLUCOSE_EXTERNAL,),
-                    LACTOSE_EXTERNAL: ('..',) + boundary_path + ('external', LACTOSE_EXTERNAL,)},
+                },
                 'delta_species': ('delta_species',),
                 'rates': ('rates',),
                 'globals': unitless_boundary_path,
             },
             'local_field': {
-                'exchanges': boundary_path + ('exchanges',),
+                'exchanges': exchanges_path,
                 'location': boundary_path + ('location',),
-                # connect fields directly to external port if fields_on is False
-                'fields': fields_path if config['fields_on'] else boundary_path + ('external',),
+                'fields': fields_path,
                 'dimensions': dimensions_path,
             },
             'flux_adaptor': {
@@ -285,6 +308,14 @@ class BioscrapeCOBRAdeterministic(Composer):
                     'mass': ('k_dilution__',)}
             }
         }
+
+        # if there is no external field, the 'field' is a single variable that has to connect back to species
+        if not config['fields_on']:
+            topology.update({
+                'connect_external': {
+                    'source': fields_path,
+                    'target': ('species',),
+                }})
 
         if config['divide_on']:
             topology.update({

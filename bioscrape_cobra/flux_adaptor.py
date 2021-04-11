@@ -155,4 +155,5 @@ class AverageFluxAdaptor(FluxAdaptor):
                 update['fluxes'][flux_key] = sum(self.prev_fluxes[flux_key][-window_size:]) / window_size
 
         self.prev_inputs = inputs
+
         return update

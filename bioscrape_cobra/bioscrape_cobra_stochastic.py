@@ -54,10 +54,10 @@ flux_config = {
     'flux_keys': {
         'Lactose_consumed': {
             'input_type': 'delta',
-            'window_size': COBRA_TIMESTEP},
+            'window_size': int(COBRA_TIMESTEP / BIOSCRAPE_TIMESTEP)},
         'Glucose_internal': {
             'input_type': 'delta',
-            'window_size': COBRA_TIMESTEP}}}
+            'window_size': int(COBRA_TIMESTEP / BIOSCRAPE_TIMESTEP)}}}
 
 mass_mw_config = {
     'molecular_weights': {
@@ -225,6 +225,7 @@ class BioscrapeCOBRAstochastic(Composer):
         dimensions_path = config['dimensions_path']
         boundary_path = config['boundary_path']
         unitless_boundary_path = boundary_path + ('no_units',)
+        exchanges_path = boundary_path + ('exchanges',)
 
         topology = {
             'cobra': {
@@ -233,8 +234,8 @@ class BioscrapeCOBRAstochastic(Composer):
                 'exchanges': {
                     # connect glc__D_e and lac__D_e to boundary exchanges that update fields
                     '_path': ('hidden_exchanges',),
-                    'glc__D_e': ('..',) + boundary_path + ('exchanges', GLUCOSE_EXTERNAL,),
-                    'lac__D_e': ('..',) + boundary_path + ('exchanges', LACTOSE_EXTERNAL,)},
+                    'glc__D_e': ('..',) + exchanges_path + (GLUCOSE_EXTERNAL,),
+                    'lac__D_e': ('..',) + exchanges_path + (LACTOSE_EXTERNAL,)},
                 'reactions': ('reactions',),
                 'flux_bounds': ('flux_bounds',),
                 'global': boundary_path,
@@ -289,15 +290,16 @@ class BioscrapeCOBRAstochastic(Composer):
             },
             # apply exchanges from COBRA to the fields, and update external state
             'local_field': {
-                'exchanges': boundary_path + ('exchanges',),
+                'exchanges': exchanges_path,
                 'location': boundary_path + ('location',),
-                # connect fields directly to external port if fields are OFF
-                'fields': fields_path if config['fields_on'] else boundary_path + ('external',),
+                'fields': fields_path,
                 'dimensions': dimensions_path,
             },
             # convert external concentrations to external counts, for Bioscrape to read from
             'field_counts_deriver': {
-                'concentrations': boundary_path + ('external',),
+                # if fields_on, connect to value saved under (boundary, external),
+                # otherwise connect directly to the fields_path, where a single value will be held
+                'concentrations': boundary_path + ('external',) if config['fields_on'] else fields_path,
                 'counts': ('species',),
                 'global': {
                      # connect to a fixed bin volume

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sbml xmlns="http://www.sbml.org/sbml/level3/version2/core" level="3" version="2">
-  <model id="biocrnpyler_107235" name="biocrnpyler_107235" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
+  <model id="biocrnpyler_198549" name="biocrnpyler_198549" substanceUnits="mole" timeUnits="second" volumeUnits="litre" areaUnits="square_metre" lengthUnits="metre" extentUnits="mole">
     <listOfUnitDefinitions>
       <unitDefinition id="square_metre">
         <listOfUnits>
@@ -15,9 +15,9 @@
       <species id="rna_M" name="M" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="monomer_betaGal" name="betaGal" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="protein_betaGal" name="betaGal" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
-      <species id="Lactose_external" name="Lactose" compartment="default" initialConcentration="5000000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="Lactose_external" name="Lactose" compartment="default" initialConcentration="120440000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="Lactose_internal" name="Lactose" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
-      <species id="Glucose_external" name="Glucose" compartment="default" initialConcentration="5000000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
+      <species id="Glucose_external" name="Glucose" compartment="default" initialConcentration="60220000" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="Glucose_internal" name="Glucose" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="protein_Lactose_Permease" name="Lactose_Permease" compartment="default" initialConcentration="0" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
       <species id="dna_Lac_Operon" name="Lac_Operon" compartment="default" initialConcentration="2" substanceUnits="mole" hasOnlySubstanceUnits="false" boundaryCondition="false" constant="false"/>
@@ -32,6 +32,8 @@
       <parameter id="Bgal_Kd__" value="84310" constant="true"/>
       <parameter id="GluPermease_vmax__" value="301" constant="true"/>
       <parameter id="GluPermease_Kd__" value="9033" constant="true"/>
+      <parameter id="LacPermease_reverse_vmax__" value="1.18966666666667" constant="true"/>
+      <parameter id="LacPermease_Kd__" value="8800000" constant="true"/>
       <parameter id="kdeg_mRNA__" value="0.00783333333333333" constant="true"/>
       <parameter id="kdeg_prot__" value="0.000166666666666667" constant="true"/>
     </listOfParameters>
@@ -53,6 +55,7 @@
             <apply>
               <times/>
               <ci> dna_Lac_Operon </ci>
+              <ci> Vtx </ci>
               <apply>
                 <plus/>
                 <ci> k_leak </ci>
@@ -61,13 +64,9 @@
                   <apply>
                     <divide/>
                     <apply>
-                      <times/>
-                      <ci> Vtx </ci>
-                      <apply>
-                        <power/>
-                        <ci> Lactose_internal </ci>
-                        <ci> n_L </ci>
-                      </apply>
+                      <power/>
+                      <ci> Lactose_internal </ci>
+                      <ci> n_L </ci>
                     </apply>
                     <apply>
                       <plus/>
@@ -88,14 +87,14 @@
                     <cn type="integer"> 1 </cn>
                     <apply>
                       <plus/>
+                      <cn type="integer"> 1 </cn>
                       <apply>
                         <power/>
-                        <ci> K_G </ci>
-                        <ci> n_G </ci>
-                      </apply>
-                      <apply>
-                        <power/>
-                        <ci> Glucose_external </ci>
+                        <apply>
+                          <divide/>
+                          <ci> Glucose_external </ci>
+                          <ci> K_G </ci>
+                        </apply>
                         <ci> n_G </ci>
                       </apply>
                     </apply>
@@ -108,9 +107,9 @@
             <localParameter id="Vtx" value="0.003"/>
             <localParameter id="n_L" value="4"/>
             <localParameter id="K_L" value="2900000"/>
-            <localParameter id="K_G" value="15055"/>
+            <localParameter id="K_G" value="1506"/>
             <localParameter id="n_G" value="2"/>
-            <localParameter id="k_leak" value="0.0003"/>
+            <localParameter id="k_leak" value="0.05"/>
           </listOfLocalParameters>
         </kineticLaw>
       </reaction>
@@ -332,6 +331,53 @@
       </reaction>
       <reaction id="r7" name="r7" reversible="false">
         <annotation>
+          <PropensityType> k=LacPermease_reverse_vmax__ K=LacPermease_Kd__ n=n s1=Lactose_internal d=protein_Lactose_Permease type=proportionalhillpositive</PropensityType>
+        </annotation>
+        <listOfReactants>
+          <speciesReference species="Lactose_internal" stoichiometry="1" constant="false"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="Lactose_external" stoichiometry="1" constant="false"/>
+        </listOfProducts>
+        <listOfModifiers>
+          <modifierSpeciesReference species="protein_Lactose_Permease"/>
+        </listOfModifiers>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <divide/>
+              <apply>
+                <times/>
+                <ci> LacPermease_reverse_vmax__ </ci>
+                <ci> protein_Lactose_Permease </ci>
+                <apply>
+                  <power/>
+                  <ci> Lactose_internal </ci>
+                  <ci> n </ci>
+                </apply>
+              </apply>
+              <apply>
+                <plus/>
+                <apply>
+                  <power/>
+                  <ci> LacPermease_Kd__ </ci>
+                  <ci> n </ci>
+                </apply>
+                <apply>
+                  <power/>
+                  <ci> Lactose_internal </ci>
+                  <ci> n </ci>
+                </apply>
+              </apply>
+            </apply>
+          </math>
+          <listOfLocalParameters>
+            <localParameter id="n" value="1"/>
+          </listOfLocalParameters>
+        </kineticLaw>
+      </reaction>
+      <reaction id="r8" name="r8" reversible="false">
+        <annotation>
           <PropensityType> k=kdeg_mRNA__ type=massaction</PropensityType>
         </annotation>
         <listOfReactants>
@@ -347,7 +393,7 @@
           </math>
         </kineticLaw>
       </reaction>
-      <reaction id="r8" name="r8" reversible="false">
+      <reaction id="r9" name="r9" reversible="false">
         <annotation>
           <PropensityType> k=kdeg_prot__ type=massaction</PropensityType>
         </annotation>
@@ -364,7 +410,7 @@
           </math>
         </kineticLaw>
       </reaction>
-      <reaction id="r9" name="r9" reversible="false">
+      <reaction id="r10" name="r10" reversible="false">
         <annotation>
           <PropensityType> k=kdeg_prot__ type=massaction</PropensityType>
         </annotation>

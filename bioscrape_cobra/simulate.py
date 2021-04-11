@@ -2,6 +2,35 @@
 ==============================================
 Simulation helper functions for BioscrapeCOBRA
 ==============================================
+
+Includes functions for configuring, running, and plotting all experiments reported in the paper:
+    "Vivarium: an interface and engine for integrative multiscale modeling in computational biology"
+
+These are used in the supplementary Jupyter notebook "Multi-Paradigm-Composites.ipynb".
+
+This file also includes pre-configured experiments that can be triggered from the command line:
+    * 1 : deterministic single cell
+    * 2 : stochastic single cell
+    * 3 : deterministic with cell division
+    * 4 : stochastic with cell division
+    * 5 : deterministic cells in spatial environment
+    * 6 : stochastic cells in spatial environment
+
+These can be triggered from the command line by entering the simulation number:
+```
+$ python bioscrape_cobra/simulate.py -sim_number
+```
+
+parallel and mongoDB database for saved output can be called with:
+```
+$ python bioscrape_cobra/simulate.py [-database, -d] [-parallel, -p]
+```
+
+see all options with:
+```
+python bioscrape_cobra/simulate.py -h
+```
+
 """
 import os
 import argparse
@@ -47,8 +76,8 @@ from bioscrape_cobra.plot import (
 
 # default variables, which can be varied by simulate_bioscrape_cobra
 DEFAULT_DIVIDE_THRESHOLD = 2000 * units.fg
-INITIAL_GLC = 1e2  # mmolar
-INITIAL_LAC = 1e2  # mmolar
+INITIAL_GLC = 10  # mmolar
+INITIAL_LAC = 20  # mmolar
 BOUNDS = [20, 20]
 NBINS = [10, 10]
 DEPTH = 2
@@ -358,10 +387,11 @@ def simulate_bioscrape_cobra(
         spatial=False,
         initial_glucose=1e1,
         initial_lactose=1e1,
+        lactose_leak_rate=0.05,
         initial_agent_states=None,
         bounds=[20, 20],
         n_bins=[10, 10],
-        depth=10,
+        depth=2,
         diffusion_rate=1e-1,
         divide_threshold=2000 * units.fg,
         external_volume=None,
@@ -397,20 +427,28 @@ def simulate_bioscrape_cobra(
         * parallel:
     """
 
+    assert 0.0 <= lactose_leak_rate <= 1.0, 'lactose_leak_rate needs to be in range (0.0, 1.0)'
+
     # get the bin volume based upon the lattice
     bin_volume = (external_volume or get_bin_volume(n_bins, bounds, depth)) * units.L
     agent_state = {
         # set initial flux values based on COBRA defaults.
         'flux_bounds': {
             'EX_lac__D_e': 0.0,
-            'EX_glc__D_e': 0.099195},
+            'EX_glc__D_e': 0.099195
+        },
         # field_counts_deriver needs the bin volume
         'boundary': {
             'bin_volume': bin_volume,
-            'external': {
+            **({'external': {
                 GLUCOSE_EXTERNAL: initial_glucose,
                 LACTOSE_EXTERNAL: initial_lactose}
-        }}
+               } if spatial else {}),
+        },
+        'rates': {
+            'k_leak': lactose_leak_rate,
+        }
+    }
 
     # make the BioscrapeCOBRA config
     biocobra_config = get_bioscrape_cobra_config(
@@ -507,6 +545,11 @@ def simulate_bioscrape_cobra(
         state = biocobra_composite.initial_state()
         initial_state_full = deep_merge(state, agents_initial)
 
+        # simple, 1D field
+        initial_state_full['fields'] = {
+                GLUCOSE_EXTERNAL: initial_glucose,
+                LACTOSE_EXTERNAL: initial_lactose}
+
     else:
         # single agent without division
 
@@ -521,6 +564,11 @@ def simulate_bioscrape_cobra(
         initial_declared = get_initial_state(initial_agent_states)
         agents_initial = deep_merge(agents_initial, initial_declared)
         initial_state_full = deep_merge(agents_initial, agent_state)
+
+        # simple, 1D field
+        initial_state_full['fields'] = {
+                GLUCOSE_EXTERNAL: initial_glucose,
+                LACTOSE_EXTERNAL: initial_lactose}
 
     # make the experiment
     experiment_id = (f"{'stochastic' if stochastic else 'deterministic'}"
@@ -568,24 +616,23 @@ plot_variables_list = [
     ('species', 'monomer_betaGal'),
     ('species', 'protein_betaGal'),
     ('species', 'protein_Lactose_Permease'),
+    ('species', GLUCOSE_EXTERNAL),
+    ('species', LACTOSE_EXTERNAL),
     ('flux_bounds', 'EX_glc__D_e'),
     ('flux_bounds', 'EX_lac__D_e'),
+    ('boundary', 'no_units', 'biomass'),
 ]
 
 plot_variables_list_deterministic = [
-    ('boundary', 'external', GLUCOSE_EXTERNAL),
-    ('boundary', 'external', LACTOSE_EXTERNAL),
     ('rates', 'k_dilution__',)]
 plot_variables_list_deterministic.extend(plot_variables_list)
 
-plot_variables_list_stochastic = [
-    ('species', GLUCOSE_EXTERNAL),
-    ('species', LACTOSE_EXTERNAL)]
+plot_variables_list_stochastic = []
 plot_variables_list_stochastic.extend(plot_variables_list)
 
+
 def main():
-    out_dir = os.path.join(
-        'out', 'bioscrape_cobra')
+    out_dir = os.path.join('out', 'bioscrape_cobra')
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
@@ -610,11 +657,12 @@ def main():
     sbml_stochastic = os.path.join(dirname, SBML_FILE_STOCHASTIC)
 
     if args.deterministic:
+
         output, comp0 = simulate_bioscrape_cobra(
-            initial_glucose=1e0,
-            initial_lactose=1e0,
-            external_volume=1e-13,
-            total_time=3000,
+            initial_glucose=1e1,
+            initial_lactose=2e1,
+            external_volume=1e-12,
+            total_time=12000,
             emitter=emitter,
             sbml_file=sbml_deterministic,
             output_type='timeseries')
@@ -626,12 +674,23 @@ def main():
             filename='variables')
 
     if args.stochastic:
+
+        initial_agent_state = {
+            'rates': {
+                'LacPermease_vmax': 35.8},  # 35.8
+            'species': {
+                'monomer_betaGal': 100,
+                'protein_betaGal': 100,
+                'protein_Lactose_Permease': 100}}
+
         output, comp0 = simulate_bioscrape_cobra(
             stochastic=True,
-            initial_glucose=1e0,
-            initial_lactose=1e0,
+            initial_glucose=1e1,
+            initial_lactose=2e1,
+            lactose_leak_rate=0.6,
+            initial_agent_states=initial_agent_state,
             external_volume=1e-14,
-            total_time=3000,
+            total_time=4000,
             emitter=emitter,
             sbml_file=sbml_stochastic,
             output_type='timeseries')
@@ -643,58 +702,60 @@ def main():
             filename='variables')
 
     if args.deterministic_divide:
-        initial_agent_states = [{
-            'species': {
+        initial_agent_states = [
+            {'species': {
                 'monomer_betaGal': 0.0,
                 'protein_betaGal': 0.0,
-                'protein_Lactose_Permease': 0.0},
-            },
-            {
-                'species': {
-                    'monomer_betaGal': 0.0,
-                    'protein_betaGal': 0.1,
-                    'protein_Lactose_Permease': 0.1},
-            },
-        ]
+                'protein_Lactose_Permease': 0.0}},
+            {'species': {
+                'monomer_betaGal': 0.0,
+                'protein_betaGal': 0.1,
+                'protein_Lactose_Permease': 0.1}}]
 
         output, comp0 = simulate_bioscrape_cobra(
             n_agents=2,
             initial_agent_states=initial_agent_states,
             division=True,
-            initial_glucose=1e1,  # mM
-            initial_lactose=1e1,  # mM
+            initial_glucose=1e1,
+            initial_lactose=2e1,
             external_volume=1e-12,
-            total_time=4000,
+            total_time=3000,
             emitter=emitter,
             sbml_file=sbml_deterministic,
             output_type='unitless')
 
+        var_list = copy.deepcopy(plot_variables_list_deterministic)
         plot_multigen(
             output,
+            variables=var_list,
             out_dir=os.path.join(out_dir, 'deterministic_divide'),
             filename='division_multigen')
 
     if args.stochastic_divide:
-        initial_agent_states = [{
-            'species': {
-                'monomer_betaGal': 0,
-                'protein_betaGal': 0,
-                'protein_Lactose_Permease': 0},
-            'species': {
-                'monomer_betaGal': 100,
-                'protein_betaGal': 100,
-                'protein_Lactose_Permease': 100}
-        }]
+        initial_agent_states = [
+            # {'species': {
+            #     'monomer_betaGal': 0,
+            #     'protein_betaGal': 0,
+            #     'protein_Lactose_Permease': 0}},
+            {'rates': {
+                'LacPermease_vmax': 3580.0},  # 35.8
+            # 'species': {
+            #     'monomer_betaGal': 100,
+            #     'protein_betaGal': 100,
+            #     'protein_Lactose_Permease': 100},
+            }
+        ]
 
         output, comp0 = simulate_bioscrape_cobra(
-            n_agents=2,
+            n_agents=1,
             stochastic=True,
             division=True,
-            initial_glucose=1e0,  # mM
-            initial_lactose=1e1,  # mM
+            initial_glucose=1e1,  # mM
+            initial_lactose=2e1,  # mM
+            lactose_leak_rate=0.5,
             initial_agent_states=initial_agent_states,
-            total_time=1000,
-            external_volume=1e-14,
+            total_time=4000,
+            external_volume=5e-14,
             emitter=emitter,
             sbml_file=sbml_stochastic,
             output_type='unitless')
@@ -712,16 +773,31 @@ def main():
 
     if args.deterministic_spatial:
 
+        initial_agent_states = [
+            {'species': {
+                'monomer_betaGal': 0,
+                'protein_betaGal': 0,
+                'protein_Lactose_Permease': 0}},
+            {'rates': {
+                'LacPermease_vmax': 3580.0},  # 35.8
+            'species': {
+                'monomer_betaGal': 0.1,
+                'protein_betaGal': 0.1,
+                'protein_Lactose_Permease': 0.1}}]
+
         output, comp0 = simulate_bioscrape_cobra(
+            n_agents=2,
+            initial_agent_states=initial_agent_states,
             division=True,
             spatial=True,
             initial_glucose=1e1,
-            initial_lactose=1e1,
-            total_time=12000,
+            initial_lactose=2e1,
+            total_time=7200,  # 7 hrs = 25200 sec
             emitter=emitter,
             sbml_file=sbml_deterministic,
             output_type='unitless')
 
+        # plot
         deterministic_spatial_out_dir = os.path.join(out_dir, 'deterministic_spatial')
         plot_multigen(
             output,
@@ -736,34 +812,36 @@ def main():
             filename='spatial_snapshots')
 
         plot_fields_tags(
-                        output,
+            output,
             bounds=BOUNDS,
             tagged_molecules=[('species', 'protein_Lactose_Permease',)],
             out_dir=deterministic_spatial_out_dir,
             filename='spatial_tags')
 
     if args.stochastic_spatial:
-        bounds = [25, 25]
-        n_bins = [25, 25]
+        bounds = [30, 30]
+        n_bins = [30, 30]
 
         output, comp0 = simulate_bioscrape_cobra(
+            n_agents=1,
             stochastic=True,
             division=True,
             spatial=True,
             initial_glucose=1e1,
-            initial_lactose=1e5,
+            initial_lactose=2e1,
+            lactose_leak_rate=0.5,
             depth=1,
             diffusion_rate=1e-1,
-            initial_state=None,
             bounds=bounds,
             n_bins=n_bins,
             halt_threshold=200,
-            total_time=60000,
+            total_time=7200,  # 7 hrs = 25200 sec
             emitter=emitter,
             sbml_file=sbml_stochastic,
             parallel=parallel,
             output_type='unitless')
 
+        # plot
         stochastic_spatial_out_dir = os.path.join(out_dir, 'stochastic_spatial')
         plot_multigen(
             output,
@@ -774,7 +852,6 @@ def main():
             output,
             bounds=bounds,
             include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
-            n_snapshots=5,
             out_dir=stochastic_spatial_out_dir,
             filename='spatial_snapshots')
 
@@ -782,7 +859,6 @@ def main():
             output,
             bounds=bounds,
             tagged_molecules=[('species', 'protein_Lactose_Permease',)],
-            n_snapshots=5,
             out_dir=stochastic_spatial_out_dir,
             filename='spatial_tags')
 
