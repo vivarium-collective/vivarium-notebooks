@@ -156,8 +156,4 @@ class AverageFluxAdaptor(FluxAdaptor):
 
         self.prev_inputs = inputs
 
-        #print(f"flux adaptor inputs: {inputs} | fluxes: {update['fluxes']}")
-        #import ipdb; ipdb.set_trace()
-
-
         return update
