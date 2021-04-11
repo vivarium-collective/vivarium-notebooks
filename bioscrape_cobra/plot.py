@@ -78,6 +78,7 @@ def plot_fields_snapshots(
         fields=fields,
         phylogeny_names=False,
         n_snapshots=n_snapshots,
+        scale_bar_length=10,
         include_fields=include_fields,
         out_dir=out_dir,
         filename=filename,
@@ -108,6 +109,7 @@ def plot_fields_tags(
         tagged_molecules=tagged_molecules,
         n_snapshots=n_snapshots,
         background_color='w',
+        scale_bar_length=10,
         out_dir=out_dir,
         filename=('tags_' + filename) if filename else None,
         **kwargs
