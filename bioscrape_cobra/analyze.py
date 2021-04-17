@@ -20,29 +20,38 @@ from vivarium.core.emitter import (
     remove_units, deserialize_value
 )
 from vivarium.plots.simulation_output import save_fig_to_dir
-from bioscrape_cobra.plot import (plot_multigen, plot_single, plot_fields_tags, plot_fields_snapshots)
+from vivarium.plots.agents_multigen import plot_agents_multigen
+from vivarium_multibody.plots.snapshots import format_snapshot_data, plot_snapshots, plot_tags
+from bioscrape_cobra.plot import (plot_fields_tags, plot_fields_snapshots)
 from bioscrape_cobra.bioscrape_cobra_stochastic import (
     GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL)
 
-MULTIGEN_VARIABLES = [
-    ('species', 'rna_M'),
-    ('species', 'protein_betaGal'),
-    ('species', 'protein_Lactose_Permease'),
-    ('flux_bounds', 'EX_glc__D_e'),
-    ('flux_bounds', 'EX_lac__D_e'),
-    ('boundary', 'volume'),
-]
 
 MULTIGEN_PLOT_CONFIG = {
+    'include_paths': [
+        ('species', 'rna_M'),
+        ('species', 'protein_betaGal'),
+        ('species', 'protein_Lactose_Permease'),
+        ('flux_bounds', 'EX_glc__D_e'),
+        ('flux_bounds', 'EX_lac__D_e'),
+        ('boundary', 'volume'),
+    ],
     'store_order': ('species', 'flux_bounds', 'boundary'),
     'titles_map': {
-        ('species', 'rna_M'): 'rna\nM',
+        ('species', 'rna_M'): 'rna M',
         ('species', 'protein_betaGal'): 'betaGal',
-        ('species', 'protein_Lactose_Permease'): 'Lactose\nPermease',
-        ('flux_bounds', 'EX_glc__D_e'): 'glc\nflux\nbound',
-        ('flux_bounds', 'EX_lac__D_e'): 'lac\nflux\nbound',
+        ('species', 'protein_Lactose_Permease'): 'Lactose Permease',
+        ('flux_bounds', 'EX_glc__D_e'): 'glc flux bound',
+        ('flux_bounds', 'EX_lac__D_e'): 'lac flux bound',
         ('boundary', 'volume'): 'volume',
     },
+    'remove_zeros': False,
+    'column_width': 4,
+    'row_height': 1.5,
+    'title_on_y_axis': False,
+    'stack_column': True,
+    'tick_label_size': 10,
+    'title_size': 10,
 }
 
 def access():
@@ -82,14 +91,14 @@ def plot_full(output, bounds, experiment_id):
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    # plot
-    multigen_fig = plot_multigen(
+    # plot multigen
+    multigen_fig = plot_agents_multigen(
         output,
-        variables=MULTIGEN_VARIABLES,
+        MULTIGEN_PLOT_CONFIG,
         out_dir=out_dir,
-        filename='spatial_multigen',
-        **MULTIGEN_PLOT_CONFIG)
+        filename='spatial_multigen')
 
+    # plot snapshots
     fig_snapshots = plot_fields_snapshots(
         output,
         bounds=bounds,
@@ -99,8 +108,8 @@ def plot_full(output, bounds, experiment_id):
         show_timeline=False,
     )
 
-    ylabel_size = 48
     # alter figure and save
+    ylabel_size = 48
     axes = fig_snapshots.get_axes()
     for axis in axes:
         axis.set_title('')
@@ -116,7 +125,8 @@ def plot_full(output, bounds, experiment_id):
         out_dir=out_dir,
         filename='bioscrape_cobra_stochastic_lattice_snapshots.pdf')
 
-    # tags figure
+
+    # plot tags
     fig_tags = plot_fields_tags(
         output,
         bounds=bounds,

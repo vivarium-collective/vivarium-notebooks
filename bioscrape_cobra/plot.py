@@ -52,7 +52,8 @@ def plot_multigen(
         'stack_column': True,
         'tick_label_size': 10,
         'title_size': 10,
-        **kwargs}
+        **kwargs
+        }
 
     fig = plot_agents_multigen(
         output,
