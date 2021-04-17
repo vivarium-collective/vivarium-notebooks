@@ -24,7 +24,26 @@ from bioscrape_cobra.plot import (plot_multigen, plot_single, plot_fields_tags, 
 from bioscrape_cobra.bioscrape_cobra_stochastic import (
     GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL)
 
+MULTIGEN_VARIABLES = [
+    ('species', 'rna_M'),
+    ('species', 'protein_betaGal'),
+    ('species', 'protein_Lactose_Permease'),
+    ('flux_bounds', 'EX_glc__D_e'),
+    ('flux_bounds', 'EX_lac__D_e'),
+    ('boundary', 'volume'),
+]
 
+MULTIGEN_PLOT_CONFIG = {
+    'store_order': ('species', 'flux_bounds', 'boundary'),
+    'titles_map': {
+        ('species', 'rna_M'): 'rna\nM',
+        ('species', 'protein_betaGal'): 'betaGal',
+        ('species', 'protein_Lactose_Permease'): 'Lactose\nPermease',
+        ('flux_bounds', 'EX_glc__D_e'): 'glc\nflux\nbound',
+        ('flux_bounds', 'EX_lac__D_e'): 'lac\nflux\nbound',
+        ('boundary', 'volume'): 'volume',
+    },
+}
 
 def access():
 
@@ -54,16 +73,22 @@ def access():
     deserialized = deserialize_value(data)
     output = remove_units(deserialized)
 
+    return output, bounds, experiment_id
+
+
+def plot_full(output, bounds, experiment_id):
     # make a directory for the figures
     out_dir = f'out/analyze/{experiment_id}'
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
     # plot
-    plot_multigen(
+    multigen_fig = plot_multigen(
         output,
+        variables=MULTIGEN_VARIABLES,
         out_dir=out_dir,
-        filename='spatial_multigen')
+        filename='spatial_multigen',
+        **MULTIGEN_PLOT_CONFIG)
 
     fig_snapshots = plot_fields_snapshots(
         output,
@@ -116,4 +141,5 @@ def access():
 
 
 if __name__ == '__main__':
-    access()
+    output, bounds, experiment_id = access()
+    plot_full(output, bounds, experiment_id)

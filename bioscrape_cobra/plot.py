@@ -34,6 +34,7 @@ def plot_multigen(
         variables=None,
         out_dir=None,
         filename=None,
+        **kwargs
 ):
     if filename and not out_dir:
         out_dir = 'out'
@@ -50,7 +51,8 @@ def plot_multigen(
         'title_on_y_axis': True,
         'stack_column': True,
         'tick_label_size': 10,
-        'title_size': 10}
+        'title_size': 10,
+        **kwargs}
 
     fig = plot_agents_multigen(
         output,

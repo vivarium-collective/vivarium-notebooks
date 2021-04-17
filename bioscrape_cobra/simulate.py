@@ -816,11 +816,11 @@ def main():
     if args.stochastic_spatial:
         bounds = [30, 30]
         n_bins = [30, 30]
-        depth = 1
+        depth = 0.5
 
         initial_agent_states = [
             {'rates': {
-                'LacPermease_vmax': 1000.0,  # 35.8
+                'LacPermease_vmax': 358.0,  # 35.8
                 'k_leak': 0.1
             },
             }
@@ -831,7 +831,7 @@ def main():
             stochastic=True,
             division=True,
             spatial=True,
-            initial_glucose=8e0,
+            initial_glucose=1e1,
             initial_lactose=2e1,
             depth=depth,
             diffusion_rate=3e-2,
