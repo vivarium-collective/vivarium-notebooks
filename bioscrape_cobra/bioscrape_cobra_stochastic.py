@@ -29,8 +29,8 @@ from bioscrape_cobra.flux_adaptor import AverageFluxAdaptor
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
 SBML_FILE_STOCHASTIC = 'LacOperon_stochastic.xml'
-COBRA_TIMESTEP = 50
-BIOSCRAPE_TIMESTEP = 10
+COBRA_TIMESTEP = 60
+BIOSCRAPE_TIMESTEP = 20
 
 # set mass threshold for division
 divide_config = {

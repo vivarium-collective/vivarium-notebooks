@@ -65,6 +65,7 @@ def plot_fields_snapshots(
         bounds=None,
         include_fields=None,
         n_snapshots=4,
+        colorbar_decimals=4,
         out_dir=None,
         filename=None,
         **kwargs):
@@ -79,7 +80,7 @@ def plot_fields_snapshots(
         phylogeny_names=False,
         n_snapshots=n_snapshots,
         scale_bar_length=5,
-        colorbar_decimals=4,
+        colorbar_decimals=colorbar_decimals,
         include_fields=include_fields,
         out_dir=out_dir,
         filename=filename,
@@ -100,6 +101,7 @@ def plot_fields_tags(
         bounds=None,
         tagged_molecules=None,
         n_snapshots=4,
+        colorbar_decimals=4,
         out_dir=None,
         filename=None,
         **kwargs):
@@ -111,7 +113,7 @@ def plot_fields_tags(
         n_snapshots=n_snapshots,
         background_color='w',
         scale_bar_length=5,
-        colorbar_decimals=4,
+        colorbar_decimals=colorbar_decimals,
         out_dir=out_dir,
         filename=('tags_' + filename) if filename else None,
         **kwargs

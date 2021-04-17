@@ -24,12 +24,13 @@ from vivarium_cobra.processes.cobra_fba import COBRA_FBA
 # local imports
 from bioscrape_cobra.flux_adaptor import (
     DilutionFluxAdaptor, FluxAdaptor)
+from bioscrape_cobra.bioscrape_cobra_stochastic import COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP
+
+
 
 GLUCOSE_EXTERNAL = 'Glucose_external'
 LACTOSE_EXTERNAL = 'Lactose_external'
 SBML_FILE_DETERMINISTIC = 'LacOperon_deterministic.xml'
-COBRA_TIMESTEP = 50
-BIOSCRAPE_TIMESTEP = 10
 
 # choose the SBML file and set other bioscrape parameters
 deterministic_bioscrape_config = {
