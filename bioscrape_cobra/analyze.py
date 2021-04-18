@@ -60,16 +60,9 @@ MULTIGEN_PLOT_CONFIG = {
     'title_size': 10,
 }
 
-def access():
+YLABEL_SIZE = 48
 
-    # parse
-    parser = argparse.ArgumentParser(description='access data from db')
-    parser.add_argument(
-            'experiment_id',
-            type=str,
-            default=False)
-    args = parser.parse_args()
-    experiment_id = args.experiment_id
+def access(experiment_id):
 
     # mongo client
     config = {
@@ -88,21 +81,10 @@ def access():
     deserialized = deserialize_value(data)
     output = remove_units(deserialized)
 
-    return output, bounds, experiment_id
+    return output, bounds
 
 
-def plot_full(output, bounds, experiment_id):
-    # make a directory for the figures
-    out_dir = f'out/analyze/{experiment_id}'
-    if not os.path.exists(out_dir):
-        os.makedirs(out_dir)
-
-    # plot multigen
-    multigen_fig = plot_agents_multigen(
-        output,
-        MULTIGEN_PLOT_CONFIG,
-        out_dir=out_dir,
-        filename='spatial_multigen')
+def plot_full(output, bounds, out_dir):
 
     # plot phylogeny snapshots
     fig_phylogeny = plot_fields_snapshots(
@@ -131,16 +113,17 @@ def plot_full(output, bounds, experiment_id):
         axis.set_title('')
         ylabel = axis.get_ylabel()
         if ylabel == 'Glucose_external':
-            axis.set_ylabel('external\nglucose', fontsize=ylabel_size)
+            axis.set_ylabel('external\nglucose', fontsize=YLABEL_SIZE)
         if ylabel == 'Lactose_external':
-            axis.set_ylabel('external\nlactose', fontsize=ylabel_size)
+            axis.set_ylabel('external\nlactose', fontsize=YLABEL_SIZE)
     size = fig_snapshots.get_size_inches()
+    # fig_snapshots.set_size_inches(size[0], size[1]/2, forward=True)
     save_fig_to_dir(
         fig_snapshots,
         out_dir=out_dir,
         filename='bioscrape_cobra_stochastic_lattice_snapshots.pdf')
 
-
+def plot_tags_fig(output, bounds, out_dir):
     # plot tags
     fig_tags = plot_fields_tags(
         output,
@@ -153,38 +136,115 @@ def plot_full(output, bounds, experiment_id):
         axis.set_title('')
         ylabel = axis.get_ylabel()
         if ylabel:
-            axis.set_ylabel('internal\nlactose\npermease', fontsize=ylabel_size)
-    fig_snapshots.set_size_inches(size[0], size[1]/2, forward=True)
+            axis.set_ylabel('internal\nlactose\npermease', fontsize=YLABEL_SIZE)
     save_fig_to_dir(
         fig_tags,
         out_dir=out_dir,
         filename='bioscrape_cobra_stochastic_lattice_tags.pdf')
 
+def plot_multigen_fig(output, bounds, out_dir):
+    # plot multigen
+    multigen_fig = plot_agents_multigen(
+        output,
+        MULTIGEN_PLOT_CONFIG,
+        out_dir=out_dir,
+        filename='spatial_multigen')
+
+def plot_single_tags(output, bounds, out_dir):
+
+    # make individual tag plots
+    agents, fields = format_snapshot_data(output)
+    time_vec = list(agents.keys())
+    snapshot_times = [time_vec[-1]]
+    time_indices = [time_vec.index(time) for time in snapshot_times]
+
+    ############
+    # glc flux #
+    ############
+    fig_tags = make_tags_figure(
+        agents=agents, bounds=bounds, n_snapshots=1,
+        time_indices=time_indices, snapshot_times=snapshot_times,
+        background_color='white', scale_bar_length=False, show_timeline=False,
+        tagged_molecules=[('flux_bounds', 'EX_glc__D_e')])
+    # alter figure and save
+    axes = fig_tags.get_axes()
+    for axis in axes:
+        axis.set_title('')
+        ylabel = axis.get_ylabel()
+        if ylabel:
+            axis.set_ylabel('glucose\nflux', fontsize=YLABEL_SIZE)
+    save_fig_to_dir(
+        fig_tags, out_dir=out_dir, filename='tag_EX_glc__D_e.pdf')
+
+    ############
+    # lac flux #
+    ############
+    fig_tags = make_tags_figure(
+        agents=agents, bounds=bounds, n_snapshots=1,
+        time_indices=time_indices, snapshot_times=snapshot_times,
+        background_color='white', scale_bar_length=False, show_timeline=False,
+        tagged_molecules=[('flux_bounds', 'EX_lac__D_e')])
+    # alter figure and save
+    axes = fig_tags.get_axes()
+    for axis in axes:
+        axis.set_title('')
+        ylabel = axis.get_ylabel()
+        if ylabel:
+            axis.set_ylabel('lactose\nflux', fontsize=YLABEL_SIZE)
+    save_fig_to_dir(
+        fig_tags, out_dir=out_dir, filename='tag_EX_lac__D_e.pdf')
+
+    ################
+    # lac Permease #
+    ################
+    fig_tags = make_tags_figure(
+        agents=agents, bounds=bounds, n_snapshots=1,
+        time_indices=time_indices, snapshot_times=snapshot_times,
+        background_color='white', scale_bar_length=False, show_timeline=False,
+        tagged_molecules=[('species', 'protein_Lactose_Permease')])
+    # alter figure and save
+    axes = fig_tags.get_axes()
+    for axis in axes:
+        axis.set_title('')
+        ylabel = axis.get_ylabel()
+        if ylabel:
+            axis.set_ylabel('internal\nlactose\npermease', fontsize=YLABEL_SIZE)
+    save_fig_to_dir(
+        fig_tags, out_dir=out_dir, filename='tag_protein_Lactose_Permease.pdf')
 
 
+def main():
 
-    # # make individual tag plots
-    # agents, fields = format_snapshot_data(output)
-    # time_vec = list(agents.keys())
-    # snapshot_times = [time_vec[-1]]
-    # time_indices = [time_vec.index(time) for time in snapshot_times]
-    #
-    # make_tags_figure(
-    #     agents=agents,
-    #     bounds=bounds,
-    #     time_indices=time_indices,
-    #     snapshot_times=snapshot_times,
-    #     n_snapshots=1,
-    #     show_timeline=False,
-    #     tagged_molecules=[('flux_bounds', 'EX_glc__D_e')],
-    #     filename='flux_bounds_EX_glc__D_e',
-    #     out_dir=out_dir)
-    #
-    # import ipdb;
-    # ipdb.set_trace()
+    # parse
+    parser = argparse.ArgumentParser(description='access data from db')
+    parser.add_argument('experiment_id', type=str, default=False)
+    parser.add_argument('--all', '-1', action='store_true', default=False)
+    parser.add_argument('--multigen', '-2', action='store_true', default=False)
+    parser.add_argument('--tags', '-3', action='store_true', default=False)
+    parser.add_argument('--single_tags', '-4', action='store_true', default=False)
+    args = parser.parse_args()
+    experiment_id = args.experiment_id
 
+    # make a directory for the figures
+    out_dir = f'out/analyze/{experiment_id}'
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
 
+    # retrieve the data
+    output, bounds = access(experiment_id)
+
+    # run the plot functions
+    if args.all:
+        plot_full(output, bounds, out_dir)
+
+    if args.multigen or args.all:
+        plot_multigen_fig(output, bounds, out_dir)
+
+    if args.tags or args.all:
+        plot_tags_fig(output, bounds, out_dir)
+
+    if args.single_tags or args.all:
+        plot_single_tags(output, bounds, out_dir)
 
 if __name__ == '__main__':
-    output, bounds, experiment_id = access()
-    plot_full(output, bounds, experiment_id)
+    main()
