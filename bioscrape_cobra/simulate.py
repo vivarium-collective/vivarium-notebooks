@@ -72,8 +72,9 @@ from bioscrape_cobra.bioscrape_cobra_stochastic import GLUCOSE_EXTERNAL, LACTOSE
 from bioscrape_cobra.bioscrape_cobra_deterministic import BioscrapeCOBRAdeterministic, SBML_FILE_DETERMINISTIC
 
 # plotting
+from vivarium.plots.topology import plot_topology
 from bioscrape_cobra.plot import (
-    plot_multigen, plot_single, plot_fields_tags, plot_fields_snapshots)
+    plot_multigen, plot_single, plot_fields_tags, plot_fields_snapshots, config_embedded_bioscrape_cobra_topology)
 
 # default environment variables, which can be varied by simulate_bioscrape_cobra
 DEFAULT_DIVIDE_THRESHOLD = 2000 * units.fg
@@ -258,12 +259,12 @@ def simulate_diffusion(
         'topology': diffusion_process.generate_topology()
         })
 
-    if initial_state is None:
-        initial_state = diffusion_process.initial_state
+    diffusion_state = diffusion_process.initial_state({})
 
     diffusion_sim_settings = {
         'total_time': total_time,
         'return_raw_data': True,
+        'initial_state': diffusion_state,
     }
 
     diffusion_data = simulate_composer(diffusion_process, diffusion_sim_settings)
@@ -385,8 +386,8 @@ def simulate_bioscrape_cobra(
         initial_glucose=1e1,
         initial_lactose=1e1,
         initial_agent_states=None,
-        bounds=BOUNDS,
-        n_bins=NBINS,
+        bounds=None,
+        n_bins=None,
         depth=DEPTH,
         diffusion_rate=1e-1,
         jitter_force=1e-4,
@@ -423,6 +424,11 @@ def simulate_bioscrape_cobra(
         * output_type:
         * parallel:
     """
+
+    if n_bins is None:
+        n_bins = NBINS
+    if bounds is None:
+        bounds = BOUNDS
 
     # get the bin volume based upon the lattice
     bin_volume = (external_volume or get_bin_volume(n_bins, bounds, depth)) * units.L
@@ -638,6 +644,7 @@ def main():
     parser.add_argument('--stochastic_divide', '-4', action='store_true', default=False)
     parser.add_argument('--deterministic_spatial', '-5', action='store_true', default=False)
     parser.add_argument('--stochastic_spatial', '-6', action='store_true', default=False)
+    parser.add_argument('--topology', '-t', action='store_true', default=False)
     args = parser.parse_args()
 
     # emitter type
@@ -867,6 +874,33 @@ def main():
             out_dir=stochastic_spatial_out_dir,
             filename='spatial_tags')
 
+    if args.topology:
+        plot_full_topology(out_dir=out_dir)
+
+def plot_full_topology(out_dir='out'):
+
+    dirname = os.path.dirname(__file__)
+    # sbml_deterministic = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
+    sbml_stochastic = os.path.join(dirname, SBML_FILE_STOCHASTIC)
+    output, composite = simulate_bioscrape_cobra(
+        stochastic=True,
+        division=True,
+        spatial=True,
+        total_time=0,
+        sbml_file=sbml_stochastic,
+        output_type='unitless')
+
+    plot_topology(
+        composite,
+        settings=config_embedded_bioscrape_cobra_topology,
+        out_dir=out_dir,
+        filename='bioscrape_cobra_stochastic_lattice_topology.pdf')
 
 if __name__ == '__main__':
+    # dirname = os.path.dirname(__file__)
+    # sbml_deterministic = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
+    # sbml_stochastic = os.path.join(dirname, SBML_FILE_STOCHASTIC)
+
     main()
+
+

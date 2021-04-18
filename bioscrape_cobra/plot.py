@@ -468,7 +468,8 @@ config_grow_divide_lattice_topology = {
     'dashed_edges': True,
     'show_ports': False,
     'remove_nodes':[
-        'agents\n0\nrates\ngrowth_rate', 'agents\n0\nrates\ngrowth_noise', 'dimensions'
+        'agents\n0\nrates\ngrowth_rate', 'agents\n0\nrates\ngrowth_noise',
+        # 'dimensions'
     ],
     'process_colors':{
         'agents\n0\ndivide_condition':'tab:cyan',
@@ -501,7 +502,8 @@ config_grow_divide_lattice_topology = {
         'agents\n0\nboundary\nmass':(2*u, -1.5*u),
         'agents\n0\nboundary\ndivide':(3*u, -1.5*u),
         
-        'fields':(4*u, 1*u),
+        'fields':(2.5*u, 1*u),
+        'dimensions':(3.5*u, 1*u),
         'agents\n0\ngrowth':(-.5*u, -3*u),
         'agents\n0\nglobals_deriver':(.5*u, -3*u)
     },
@@ -524,7 +526,7 @@ config_grow_divide_lattice_topology = {
 
 su = .8
 RS = 0 #store row
-RP = -2.5*su #process row
+RP = -2.0*su #process row
 
 # node coordinates
 agent_coordinates = {       
@@ -536,6 +538,7 @@ agent_coordinates = {
         'internal_counts':(-3*su, RS),
         'cobra_external':(-2*su, RS),
         'flux_bounds':(-1*su, RS),
+        'fields':(4*su, RS-.5*su),
 
         # bioscrape
         'flux_adaptor':(-1*su, RP),
@@ -564,7 +567,11 @@ global_coordinates = {
         'agents\n0':(0, RS+su),
         'multibody':(3*su, RS+3*su),
         'diffusion':(4*su, RS+3*su),
-        'fields':(6*su, RS+2*su)}
+        'dimensions': (3.5*su, RS+2*su),
+        'fields':(4.5*su, RS+2*su),
+        # 'fields': (2.5 * su, 1 * su),
+
+}
 embedded_coordinates = {
     'agents\n0\n'+node_id: coord 
     for node_id, coord in agent_coordinates.items()}
@@ -703,6 +710,7 @@ config_bioscrape_cobra_topology = {
         'boundary\ntime',
         'clock',
         'strip_units',
+        'connect_external',
         'hidden_exchanges',
         'dimensions',
         'delta_concentrations',
@@ -713,6 +721,7 @@ config_bioscrape_cobra_topology = {
         'agents\n0\nboundary\ntime',
         'agents\n0\nclock',
         'agents\n0\nstrip_units',
+        'agents\n0\nconnect_external',
         'agents\n0\nhidden_exchanges',
         'agents\n0\ndelta_concentrations',
         'agents\n0\nboundary\nexchanges'
