@@ -526,7 +526,7 @@ config_grow_divide_lattice_topology = {
 
 su = .8
 RS = 0 #store row
-RP = -2.0*su #process row
+RP = -1.8*su #process row
 
 # node coordinates
 agent_coordinates = {       
@@ -565,12 +565,11 @@ agent_coordinates = {
 global_coordinates = {
         'agents':(0, RS+2*su),
         'agents\n0':(0, RS+su),
-        'multibody':(3*su, RS+3*su),
-        'diffusion':(4*su, RS+3*su),
-        'dimensions': (3.5*su, RS+2*su),
-        'fields':(4.5*su, RS+2*su),
+        'multibody':(5.5*su, RS+2*su),
+        'diffusion':(6.5*su, RS+2*su),
+        'dimensions': (6*su, RS+su),
+        'fields':(7*su, RS+su),
         # 'fields': (2.5 * su, 1 * su),
-
 }
 embedded_coordinates = {
     'agents\n0\n'+node_id: coord 
@@ -686,6 +685,8 @@ global_process_colors = {
         'diffusion':'tab:blue',
         'multibody':'tab:blue'}
 global_store_colors = {
+        'agents': 'tab:cyan',
+        'agents\n0': 'tab:cyan',
         'fields':'tab:blue'}
 embedded_process_colors = {
     'agents\n0\n'+node_id: color 
@@ -742,3 +743,4 @@ config_embedded_bioscrape_cobra_topology['node_labels'] = embedded_node_labels
 config_embedded_bioscrape_cobra_topology['process_colors'] = embedded_process_colors
 config_embedded_bioscrape_cobra_topology['store_colors'] = embedded_store_colors
 config_embedded_bioscrape_cobra_topology['custom_widths'] = embedded_custom_widths
+config_embedded_bioscrape_cobra_topology['remove_nodes'].remove('dimensions')
