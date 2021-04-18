@@ -220,6 +220,45 @@ def plot_single_tags(output, bounds, out_dir):
         fig_tags, out_dir=out_dir, filename='tag_protein_Lactose_Permease.pdf')
 
 
+    ###############
+    # growth rate #
+    ###############
+    agents = add_growth_rate_to_agents(agents)
+    fig_tags = make_tags_figure(
+        agents=agents, bounds=bounds, n_snapshots=1,
+        time_indices=time_indices, snapshot_times=snapshot_times,
+        background_color='white', scale_bar_length=False, show_timeline=False,
+        tagged_molecules=[('boundary', 'growth_rate')])
+    # alter figure and save
+    axes = fig_tags.get_axes()
+    for axis in axes:
+        axis.set_title('')
+        ylabel = axis.get_ylabel()
+        if ylabel:
+            axis.set_ylabel('growth\nrate', fontsize=YLABEL_SIZE)
+    save_fig_to_dir(
+        fig_tags, out_dir=out_dir, filename='tag_growth_rate.pdf')
+
+def add_growth_rate_to_agents(agents):
+    time_vec = list(agents.keys())
+
+    # initial state at 0
+    for agent_id, state in agents[time_vec[0]].items():
+        state['boundary']['growth_rate'] = 0
+
+    for t0, t1 in zip(time_vec[:-1], time_vec[1:]):
+        agents0 = agents[t0]
+        agents1 = agents[t1]
+        for agent_id, state1 in agents1.items():
+            if agent_id in agents0:
+                mass0 = agents0[agent_id]['boundary']['mass']
+                mass1 = state1['boundary']['mass']
+                dm = mass1 - mass0
+                dt = t1 - t0
+                growth_rate = dm/dt
+                state1['boundary']['growth_rate'] = growth_rate
+    return agents
+
 def main():
 
     # parse
