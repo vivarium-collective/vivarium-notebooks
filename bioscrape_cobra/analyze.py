@@ -84,18 +84,7 @@ def access(experiment_id):
     return output, bounds
 
 
-def plot_full(output, bounds, out_dir):
-
-    # plot phylogeny snapshots
-    fig_phylogeny = plot_fields_snapshots(
-        output,
-        bounds=bounds,
-        skip_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
-        colorbar_decimals=1,
-        show_timeline=False,
-        filename='phylogeny_snapshots',
-        out_dir=out_dir,
-    )
+def plot_fields_fig(output, bounds, out_dir):
 
     # plot snapshots fields
     fig_snapshots = plot_fields_snapshots(
@@ -123,6 +112,22 @@ def plot_full(output, bounds, out_dir):
         out_dir=out_dir,
         filename='bioscrape_cobra_stochastic_lattice_snapshots.pdf')
 
+
+def plot_phylogeny_fig(output, bounds, out_dir):
+
+    # plot phylogeny snapshots
+    fig_phylogeny = plot_fields_snapshots(
+        output,
+        bounds=bounds,
+        skip_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
+        phylogeny_colors=True,
+        colorbar_decimals=1,
+        show_timeline=False,
+        filename='phylogeny_snapshots',
+        out_dir=out_dir,
+    )
+
+
 def plot_tags_fig(output, bounds, out_dir):
     # plot tags
     fig_tags = plot_fields_tags(
@@ -142,6 +147,7 @@ def plot_tags_fig(output, bounds, out_dir):
         out_dir=out_dir,
         filename='bioscrape_cobra_stochastic_lattice_tags.pdf')
 
+
 def plot_multigen_fig(output, bounds, out_dir):
     # plot multigen
     multigen_fig = plot_agents_multigen(
@@ -149,6 +155,7 @@ def plot_multigen_fig(output, bounds, out_dir):
         MULTIGEN_PLOT_CONFIG,
         out_dir=out_dir,
         filename='spatial_multigen')
+
 
 def plot_single_tags(output, bounds, out_dir):
 
@@ -220,8 +227,10 @@ def main():
     parser.add_argument('experiment_id', type=str, default=False)
     parser.add_argument('--all', '-1', action='store_true', default=False)
     parser.add_argument('--multigen', '-2', action='store_true', default=False)
-    parser.add_argument('--tags', '-3', action='store_true', default=False)
-    parser.add_argument('--single_tags', '-4', action='store_true', default=False)
+    parser.add_argument('--phylogeny', '-3', action='store_true', default=False)
+    parser.add_argument('--fields', '-4', action='store_true', default=False)
+    parser.add_argument('--tags', '-5', action='store_true', default=False)
+    parser.add_argument('--single_tags', '-6', action='store_true', default=False)
     args = parser.parse_args()
     experiment_id = args.experiment_id
 
@@ -234,8 +243,11 @@ def main():
     output, bounds = access(experiment_id)
 
     # run the plot functions
-    if args.all:
-        plot_full(output, bounds, out_dir)
+    if args.fields or args.all:
+        plot_fields_fig(output, bounds, out_dir)
+
+    if args.phylogeny or args.all:
+        plot_phylogeny_fig(output, bounds, out_dir)
 
     if args.multigen or args.all:
         plot_multigen_fig(output, bounds, out_dir)

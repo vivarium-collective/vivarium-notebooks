@@ -69,6 +69,7 @@ def plot_fields_snapshots(
         include_fields=None,
         n_snapshots=4,
         colorbar_decimals=4,
+        phylogeny_colors=False,
         out_dir=None,
         filename=None,
         **kwargs):
@@ -80,7 +81,7 @@ def plot_fields_snapshots(
         bounds=bounds,
         agents=agents,
         fields=fields,
-        phylogeny_names=False,
+        phylogeny_names=phylogeny_colors,
         n_snapshots=n_snapshots,
         scale_bar_length=5,
         colorbar_decimals=colorbar_decimals,
