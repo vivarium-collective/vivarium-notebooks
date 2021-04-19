@@ -23,6 +23,7 @@ def plot_single(
         'column_width': 4,
         'default_color': 'tab:gray',
         'linewidth': 2.0,
+        'sci_notation': 3,
         'variables': variables}
     variables_plot_config.update(config)
     fig = plot_variables(

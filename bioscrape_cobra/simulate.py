@@ -492,10 +492,6 @@ def simulate_bioscrape_cobra(
             path=('agents', '0'),
             config={'agent_id': '0'})
 
-        # get initial state from the composite and merge declared initial
-        state = biocobra_composite.initial_state()
-        initial_state_full = deep_merge(state, agents_initial)
-
         # make a lattice composite for the environment
         field_concentrations = {
             GLUCOSE_EXTERNAL: initial_glucose,
@@ -517,6 +513,10 @@ def simulate_bioscrape_cobra(
         # merge bioscrapeCOBRA composite with lattice
         biocobra_composite.merge(composite=lattice_composite)
         initial_composite.merge(composite=lattice_composer.generate())
+
+        # get initial state from the composite and merge declared initial
+        state = biocobra_composite.initial_state()
+        initial_state_full = deep_merge(state, agents_initial)
 
     elif division:
         # make n_agents dividing agents, without an explicit environment
@@ -648,7 +648,6 @@ def main():
     parser.add_argument('--deterministic_spatial', '-5', action='store_true', default=False)
     parser.add_argument('--stochastic_spatial', '-6', action='store_true', default=False)
     parser.add_argument('--topology', '-t', action='store_true', default=False)
-    parser.add_argument('--bioscrape-alone', '-b', action='store_true', default=False)
 
     args = parser.parse_args()
 
@@ -828,7 +827,7 @@ def main():
     if args.stochastic_spatial:
         bounds = [30, 30]
         n_bins = [30, 30]
-        depth = 1.0
+        depth = 0.5
 
         initial_agent_states = [
             {'rates': {
@@ -846,8 +845,8 @@ def main():
             initial_glucose=1e1,
             initial_lactose=2e1,
             depth=depth,
-            diffusion_rate=5e0,
-            # diffusion_rate=3e-2,
+            # diffusion_rate=5e0,
+            diffusion_rate=3e-2,
             jitter_force=1e-5,
             bounds=bounds,
             n_bins=n_bins,
@@ -883,45 +882,6 @@ def main():
     if args.topology:
         plot_full_topology(out_dir=out_dir)
 
-    if args.bioscrape_alone:
-        # Simulate the Lac Operon CRN Deterministically
-        bioscrape_timeseries_det, bioscrape_composite_det = simulate_bioscrape(
-            total_time=20000,
-            initial_glucose=10,
-            initial_lactose=20,
-            sbml_file=sbml_deterministic)
-        # Simulate the Lac Operon CRN Stochastically
-        bioscrape_timeseries_sto, bioscrape_composite_sto = simulate_bioscrape(
-            total_time=200,
-            initial_glucose=10*6.22*10**6,
-            initial_lactose=20*6.22*10**6,
-            stochastic=True,
-            sbml_file=sbml_stochastic)
-
-        # Plot the CRN Trajectories
-        species_to_plot = [
-            {'variable': ('species', 'Glucose_external'), 'display': 'Glucose external'},
-            {'variable': ('species', 'Lactose_external'), 'display': 'Lactose external'},
-            {'variable': ('species', 'rna_M'), 'display': 'Lac operon rna'},
-            {'variable': ('species', 'protein_betaGal'), 'display': 'betaGal'},
-            {'variable': ('species', 'protein_Lactose_Permease'), 'display': 'Lactose Permease'}
-        ]
-
-        fig_timeseries = plot_single(
-            bioscrape_timeseries_det,
-            variables=species_to_plot)
-        save_fig_to_dir(
-            fig_timeseries,
-            filename='bioscrape_deterministic_output.pdf',
-            out_dir=out_dir)
-
-        fig_timeseries = plot_single(
-            bioscrape_timeseries_sto,
-            variables=species_to_plot)
-        save_fig_to_dir(
-            fig_timeseries,
-            filename='bioscrape_stochastic_output.pdf',
-            out_dir=out_dir)
 
 def plot_full_topology(out_dir='out'):
 

@@ -36,8 +36,8 @@ MULTIGEN_PLOT_CONFIG = {
         ('species', 'protein_Lactose_Permease'),
         ('species', 'Glucose_external'),
         ('species', 'Lactose_external'),
-        ('flux_bounds', 'EX_glc__D_e'),
-        ('flux_bounds', 'EX_lac__D_e'),
+        # ('flux_bounds', 'EX_glc__D_e'),
+        # ('flux_bounds', 'EX_lac__D_e'),
         ('boundary', 'volume'),
     ],
     'store_order': ('species', 'flux_bounds', 'boundary'),
@@ -58,6 +58,7 @@ MULTIGEN_PLOT_CONFIG = {
     'stack_column': True,
     'tick_label_size': 10,
     'title_size': 10,
+    'sci_notation': 3,
 }
 
 YLABEL_SIZE = 48
@@ -122,7 +123,7 @@ def plot_phylogeny_fig(output, bounds, out_dir):
         skip_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
         phylogeny_colors=True,
         colorbar_decimals=1,
-        show_timeline=False,
+        show_timeline=True,
         filename='phylogeny_snapshots',
         out_dir=out_dir,
     )
@@ -174,15 +175,13 @@ def plot_single_tags(output, bounds, out_dir):
         time_indices=time_indices, snapshot_times=snapshot_times,
         background_color='white', scale_bar_length=False, show_timeline=False, convert_to_concs=False,
         tagged_molecules=[('flux_bounds', 'EX_glc__D_e')])
+
     # alter figure and save
     axes = fig_tags.get_axes()
-    for axis in axes:
-        axis.set_title('')
-        ylabel = axis.get_ylabel()
-        if ylabel:
-            axis.set_ylabel('glucose\nflux', fontsize=YLABEL_SIZE)
-    save_fig_to_dir(
-        fig_tags, out_dir=out_dir, filename='tag_EX_glc__D_e.pdf')
+    axes[0].set_title('glucose flux', fontsize=YLABEL_SIZE, pad=15)
+    axes[0].get_yaxis().set_visible(False)
+    save_fig_to_dir(fig_tags, out_dir=out_dir, filename='tag_EX_glc__D_e.pdf')
+
 
     ############
     # lac flux #
@@ -194,13 +193,10 @@ def plot_single_tags(output, bounds, out_dir):
         tagged_molecules=[('flux_bounds', 'EX_lac__D_e')])
     # alter figure and save
     axes = fig_tags.get_axes()
-    for axis in axes:
-        axis.set_title('')
-        ylabel = axis.get_ylabel()
-        if ylabel:
-            axis.set_ylabel('lactose\nflux', fontsize=YLABEL_SIZE)
-    save_fig_to_dir(
-        fig_tags, out_dir=out_dir, filename='tag_EX_lac__D_e.pdf')
+    axes[0].set_title('lactose flux', fontsize=YLABEL_SIZE, pad=15)
+    axes[0].get_yaxis().set_visible(False)
+    save_fig_to_dir(fig_tags, out_dir=out_dir, filename='tag_EX_lac__D_e.pdf')
+
 
     ################
     # lac Permease #
@@ -212,13 +208,9 @@ def plot_single_tags(output, bounds, out_dir):
         tagged_molecules=[('species', 'protein_Lactose_Permease')])
     # alter figure and save
     axes = fig_tags.get_axes()
-    for axis in axes:
-        axis.set_title('')
-        ylabel = axis.get_ylabel()
-        if ylabel:
-            axis.set_ylabel('internal\nlactose\npermease', fontsize=YLABEL_SIZE)
-    save_fig_to_dir(
-        fig_tags, out_dir=out_dir, filename='tag_protein_Lactose_Permease.pdf')
+    axes[0].set_title('internal lactose permease', fontsize=YLABEL_SIZE, pad=15)
+    axes[0].get_yaxis().set_visible(False)
+    save_fig_to_dir(fig_tags, out_dir=out_dir, filename='tag_protein_Lactose_Permease.pdf')
 
 
     ###############
@@ -232,13 +224,10 @@ def plot_single_tags(output, bounds, out_dir):
         tagged_molecules=[('boundary', 'growth_rate')])
     # alter figure and save
     axes = fig_tags.get_axes()
-    for axis in axes:
-        axis.set_title('')
-        ylabel = axis.get_ylabel()
-        if ylabel:
-            axis.set_ylabel('growth\nrate', fontsize=YLABEL_SIZE)
-    save_fig_to_dir(
-        fig_tags, out_dir=out_dir, filename='tag_growth_rate.pdf')
+    axes[0].set_title('growth rate', fontsize=YLABEL_SIZE, pad=15)
+    axes[0].get_yaxis().set_visible(False)
+    save_fig_to_dir(fig_tags, out_dir=out_dir, filename='tag_growth_rate.pdf')
+
 
 def add_growth_rate_to_agents(agents):
     time_vec = list(agents.keys())
