@@ -22,9 +22,9 @@ from vivarium.core.emitter import (
 from vivarium.plots.simulation_output import save_fig_to_dir
 from vivarium.plots.agents_multigen import plot_agents_multigen
 from vivarium_multibody.plots.snapshots import (
-    format_snapshot_data, plot_snapshots, plot_tags, make_tags_figure)
+    format_snapshot_data, make_tags_figure)
 from bioscrape_cobra.plot import (
-    plot_fields_tags, plot_fields_snapshots, config_embedded_bioscrape_cobra_topology)
+    plot_fields_tags, plot_fields_snapshots)
 from bioscrape_cobra.bioscrape_cobra_stochastic import (
     GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL)
 
@@ -110,7 +110,7 @@ def plot_fields_fig(output, bounds, out_dir):
     save_fig_to_dir(
         fig_snapshots,
         out_dir=out_dir,
-        filename='bioscrape_cobra_stochastic_lattice_snapshots.pdf')
+        filename='field_snapshots.pdf')
 
 
 def plot_phylogeny_fig(output, bounds, out_dir):
@@ -133,6 +133,7 @@ def plot_tags_fig(output, bounds, out_dir):
     fig_tags = plot_fields_tags(
         output,
         bounds=bounds,
+        convert_to_concs=False,
         tagged_molecules=[('species', 'protein_Lactose_Permease',)],
         colorbar_decimals=1)
     # alter figure and save
@@ -145,7 +146,7 @@ def plot_tags_fig(output, bounds, out_dir):
     save_fig_to_dir(
         fig_tags,
         out_dir=out_dir,
-        filename='bioscrape_cobra_stochastic_lattice_tags.pdf')
+        filename='tags_snapshots.pdf')
 
 
 def plot_multigen_fig(output, bounds, out_dir):
@@ -171,7 +172,7 @@ def plot_single_tags(output, bounds, out_dir):
     fig_tags = make_tags_figure(
         agents=agents, bounds=bounds, n_snapshots=1,
         time_indices=time_indices, snapshot_times=snapshot_times,
-        background_color='white', scale_bar_length=False, show_timeline=False,
+        background_color='white', scale_bar_length=False, show_timeline=False, convert_to_concs=False,
         tagged_molecules=[('flux_bounds', 'EX_glc__D_e')])
     # alter figure and save
     axes = fig_tags.get_axes()
@@ -189,7 +190,7 @@ def plot_single_tags(output, bounds, out_dir):
     fig_tags = make_tags_figure(
         agents=agents, bounds=bounds, n_snapshots=1,
         time_indices=time_indices, snapshot_times=snapshot_times,
-        background_color='white', scale_bar_length=False, show_timeline=False,
+        background_color='white', scale_bar_length=False, show_timeline=False, convert_to_concs=False,
         tagged_molecules=[('flux_bounds', 'EX_lac__D_e')])
     # alter figure and save
     axes = fig_tags.get_axes()
@@ -207,7 +208,7 @@ def plot_single_tags(output, bounds, out_dir):
     fig_tags = make_tags_figure(
         agents=agents, bounds=bounds, n_snapshots=1,
         time_indices=time_indices, snapshot_times=snapshot_times,
-        background_color='white', scale_bar_length=False, show_timeline=False,
+        background_color='white', scale_bar_length=False, show_timeline=False, convert_to_concs=False,
         tagged_molecules=[('species', 'protein_Lactose_Permease')])
     # alter figure and save
     axes = fig_tags.get_axes()
@@ -227,7 +228,7 @@ def plot_single_tags(output, bounds, out_dir):
     fig_tags = make_tags_figure(
         agents=agents, bounds=bounds, n_snapshots=1,
         time_indices=time_indices, snapshot_times=snapshot_times,
-        background_color='white', scale_bar_length=False, show_timeline=False,
+        background_color='white', scale_bar_length=False, show_timeline=False, convert_to_concs=False,
         tagged_molecules=[('boundary', 'growth_rate')])
     # alter figure and save
     axes = fig_tags.get_axes()
@@ -264,14 +265,15 @@ def main():
     # parse
     parser = argparse.ArgumentParser(description='access data from db')
     parser.add_argument('experiment_id', type=str, default=False)
-    parser.add_argument('--all', '-1', action='store_true', default=False)
-    parser.add_argument('--multigen', '-2', action='store_true', default=False)
-    parser.add_argument('--phylogeny', '-3', action='store_true', default=False)
-    parser.add_argument('--fields', '-4', action='store_true', default=False)
-    parser.add_argument('--tags', '-5', action='store_true', default=False)
-    parser.add_argument('--single_tags', '-6', action='store_true', default=False)
+    parser.add_argument('--multigen', '-1', action='store_true', default=False)
+    parser.add_argument('--phylogeny', '-2', action='store_true', default=False)
+    parser.add_argument('--fields', '-3', action='store_true', default=False)
+    parser.add_argument('--tags', '-4', action='store_true', default=False)
+    parser.add_argument('--single_tags', '-5', action='store_true', default=False)
+    parser.add_argument('--all', '-a', action='store_true', default=False)
     args = parser.parse_args()
     experiment_id = args.experiment_id
+
 
     # make a directory for the figures
     out_dir = f'out/analyze/{experiment_id}'
@@ -280,16 +282,17 @@ def main():
 
     # retrieve the data
     output, bounds = access(experiment_id)
+    del output[0.0]
 
     # run the plot functions
-    if args.fields or args.all:
-        plot_fields_fig(output, bounds, out_dir)
+    if args.multigen or args.all:
+        plot_multigen_fig(output, bounds, out_dir)
 
     if args.phylogeny or args.all:
         plot_phylogeny_fig(output, bounds, out_dir)
 
-    if args.multigen or args.all:
-        plot_multigen_fig(output, bounds, out_dir)
+    if args.fields or args.all:
+        plot_fields_fig(output, bounds, out_dir)
 
     if args.tags or args.all:
         plot_tags_fig(output, bounds, out_dir)

@@ -73,6 +73,7 @@ from bioscrape_cobra.bioscrape_cobra_deterministic import BioscrapeCOBRAdetermin
 
 # plotting
 from vivarium.plots.topology import plot_topology
+from vivarium.plots.simulation_output import save_fig_to_dir
 from bioscrape_cobra.plot import (
     plot_multigen, plot_single, plot_fields_tags, plot_fields_snapshots, config_embedded_bioscrape_cobra_topology)
 
@@ -146,20 +147,21 @@ def simulate_bioscrape(
         initial_lactose=None,
         initial_state=None,
         total_time=100,
-        initial_volume=1.0
+        initial_volume=1.0,
+        sbml_file=None,
     ):
     
     #create configs
     if not stochastic:
         bioscrape_config = {
-            'sbml_file': 'LacOperon_deterministic.xml',
+            'sbml_file': sbml_file or 'LacOperon_deterministic.xml',
             'stochastic': False,
             'initial_volume': initial_volume,
             'internal_dt': BIOSCRAPE_TIMESTEP/100,
             'time_step': BIOSCRAPE_TIMESTEP}
     else:
         bioscrape_config = {
-            'sbml_file': 'LacOperon_stochastic.xml',
+            'sbml_file': sbml_file or 'LacOperon_stochastic.xml',
             'stochastic': True,
             'safe_mode': False,
             'initial_volume': initial_volume,
@@ -505,7 +507,8 @@ def simulate_bioscrape_cobra(
             concentrations=field_concentrations,
             diffusion=diffusion_rate,
             jitter_force=jitter_force,
-            time_step=min(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP))
+            time_step=min(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP), #/2
+        )
         lattice_config['multibody']['_parallel'] = parallel
 
         lattice_composer = Lattice(lattice_config)
@@ -645,6 +648,8 @@ def main():
     parser.add_argument('--deterministic_spatial', '-5', action='store_true', default=False)
     parser.add_argument('--stochastic_spatial', '-6', action='store_true', default=False)
     parser.add_argument('--topology', '-t', action='store_true', default=False)
+    parser.add_argument('--bioscrape-alone', '-b', action='store_true', default=False)
+
     args = parser.parse_args()
 
     # emitter type
@@ -823,12 +828,12 @@ def main():
     if args.stochastic_spatial:
         bounds = [30, 30]
         n_bins = [30, 30]
-        depth = 0.5
+        depth = 1.0
 
         initial_agent_states = [
             {'rates': {
-                'LacPermease_vmax': 358.0,  # 35.8
-                'k_leak': 0.1
+                'LacPermease_vmax': 3580.0,  # 35.8
+                'k_leak': 0.01  # less leak -> less spontanteous expression
             },
             }
         ]
@@ -841,12 +846,13 @@ def main():
             initial_glucose=1e1,
             initial_lactose=2e1,
             depth=depth,
-            diffusion_rate=3e-2,
+            diffusion_rate=5e0,
+            # diffusion_rate=3e-2,
             jitter_force=1e-5,
             bounds=bounds,
             n_bins=n_bins,
             halt_threshold=200,
-            total_time=25200,  # 7 hrs = 25200 sec
+            total_time=36000,  # 7 hrs = 25200 sec
             emitter=emitter,
             sbml_file=sbml_stochastic,
             parallel=parallel,
@@ -876,6 +882,46 @@ def main():
 
     if args.topology:
         plot_full_topology(out_dir=out_dir)
+
+    if args.bioscrape_alone:
+        # Simulate the Lac Operon CRN Deterministically
+        bioscrape_timeseries_det, bioscrape_composite_det = simulate_bioscrape(
+            total_time=20000,
+            initial_glucose=10,
+            initial_lactose=20,
+            sbml_file=sbml_deterministic)
+        # Simulate the Lac Operon CRN Stochastically
+        bioscrape_timeseries_sto, bioscrape_composite_sto = simulate_bioscrape(
+            total_time=200,
+            initial_glucose=10*6.22*10**6,
+            initial_lactose=20*6.22*10**6,
+            stochastic=True,
+            sbml_file=sbml_stochastic)
+
+        # Plot the CRN Trajectories
+        species_to_plot = [
+            {'variable': ('species', 'Glucose_external'), 'display': 'Glucose external'},
+            {'variable': ('species', 'Lactose_external'), 'display': 'Lactose external'},
+            {'variable': ('species', 'rna_M'), 'display': 'Lac operon rna'},
+            {'variable': ('species', 'protein_betaGal'), 'display': 'betaGal'},
+            {'variable': ('species', 'protein_Lactose_Permease'), 'display': 'Lactose Permease'}
+        ]
+
+        fig_timeseries = plot_single(
+            bioscrape_timeseries_det,
+            variables=species_to_plot)
+        save_fig_to_dir(
+            fig_timeseries,
+            filename='bioscrape_deterministic_output.pdf',
+            out_dir=out_dir)
+
+        fig_timeseries = plot_single(
+            bioscrape_timeseries_sto,
+            variables=species_to_plot)
+        save_fig_to_dir(
+            fig_timeseries,
+            filename='bioscrape_stochastic_output.pdf',
+            out_dir=out_dir)
 
 def plot_full_topology(out_dir='out'):
 
