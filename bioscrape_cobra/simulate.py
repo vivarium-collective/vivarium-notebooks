@@ -831,7 +831,7 @@ def main():
 
         initial_agent_states = [
             {'rates': {
-                'LacPermease_vmax': 3580.0,  # 35.8
+                'LacPermease_vmax': 1000.0,  # 35.8
                 'k_leak': 0.01  # less leak -> less spontanteous expression
             },
             }
@@ -843,15 +843,15 @@ def main():
             division=True,
             spatial=True,
             initial_glucose=1e1,
-            initial_lactose=2e1,
+            initial_lactose=1e2,
             depth=depth,
             # diffusion_rate=5e0,
-            diffusion_rate=3e-2,
+            diffusion_rate=2e-2,
             jitter_force=1e-5,
             bounds=bounds,
             n_bins=n_bins,
             halt_threshold=200,
-            total_time=36000,  # 7 hrs = 25200 sec
+            total_time=50400,  # 7 hrs = 25200 sec
             emitter=emitter,
             sbml_file=sbml_stochastic,
             parallel=parallel,

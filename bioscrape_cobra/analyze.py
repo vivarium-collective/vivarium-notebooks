@@ -11,6 +11,7 @@ and run the commands:
 
 import os
 import argparse
+import copy
 
 import matplotlib.pyplot as plt
 
@@ -22,7 +23,7 @@ from vivarium.core.emitter import (
 from vivarium.plots.simulation_output import save_fig_to_dir
 from vivarium.plots.agents_multigen import plot_agents_multigen
 from vivarium_multibody.plots.snapshots import (
-    format_snapshot_data, make_tags_figure)
+    format_snapshot_data, make_tags_figure, get_agent_colors)
 from bioscrape_cobra.plot import (
     plot_fields_tags, plot_fields_snapshots)
 from bioscrape_cobra.bioscrape_cobra_stochastic import (
@@ -42,9 +43,9 @@ MULTIGEN_PLOT_CONFIG = {
     ],
     'store_order': ('species', 'flux_bounds', 'boundary'),
     'titles_map': {
-        ('species', 'rna_M'): 'rna M',
-        ('species', 'protein_betaGal'): r'$\beta$-Galactosidase',
-        ('species', 'protein_Lactose_Permease'): 'Lactose Permease',
+        ('species', 'rna_M'): 'lac operon RNA',
+        ('species', 'protein_betaGal'): r'$\beta$-galactosidase',
+        ('species', 'protein_Lactose_Permease'): 'lactose permease',
         ('species', 'Glucose_external'): 'external glucose',
         ('species', 'Lactose_external'): 'external lactose',
         ('flux_bounds', 'EX_glc__D_e'): 'glucose flux bound',
@@ -86,15 +87,21 @@ def access(experiment_id):
 
 
 def plot_fields_fig(output, bounds, out_dir):
+    new_output = copy.deepcopy(output)
+    seconds_list = list(new_output.keys())
+    for seconds in seconds_list:
+        hours = round(seconds/60/60, 2)
+        new_output[hours] = new_output.pop(seconds)
 
     # plot snapshots fields
     fig_snapshots = plot_fields_snapshots(
-        output,
+        new_output,
         bounds=bounds,
         include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
         colorbar_decimals=1,
         agent_fill_color='k',
-        show_timeline=False,
+        show_timeline=True,
+        time_unit='hr',
     )
     # alter figure and save
     ylabel_size = 48
@@ -114,17 +121,18 @@ def plot_fields_fig(output, bounds, out_dir):
         filename='field_snapshots.pdf')
 
 
-def plot_phylogeny_fig(output, bounds, out_dir):
+def plot_phylogeny_fig(output, bounds, agent_colors=None, out_dir='out'):
 
     # plot phylogeny snapshots
     fig_phylogeny = plot_fields_snapshots(
         output,
         bounds=bounds,
         skip_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
-        phylogeny_colors=True,
+        agent_colors=agent_colors,
+        # phylogeny_colors=True,
         colorbar_decimals=1,
-        show_timeline=True,
-        filename='phylogeny_snapshots',
+        show_timeline=False,
+        filename='phylogeny_snapshots.pdf',
         out_dir=out_dir,
     )
 
@@ -150,19 +158,20 @@ def plot_tags_fig(output, bounds, out_dir):
         filename='tags_snapshots.pdf')
 
 
-def plot_multigen_fig(output, bounds, out_dir):
+def plot_multigen_fig(output, bounds, agent_colors=None, out_dir='out'):
+    plot_config = copy.deepcopy(MULTIGEN_PLOT_CONFIG)
+    plot_config['agent_colors'] = agent_colors
     # plot multigen
     multigen_fig = plot_agents_multigen(
         output,
-        MULTIGEN_PLOT_CONFIG,
+        plot_config,
         out_dir=out_dir,
-        filename='spatial_multigen')
+        filename='spatial_multigen.pdf')
 
 
-def plot_single_tags(output, bounds, out_dir):
+def plot_single_tags(agents, bounds, out_dir):
 
     # make individual tag plots
-    agents, fields = format_snapshot_data(output)
     time_vec = list(agents.keys())
     snapshot_times = [time_vec[-1]]
     time_indices = [time_vec.index(time) for time in snapshot_times]
@@ -255,10 +264,9 @@ def main():
     parser = argparse.ArgumentParser(description='access data from db')
     parser.add_argument('experiment_id', type=str, default=False)
     parser.add_argument('--multigen', '-1', action='store_true', default=False)
-    parser.add_argument('--phylogeny', '-2', action='store_true', default=False)
-    parser.add_argument('--fields', '-3', action='store_true', default=False)
-    parser.add_argument('--tags', '-4', action='store_true', default=False)
-    parser.add_argument('--single_tags', '-5', action='store_true', default=False)
+    parser.add_argument('--fields', '-2', action='store_true', default=False)
+    parser.add_argument('--tags', '-3', action='store_true', default=False)
+    parser.add_argument('--single_tags', '-4', action='store_true', default=False)
     parser.add_argument('--all', '-a', action='store_true', default=False)
     args = parser.parse_args()
     experiment_id = args.experiment_id
@@ -273,12 +281,13 @@ def main():
     output, bounds = access(experiment_id)
     del output[0.0]
 
+    agents, fields = format_snapshot_data(output)
+
     # run the plot functions
     if args.multigen or args.all:
-        plot_multigen_fig(output, bounds, out_dir)
-
-    if args.phylogeny or args.all:
-        plot_phylogeny_fig(output, bounds, out_dir)
+        agent_colors = get_agent_colors(agents)
+        plot_phylogeny_fig(output, bounds, agent_colors, out_dir)
+        plot_multigen_fig(output, bounds, agent_colors, out_dir)
 
     if args.fields or args.all:
         plot_fields_fig(output, bounds, out_dir)
@@ -287,7 +296,7 @@ def main():
         plot_tags_fig(output, bounds, out_dir)
 
     if args.single_tags or args.all:
-        plot_single_tags(output, bounds, out_dir)
+        plot_single_tags(agents, bounds, out_dir)
 
 if __name__ == '__main__':
     main()
