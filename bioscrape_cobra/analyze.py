@@ -2,6 +2,8 @@
 Analyze an experiment saved on the database emitter (mongoDB) by running:
     `python bioscrape_cobra/analyze.py experiment_id`
 
+These functions were specifically built to generate Figure 9, which is a stochastic, spatial simulation
+
 To access the saved experiments on the mongoDB database, install vivarium scripts with:
     `pip install vivarium-scripts`
 and run the commands:
@@ -13,14 +15,11 @@ import os
 import argparse
 import copy
 
-import matplotlib.pyplot as plt
-
 from vivarium.core.emitter import (
     data_from_database,
     DatabaseEmitter,
-    remove_units, deserialize_value
-)
-from vivarium.plots.simulation_output import save_fig_to_dir
+    remove_units, deserialize_value)
+from vivarium.plots.simulation_output import save_fig_to_dir, set_axes
 from vivarium.plots.agents_multigen import plot_agents_multigen
 from vivarium_multibody.plots.snapshots import (
     format_snapshot_data, make_tags_figure, get_agent_colors)
@@ -40,6 +39,7 @@ MULTIGEN_PLOT_CONFIG = {
         # ('flux_bounds', 'EX_glc__D_e'),
         # ('flux_bounds', 'EX_lac__D_e'),
         ('boundary', 'volume'),
+        ('boundary', 'mass'),
     ],
     'store_order': ('species', 'flux_bounds', 'boundary'),
     'titles_map': {
@@ -48,12 +48,12 @@ MULTIGEN_PLOT_CONFIG = {
         ('species', 'protein_Lactose_Permease'): 'lactose permease',
         ('species', 'Glucose_external'): 'external glucose',
         ('species', 'Lactose_external'): 'external lactose',
-        ('flux_bounds', 'EX_glc__D_e'): 'glucose flux bound',
-        ('flux_bounds', 'EX_lac__D_e'): 'lactose flux bound',
-        ('boundary', 'volume'): 'volume',
+        ('flux_bounds', 'EX_glc__D_e'): 'glucose flux bound (mmol/L/s)',
+        ('flux_bounds', 'EX_lac__D_e'): 'lactose flux bound (mmol/L/s)',
+        ('boundary', 'volume'): 'volume (fL)',
     },
     'remove_zeros': False,
-    'column_width': 4,
+    'column_width': 5,
     'row_height': 1.5,
     'title_on_y_axis': False,
     'stack_column': True,
@@ -101,20 +101,20 @@ def plot_fields_fig(output, bounds, out_dir):
         colorbar_decimals=1,
         agent_fill_color='k',
         show_timeline=True,
-        time_unit='hr',
-    )
-    # alter figure and save
-    ylabel_size = 48
+        time_unit='hr')
+
+    # alter figure labels and save
     axes = fig_snapshots.get_axes()
     for axis in axes:
         axis.set_title('')
         ylabel = axis.get_ylabel()
         if ylabel == 'Glucose_external':
-            axis.set_ylabel('external\nglucose', fontsize=YLABEL_SIZE)
+            axis.set_ylabel('')
+            axis.set_title('external glucose field', fontsize=YLABEL_SIZE, pad=15, x=2.3)
         if ylabel == 'Lactose_external':
-            axis.set_ylabel('external\nlactose', fontsize=YLABEL_SIZE)
-    size = fig_snapshots.get_size_inches()
-    # fig_snapshots.set_size_inches(size[0], size[1]/2, forward=True)
+            axis.set_ylabel('')
+            axis.set_title('external lactose field', fontsize=YLABEL_SIZE, pad=15, x=2.3)
+
     save_fig_to_dir(
         fig_snapshots,
         out_dir=out_dir,
@@ -129,12 +129,10 @@ def plot_phylogeny_fig(output, bounds, agent_colors=None, out_dir='out'):
         bounds=bounds,
         skip_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
         agent_colors=agent_colors,
-        # phylogeny_colors=True,
         colorbar_decimals=1,
         show_timeline=False,
         filename='phylogeny_snapshots.pdf',
-        out_dir=out_dir,
-    )
+        out_dir=out_dir)
 
 
 def plot_tags_fig(output, bounds, out_dir):
@@ -158,15 +156,37 @@ def plot_tags_fig(output, bounds, out_dir):
         filename='tags_snapshots.pdf')
 
 
-def plot_multigen_fig(output, bounds, agent_colors=None, out_dir='out'):
+def plot_multigen_fig(output, agent_colors=None, out_dir='out'):
     plot_config = copy.deepcopy(MULTIGEN_PLOT_CONFIG)
     plot_config['agent_colors'] = agent_colors
+
     # plot multigen
-    multigen_fig = plot_agents_multigen(
-        output,
-        plot_config,
-        out_dir=out_dir,
-        filename='spatial_multigen.pdf')
+    multigen_fig = plot_agents_multigen(output, plot_config)
+
+    # add colony mass to multigen_fig
+    colony_mass, time_vec = get_colony_mass(output)
+
+    # convert to hours
+    time_vec = [time/3600 for time in time_vec]
+
+    # get mass axis to replace with colony mass
+    allaxes = multigen_fig.get_axes()
+    ax = None
+    for axis in allaxes:
+        if axis.get_title() == 'boundary \nmass':
+            ax = axis
+
+    # replace with colony mass
+    ax.clear()
+    set_axes(ax, True, sci_notation=MULTIGEN_PLOT_CONFIG['sci_notation'])
+    ax.plot(time_vec, colony_mass, linewidth=3.0, color='darkslategray')
+    ax.set_xlim([time_vec[0], time_vec[-1]])
+    ax.set_title('total colony mass (fg)', rotation=0, fontsize=MULTIGEN_PLOT_CONFIG['title_size'])
+    ax.set_xlabel('time (hr)')
+    ax.spines['bottom'].set_position(('axes', -0.2))
+
+    # save
+    save_fig_to_dir(multigen_fig, 'spatial_multigen.pdf', out_dir)
 
 
 def plot_single_tags(agents, bounds, out_dir):
@@ -187,7 +207,7 @@ def plot_single_tags(agents, bounds, out_dir):
 
     # alter figure and save
     axes = fig_tags.get_axes()
-    axes[0].set_title('glucose flux', fontsize=YLABEL_SIZE, pad=15)
+    axes[0].set_title('glucose flux\n(mmol/L/s)', fontsize=YLABEL_SIZE, pad=15)
     axes[0].get_yaxis().set_visible(False)
     save_fig_to_dir(fig_tags, out_dir=out_dir, filename='tag_EX_glc__D_e.pdf')
 
@@ -202,7 +222,7 @@ def plot_single_tags(agents, bounds, out_dir):
         tagged_molecules=[('flux_bounds', 'EX_lac__D_e')])
     # alter figure and save
     axes = fig_tags.get_axes()
-    axes[0].set_title('lactose flux', fontsize=YLABEL_SIZE, pad=15)
+    axes[0].set_title('lactose flux\n(mmol/L/s)', fontsize=YLABEL_SIZE, pad=15)
     axes[0].get_yaxis().set_visible(False)
     save_fig_to_dir(fig_tags, out_dir=out_dir, filename='tag_EX_lac__D_e.pdf')
 
@@ -217,7 +237,7 @@ def plot_single_tags(agents, bounds, out_dir):
         tagged_molecules=[('species', 'protein_Lactose_Permease')])
     # alter figure and save
     axes = fig_tags.get_axes()
-    axes[0].set_title('internal lactose permease', fontsize=YLABEL_SIZE, pad=15)
+    axes[0].set_title('lactose permease\n(counts)', fontsize=YLABEL_SIZE, pad=15)
     axes[0].get_yaxis().set_visible(False)
     save_fig_to_dir(fig_tags, out_dir=out_dir, filename='tag_protein_Lactose_Permease.pdf')
 
@@ -233,7 +253,7 @@ def plot_single_tags(agents, bounds, out_dir):
         tagged_molecules=[('boundary', 'growth_rate')])
     # alter figure and save
     axes = fig_tags.get_axes()
-    axes[0].set_title('growth rate', fontsize=YLABEL_SIZE, pad=15)
+    axes[0].set_title('growth rate\n(fg/s)', fontsize=YLABEL_SIZE, pad=15)
     axes[0].get_yaxis().set_visible(False)
     save_fig_to_dir(fig_tags, out_dir=out_dir, filename='tag_growth_rate.pdf')
 
@@ -257,6 +277,18 @@ def add_growth_rate_to_agents(agents):
                 growth_rate = dm/dt
                 state1['boundary']['growth_rate'] = growth_rate
     return agents
+
+
+def get_colony_mass(output):
+    colony_mass = []
+    time_vec = list(output.keys())
+    for time, state in output.items():
+        mass = 0.0
+        for agent_id, agent_state in state['agents'].items():
+            mass += agent_state['boundary']['mass']
+        colony_mass.append(mass)
+    return colony_mass, time_vec
+
 
 def main():
 
@@ -287,7 +319,7 @@ def main():
     if args.multigen or args.all:
         agent_colors = get_agent_colors(agents)
         plot_phylogeny_fig(output, bounds, agent_colors, out_dir)
-        plot_multigen_fig(output, bounds, agent_colors, out_dir)
+        plot_multigen_fig(output, agent_colors, out_dir)
 
     if args.fields or args.all:
         plot_fields_fig(output, bounds, out_dir)

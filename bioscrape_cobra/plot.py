@@ -70,6 +70,7 @@ def plot_fields_snapshots(
         include_fields=None,
         n_snapshots=4,
         colorbar_decimals=4,
+        scale_bar_length=5,
         phylogeny_colors=False,
         out_dir=None,
         filename=None,
@@ -77,14 +78,13 @@ def plot_fields_snapshots(
 
     agents, fields = format_snapshot_data(output)
 
-
     fig1 = plot_snapshots(
         bounds=bounds,
         agents=agents,
         fields=fields,
         phylogeny_names=phylogeny_colors,
         n_snapshots=n_snapshots,
-        scale_bar_length=5,
+        scale_bar_length=scale_bar_length,
         colorbar_decimals=colorbar_decimals,
         include_fields=include_fields,
         out_dir=out_dir,
