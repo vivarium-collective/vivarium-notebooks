@@ -831,10 +831,9 @@ def main():
 
         initial_agent_states = [
             {'rates': {
-                'LacPermease_vmax': 1000.0,  # 35.8
-                'k_leak': 0.01  # less leak -> less spontanteous expression
-            },
-            }
+                # 'LacPermease_vmax': 1000.0,
+                'k_leak': 0.005  # less leak -> less spontanteous expression
+            }}
         ]
 
         output, comp0 = simulate_bioscrape_cobra(
@@ -843,7 +842,7 @@ def main():
             division=True,
             spatial=True,
             initial_glucose=1e1,
-            initial_lactose=1e2,
+            initial_lactose=5e1,
             depth=depth,
             # diffusion_rate=5e0,
             diffusion_rate=2e-2,

@@ -1,6 +1,6 @@
 """
 Analyze an experiment saved on the database emitter (mongoDB) by running:
-    `python bioscrape_cobra/analyze.py experiment_id`
+    `python bioscrape_cobra/generate_figure.py experiment_id -a`
 
 These functions were specifically built to generate Figure 9, which is a stochastic, spatial simulation
 
@@ -43,13 +43,13 @@ MULTIGEN_PLOT_CONFIG = {
     ],
     'store_order': ('species', 'flux_bounds', 'boundary'),
     'titles_map': {
-        ('species', 'rna_M'): 'lac operon RNA',
-        ('species', 'protein_betaGal'): r'$\beta$-galactosidase',
-        ('species', 'protein_Lactose_Permease'): 'lactose permease',
-        ('species', 'Glucose_external'): 'external glucose',
-        ('species', 'Lactose_external'): 'external lactose',
-        ('flux_bounds', 'EX_glc__D_e'): 'glucose flux bound (mmol/L/s)',
-        ('flux_bounds', 'EX_lac__D_e'): 'lactose flux bound (mmol/L/s)',
+        ('species', 'rna_M'): 'lac operon RNA (counts)',
+        ('species', 'protein_betaGal'): r'$\beta$-galactosidase (counts)',
+        ('species', 'protein_Lactose_Permease'): 'lactose permease (counts)',
+        ('species', 'Glucose_external'): 'local external glucose (counts)',
+        ('species', 'Lactose_external'): 'local external lactose (counts)',
+        # ('flux_bounds', 'EX_glc__D_e'): 'glucose flux bound (mmol/L/s)',
+        # ('flux_bounds', 'EX_lac__D_e'): 'lactose flux bound (mmol/L/s)',
         ('boundary', 'volume'): 'volume (fL)',
     },
     'remove_zeros': False,
@@ -60,6 +60,7 @@ MULTIGEN_PLOT_CONFIG = {
     'tick_label_size': 10,
     'title_size': 10,
     'sci_notation': 3,
+    'linewidth': 2,
 }
 
 YLABEL_SIZE = 48
@@ -110,10 +111,10 @@ def plot_fields_fig(output, bounds, out_dir):
         ylabel = axis.get_ylabel()
         if ylabel == 'Glucose_external':
             axis.set_ylabel('')
-            axis.set_title('external glucose field', fontsize=YLABEL_SIZE, pad=15, x=2.3)
+            axis.set_title('external glucose concentrations (mmol)', fontsize=YLABEL_SIZE, pad=15, x=2.3)
         if ylabel == 'Lactose_external':
             axis.set_ylabel('')
-            axis.set_title('external lactose field', fontsize=YLABEL_SIZE, pad=15, x=2.3)
+            axis.set_title('external lactose concentrations (mmol)', fontsize=YLABEL_SIZE, pad=15, x=2.3)
 
     save_fig_to_dir(
         fig_snapshots,
@@ -179,9 +180,13 @@ def plot_multigen_fig(output, agent_colors=None, out_dir='out'):
     # replace with colony mass
     ax.clear()
     set_axes(ax, True, sci_notation=MULTIGEN_PLOT_CONFIG['sci_notation'])
-    ax.plot(time_vec, colony_mass, linewidth=3.0, color='darkslategray')
+    ax.plot(time_vec, colony_mass,
+            linewidth=MULTIGEN_PLOT_CONFIG['linewidth'],
+            color='darkslategray')
     ax.set_xlim([time_vec[0], time_vec[-1]])
-    ax.set_title('total colony mass (fg)', rotation=0, fontsize=MULTIGEN_PLOT_CONFIG['title_size'])
+    ax.set_title('total colony mass (fg)',
+                 rotation=0,
+                 fontsize=MULTIGEN_PLOT_CONFIG['title_size'])
     ax.set_xlabel('time (hr)')
     ax.spines['bottom'].set_position(('axes', -0.2))
 
@@ -232,7 +237,7 @@ def plot_single_tags(agents, bounds, out_dir):
     ################
     fig_tags = make_tags_figure(
         agents=agents, bounds=bounds, n_snapshots=1,
-        time_indices=time_indices, snapshot_times=snapshot_times,
+        time_indices=time_indices, snapshot_times=snapshot_times, colorbar_decimals=0,
         background_color='white', scale_bar_length=False, show_timeline=False, convert_to_concs=False,
         tagged_molecules=[('species', 'protein_Lactose_Permease')])
     # alter figure and save
@@ -312,6 +317,9 @@ def main():
     # retrieve the data
     output, bounds = access(experiment_id)
     del output[0.0]
+    for t in list(output.keys()):
+        if t > 43200: # cutoff at 12 hours
+            del output[t]
 
     agents, fields = format_snapshot_data(output)
 
