@@ -681,7 +681,6 @@ def main():
 
         initial_agent_state = {
             'rates': {
-                # 'LacPermease_vmax': 35.8,   # 35.8
                 'k_leak': 0.6,
             },
             'species': {
@@ -784,7 +783,6 @@ def main():
 
         initial_agent_states = [
             {'rates': {
-                'LacPermease_vmax': 3580.0,  # 35.8
                 'k_leak': 0.5,
             }}
         ]
@@ -798,7 +796,7 @@ def main():
             bounds=bounds,
             n_bins=n_bins,
             depth=depth,
-            total_time=7200,  # 7 hrs = 25200 sec
+            total_time=7200,
             emitter=emitter,
             sbml_file=sbml_deterministic,
             output_type='unitless')
@@ -844,13 +842,12 @@ def main():
             initial_glucose=1e1,
             initial_lactose=5e1,
             depth=depth,
-            # diffusion_rate=5e0,
             diffusion_rate=2e-2,
             jitter_force=1e-5,
             bounds=bounds,
             n_bins=n_bins,
             halt_threshold=200,
-            total_time=50400,  # 7 hrs = 25200 sec
+            total_time=50400,
             emitter=emitter,
             sbml_file=sbml_stochastic,
             parallel=parallel,
@@ -885,14 +882,14 @@ def main():
 def plot_full_topology(out_dir='out'):
 
     dirname = os.path.dirname(__file__)
-    # sbml_deterministic = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
-    sbml_stochastic = os.path.join(dirname, SBML_FILE_STOCHASTIC)
+    # sbml_file = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
+    sbml_file = os.path.join(dirname, SBML_FILE_STOCHASTIC)
     output, composite = simulate_bioscrape_cobra(
         stochastic=True,
         division=True,
         spatial=True,
         total_time=0,
-        sbml_file=sbml_stochastic,
+        sbml_file=sbml_file,
         output_type='unitless')
 
     plot_topology(
@@ -902,10 +899,6 @@ def plot_full_topology(out_dir='out'):
         filename='bioscrape_cobra_stochastic_lattice_topology.pdf')
 
 if __name__ == '__main__':
-    # dirname = os.path.dirname(__file__)
-    # sbml_deterministic = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
-    # sbml_stochastic = os.path.join(dirname, SBML_FILE_STOCHASTIC)
-
     main()
 
 
