@@ -648,6 +648,7 @@ def main():
     parser.add_argument('--deterministic_spatial', '-5', action='store_true', default=False)
     parser.add_argument('--stochastic_spatial', '-6', action='store_true', default=False)
     parser.add_argument('--topology', '-t', action='store_true', default=False)
+    parser.add_argument('--bioscrape-alone', '-b', action='store_true', default=False)
 
     args = parser.parse_args()
 
@@ -878,6 +879,52 @@ def main():
     if args.topology:
         plot_full_topology(out_dir=out_dir)
 
+    if args.bioscrape_alone:
+        # Simulate the Lac Operon CRN Deterministically
+        bioscrape_timeseries_det, bioscrape_composite_det = simulate_bioscrape(
+            total_time=20000,
+            initial_glucose=10,
+            initial_lactose=20,
+            sbml_file=sbml_deterministic)
+        # Simulate the Lac Operon CRN Stochastically
+        bioscrape_timeseries_stoch, bioscrape_composite_stoch = simulate_bioscrape(
+            total_time=20000,
+            initial_glucose=10*6.22*10**6,
+            initial_lactose=20*6.22*10**6,
+            stochastic=True,
+            sbml_file=sbml_stochastic)
+
+        # Plot the CRN Trajectories
+        species_to_plot_det = [
+            {'variable': ('species', 'Glucose_external'), 'display': 'external glucose (mM)'},
+            {'variable': ('species', 'Lactose_external'), 'display': 'external lactose (mM)'},
+            {'variable': ('species', 'rna_M'), 'display': 'lac operon RNA (mM)'},
+            {'variable': ('species', 'protein_betaGal'), 'display': r'$\beta$-galactosidase (mM)'},
+            {'variable': ('species', 'protein_Lactose_Permease'), 'display': 'lactose permease (mM)'}
+        ]
+        species_to_plot_stoch = [
+            {'variable': ('species', 'Glucose_external'), 'display': 'external glucose  (counts)'},
+            {'variable': ('species', 'Lactose_external'), 'display': 'external lactose (counts)'},
+            {'variable': ('species', 'rna_M'), 'display': 'lac operon RNA (counts)'},
+            {'variable': ('species', 'protein_betaGal'), 'display': r'$\beta$-galactosidase (counts)'},
+            {'variable': ('species', 'protein_Lactose_Permease'), 'display': 'lactose permease (counts)'}
+        ]
+
+        fig_timeseries = plot_single(
+            bioscrape_timeseries_det,
+            variables=species_to_plot_det)
+        save_fig_to_dir(
+            fig_timeseries,
+            filename='bioscrape_deterministic_output.pdf',
+            out_dir=out_dir)
+
+        fig_timeseries = plot_single(
+            bioscrape_timeseries_stoch,
+            variables=species_to_plot_stoch)
+        save_fig_to_dir(
+            fig_timeseries,
+            filename='bioscrape_stochastic_output.pdf',
+            out_dir=out_dir)
 
 def plot_full_topology(out_dir='out'):
 

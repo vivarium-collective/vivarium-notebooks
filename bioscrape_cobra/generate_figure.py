@@ -107,6 +107,7 @@ def plot_fields_fig(
         bounds=bounds,
         include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
         colorbar_decimals=1,
+        scale_bar_color='white',
         agent_fill_color='k',
         show_timeline=True,
         time_unit='hr')
