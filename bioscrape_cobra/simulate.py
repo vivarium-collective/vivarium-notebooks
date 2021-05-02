@@ -462,16 +462,17 @@ def simulate_bioscrape_cobra(
     # get the BioscrapeCOBRA composer -- either stochastic or deterministic
     if stochastic:
         biocobra_composer = BioscrapeCOBRAstochastic(biocobra_config)
-
     else:
         biocobra_composer = BioscrapeCOBRAdeterministic(biocobra_config)
 
-    # make the composite
+    # initialize the composite
+    biocobra_composite = Composite({
+        'processes': {},
+        'topology': {}})
+
     if spatial:
         # make n_agents dividing agents and combine them with a Lattice environment
 
-        # make a bioscrapeCOBRA composite
-        biocobra_composite = Composite({})
         agents_initial = {'agents': {}}
         for n in range(n_agents):
             agent_id = str(n)
@@ -506,12 +507,10 @@ def simulate_bioscrape_cobra(
             time_step=min(COBRA_TIMESTEP, BIOSCRAPE_TIMESTEP), #/2
         )
         lattice_config['multibody']['_parallel'] = parallel
-
         lattice_composer = Lattice(lattice_config)
-        lattice_composite = lattice_composer.generate()
 
         # merge bioscrapeCOBRA composite with lattice
-        biocobra_composite.merge(composite=lattice_composite)
+        biocobra_composite.merge(composite=lattice_composer.generate())
         initial_composite.merge(composite=lattice_composer.generate())
 
         # get initial state from the composite and merge declared initial
@@ -523,7 +522,6 @@ def simulate_bioscrape_cobra(
 
         # division requires the agent to be embedded in a hierarchy
         # make the bioscrapeCOBRA composite under the path ('agents', agent_id)
-        biocobra_composite = Composite({})
         agents_initial = {'agents': {}}
         for n in range(n_agents):
             agent_id = str(n)
@@ -556,7 +554,10 @@ def simulate_bioscrape_cobra(
         # single agent without division
 
         # make the composite
-        biocobra_composite = biocobra_composer.generate()
+        agent = biocobra_composer.generate()
+        biocobra_composite.merge(
+            composite=agent,
+            path=())
 
         # create a second initial composite for plotting
         initial_composite = biocobra_composer.generate()
