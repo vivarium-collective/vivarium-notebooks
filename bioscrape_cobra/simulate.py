@@ -40,13 +40,13 @@ import time as clock
 from tqdm import tqdm
 
 # vivarium imports
-from vivarium.core.experiment import Experiment, timestamp
+from vivarium.core.engine import Engine, timestamp
 from vivarium.library.units import units
 from vivarium.library.dict_utils import deep_merge
 from vivarium.core.composition import simulate_composer, simulate_composite
-from vivarium.core.process import Composite
+from vivarium.core.composer import Composite
 from vivarium.library.units import remove_units
-from vivarium.core.process import deserialize_value
+from vivarium.core.serialize import deserialize_value
 
 # vivarium-multibody imports
 from vivarium_multibody.composites.lattice import (
@@ -73,7 +73,7 @@ from bioscrape_cobra.bioscrape_cobra_deterministic import BioscrapeCOBRAdetermin
 
 # plotting
 from vivarium.plots.topology import plot_topology
-from vivarium.plots.simulation_output import save_fig_to_dir
+from vivarium.plots.simulation_output import _save_fig_to_dir as save_fig_to_dir
 from bioscrape_cobra.plot import (
     plot_multigen, plot_single, plot_fields_tags, plot_fields_snapshots, config_embedded_bioscrape_cobra_topology)
 
@@ -587,7 +587,7 @@ def simulate_bioscrape_cobra(
         'emit_step': max(BIOSCRAPE_TIMESTEP, COBRA_TIMESTEP),
         'emitter': {'type': emitter}}
     print(f'Initializing experiment {experiment_id}')
-    biocobra_experiment = Experiment(experiment_config)
+    biocobra_experiment = Engine(experiment_config)
 
     # run the experiment
     clock_start = clock.time()

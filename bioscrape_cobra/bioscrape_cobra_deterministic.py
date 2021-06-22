@@ -10,7 +10,8 @@ import numpy as np
 from vivarium import (
     TreeMass, Clock, MassToMolar,
     DivideCondition, MetaDivision, StripUnits)
-from vivarium.core.process import Composer, Deriver
+from vivarium.core.process import Deriver
+from vivarium.core.composer import Composer
 from vivarium.library.units import units
 
 # vivarium-bioscrape imports

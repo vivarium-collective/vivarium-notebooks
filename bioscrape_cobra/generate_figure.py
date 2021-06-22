@@ -19,7 +19,8 @@ from vivarium.core.emitter import (
     data_from_database,
     DatabaseEmitter,
     remove_units, deserialize_value)
-from vivarium.plots.simulation_output import save_fig_to_dir, set_axes
+from vivarium.plots.simulation_output import set_axes
+from vivarium.plots.simulation_output import _save_fig_to_dir as save_fig_to_dir
 from vivarium.plots.agents_multigen import plot_agents_multigen
 from vivarium_multibody.plots.snapshots import (
     format_snapshot_data, make_tags_figure, get_agent_colors)

@@ -11,7 +11,7 @@ from vivarium import (
     TreeMass, Clock, MassToCount,
     CountsToMolar, DivideCondition,
     MetaDivision, MolarToCounts, StripUnits)
-from vivarium.core.process import Composer
+from vivarium.core.composer import Composer
 from vivarium.library.units import units
 
 # vivarium-bioscrape imports
