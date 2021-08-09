@@ -1,0 +1,6 @@
+vivarium-core>=0.3.0
+vivarium-bioscrape>=0.0.0.7
+vivarium-cobra>=0.0.12
+vivarium-multibody>=0.0.13
+pytest
+tqdm

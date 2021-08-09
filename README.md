@@ -1,11 +1,29 @@
 # Vivarium notebooks
 
-## Installation
+## Setup
 To run the code used in this work, you will need to install the following modules: `vivarium-core`, `vivarium-cobra`, 
 `vivarium-bioscrape`, and `vivarium-multibody`.
 These modules can be installed locally by executing the following command in the root directory:
 
-> pip install -e ./
+1. Clone the repository.
+
+   ```console
+   $ git clone https://github.com/vivarium-collective/vivarium-notebooks.git
+   ```
+
+   Alternatively, you can simply extract an archive of the source code
+   if you got the code in that format.
+
+2. (recommended but optional) Setup a Python virtual environment.
+3. Install Python dependencies
+
+   ```console
+   $ pip install numpy
+   $ pip install -r requirements.txt
+   ```
+
+   Note that you have to install numpy first because the `setup.py`
+   script of one of our dependencies requires it.
 
 ## Notebooks
 Notebooks can be found under `notebooks/`. These include `Vivarium_interface_basics.ipynb` and `Multi-Paradigm-Composites.ipynb`.
