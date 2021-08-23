@@ -587,7 +587,7 @@ def simulate_bioscrape_cobra(
         'emit_step': max(BIOSCRAPE_TIMESTEP, COBRA_TIMESTEP),
         'emitter': {'type': emitter}}
     print(f'Initializing experiment {experiment_id}')
-    biocobra_experiment = Engine(experiment_config)
+    biocobra_experiment = Engine(**experiment_config)
 
     # run the experiment
     clock_start = clock.time()

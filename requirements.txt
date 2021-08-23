@@ -1,4 +1,4 @@
-vivarium-core==0.3.3
+vivarium-core==0.3.4
 vivarium-bioscrape==0.0.0.7
 vivarium-cobra==0.0.15
 vivarium-multibody==0.0.13
