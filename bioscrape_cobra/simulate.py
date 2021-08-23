@@ -634,6 +634,94 @@ plot_variables_list_stochastic = []
 plot_variables_list_stochastic.extend(plot_variables_list)
 
 
+# tests
+def test_deterministic(
+    emitter=None,
+    sbml_deterministic=None,
+    out_dir='out/bioscrape_cobra'
+):
+    if not sbml_deterministic:
+        dirname = os.path.dirname(__file__)
+        sbml_deterministic = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
+
+    output, comp0 = simulate_bioscrape_cobra(
+        initial_glucose=1e1,
+        initial_lactose=2e1,
+        external_volume=1e-12,
+        total_time=12000,
+        emitter=emitter,
+        sbml_file=sbml_deterministic,
+        output_type='timeseries')
+
+    plot_single(
+        output,
+        variables=plot_variables_list_deterministic,
+        out_dir=os.path.join(out_dir, 'deterministic'),
+        filename='variables')
+
+
+def test_stochastic_spatial(
+    emitter=None,
+    parallel=False,
+    sbml_stochastic=None,
+    out_dir='out/bioscrape_cobra'
+):
+    if not sbml_stochastic:
+        dirname = os.path.dirname(__file__)
+        sbml_stochastic = os.path.join(dirname, SBML_FILE_STOCHASTIC)
+
+    bounds = [30, 30]
+    n_bins = [30, 30]
+    depth = 0.5
+
+    initial_agent_states = [
+        {'rates': {
+            'k_leak': 0.005  # less leak -> less spontanteous expression
+        }}
+    ]
+
+    output, comp0 = simulate_bioscrape_cobra(
+        initial_agent_states=initial_agent_states,
+        stochastic=True,
+        division=True,
+        spatial=True,
+        initial_glucose=1e1,
+        initial_lactose=5e1,
+        depth=depth,
+        diffusion_rate=2e-2,
+        jitter_force=1e-5,
+        bounds=bounds,
+        n_bins=n_bins,
+        halt_threshold=200,
+        total_time=50400,
+        emitter=emitter,
+        sbml_file=sbml_stochastic,
+        parallel=parallel,
+        output_type='unitless')
+
+    # plot
+    stochastic_spatial_out_dir = os.path.join(out_dir, 'stochastic_spatial')
+    plot_multigen(
+        output,
+        out_dir=stochastic_spatial_out_dir,
+        filename='spatial_multigen')
+
+    plot_fields_snapshots(
+        output,
+        bounds=bounds,
+        include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
+        out_dir=stochastic_spatial_out_dir,
+        filename='spatial_snapshots')
+
+    plot_fields_tags(
+        output,
+        bounds=bounds,
+        convert_to_concs=False,
+        tagged_molecules=[('species', 'protein_Lactose_Permease',)],
+        out_dir=stochastic_spatial_out_dir,
+        filename='spatial_tags')
+
+
 def main():
     out_dir = os.path.join('out', 'bioscrape_cobra')
     if not os.path.exists(out_dir):
@@ -663,21 +751,7 @@ def main():
     sbml_stochastic = os.path.join(dirname, SBML_FILE_STOCHASTIC)
 
     if args.deterministic:
-
-        output, comp0 = simulate_bioscrape_cobra(
-            initial_glucose=1e1,
-            initial_lactose=2e1,
-            external_volume=1e-12,
-            total_time=12000,
-            emitter=emitter,
-            sbml_file=sbml_deterministic,
-            output_type='timeseries')
-
-        plot_single(
-            output,
-            variables=plot_variables_list_deterministic,
-            out_dir=os.path.join(out_dir, 'deterministic'),
-            filename='variables')
+        test_deterministic()
 
     if args.stochastic:
 
@@ -825,57 +899,7 @@ def main():
             filename='spatial_tags')
 
     if args.stochastic_spatial:
-        bounds = [30, 30]
-        n_bins = [30, 30]
-        depth = 0.5
-
-        initial_agent_states = [
-            {'rates': {
-                # 'LacPermease_vmax': 1000.0,
-                'k_leak': 0.005  # less leak -> less spontanteous expression
-            }}
-        ]
-
-        output, comp0 = simulate_bioscrape_cobra(
-            initial_agent_states=initial_agent_states,
-            stochastic=True,
-            division=True,
-            spatial=True,
-            initial_glucose=1e1,
-            initial_lactose=5e1,
-            depth=depth,
-            diffusion_rate=2e-2,
-            jitter_force=1e-5,
-            bounds=bounds,
-            n_bins=n_bins,
-            halt_threshold=200,
-            total_time=50400,
-            emitter=emitter,
-            sbml_file=sbml_stochastic,
-            parallel=parallel,
-            output_type='unitless')
-
-        # plot
-        stochastic_spatial_out_dir = os.path.join(out_dir, 'stochastic_spatial')
-        plot_multigen(
-            output,
-            out_dir=stochastic_spatial_out_dir,
-            filename='spatial_multigen')
-
-        plot_fields_snapshots(
-            output,
-            bounds=bounds,
-            include_fields=[GLUCOSE_EXTERNAL, LACTOSE_EXTERNAL],
-            out_dir=stochastic_spatial_out_dir,
-            filename='spatial_snapshots')
-
-        plot_fields_tags(
-            output,
-            bounds=bounds,
-            convert_to_concs=False,
-            tagged_molecules=[('species', 'protein_Lactose_Permease',)],
-            out_dir=stochastic_spatial_out_dir,
-            filename='spatial_tags')
+        test_stochastic_spatial()
 
     if args.topology:
         plot_full_topology(out_dir=out_dir)
@@ -930,7 +954,6 @@ def main():
 def plot_full_topology(out_dir='out'):
 
     dirname = os.path.dirname(__file__)
-    # sbml_file = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
     sbml_file = os.path.join(dirname, SBML_FILE_STOCHASTIC)
     output, composite = simulate_bioscrape_cobra(
         stochastic=True,
