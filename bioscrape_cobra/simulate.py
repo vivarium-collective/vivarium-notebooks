@@ -39,10 +39,6 @@ import random
 import time as clock
 from tqdm import tqdm
 
-# suppress deprecation warnings
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning)
-
 # vivarium imports
 from vivarium.core.engine import Engine, timestamp
 from vivarium.library.units import units
@@ -83,13 +79,31 @@ from bioscrape_cobra.plot import (
 
 
 
-# default environment variables, which can be varied by simulate_bioscrape_cobra
+# default environment variables, which can be varied by the function `simulate_bioscrape_cobra`
 DEFAULT_DIVIDE_THRESHOLD = 2000 * units.fg
 INITIAL_GLC = 10  # mmolar
 INITIAL_LAC = 20  # mmolar
 BOUNDS = [20, 20]
 NBINS = [10, 10]
 DEPTH = 2
+
+# plotting definitions
+plot_variables_list = [
+    ('species', 'rna_M'),
+    ('species', 'monomer_betaGal'),
+    ('species', 'protein_betaGal'),
+    ('species', 'protein_Lactose_Permease'),
+    ('species', GLUCOSE_EXTERNAL),
+    ('species', LACTOSE_EXTERNAL),
+    ('flux_bounds', 'EX_glc__D_e'),
+    ('flux_bounds', 'EX_lac__D_e'),
+    ('boundary', 'no_units', 'biomass'),
+]
+plot_variables_list_deterministic = [
+    ('rates', 'k_dilution__',)]
+plot_variables_list_deterministic.extend(plot_variables_list)
+plot_variables_list_stochastic = []
+plot_variables_list_stochastic.extend(plot_variables_list)
 
 
 # Simulates Cobra Model on its Own
@@ -121,6 +135,7 @@ def simulate_cobra(
 
     return cobra_timeseries, dynamic_fba
 
+
 # Simulates Cobra Model in a Composite with some Derivers
 def simulate_cobra_composite(
     total_time=100,
@@ -147,6 +162,7 @@ def simulate_cobra_composite(
 
     return cobra_timeseries, cobra_composite
 
+
 def simulate_bioscrape(
         stochastic=False,
         initial_glucose=None,
@@ -155,7 +171,7 @@ def simulate_bioscrape(
         total_time=100,
         initial_volume=1.0,
         sbml_file=None,
-    ):
+):
     
     #create configs
     if not stochastic:
@@ -205,7 +221,7 @@ def simulate_bioscrape(
     return bioscrape_timeseries, bioscrape_composite
 
 
-# Simulate a System of Cells that grow and divde in a well mixed spatial environment
+# Simulate a system of cells that grow and divide in a well mixed spatial environment
 def simulate_grow_divide(
         total_time=100,
         growth_rate=0.03,
@@ -242,7 +258,7 @@ def simulate_grow_divide(
     #returns the data, the initial composite, and the final composite
     return grow_divide_data, grow_divide_composer.generate(path=('agents', '0')), grow_divide_composite
 
-# Simulate a System of Cells that grow and divde in a well mixed spatial environment
+
 def simulate_diffusion(
         total_time=100,
         diffusion_rate=0.001,
@@ -312,6 +328,7 @@ def get_lattice_grow_divide_composite(
     lattice_grow_divide_composite.merge(composite=lattice_composite)
 
     return lattice_grow_divide_composite
+
 
 def simulate_grow_divide_lattice(
         lattice_grow_divide_composite,
@@ -409,7 +426,7 @@ def simulate_bioscrape_cobra(
         output_type=None,
         parallel=False,
 ):
-    """ Simulation function for BioscrapeCOBRA
+    """ Main simulation function for BioscrapeCOBRA
 
     Args:
         * division:
@@ -618,26 +635,6 @@ def simulate_bioscrape_cobra(
         return biocobra_experiment.emitter.get_data_unitless(), initial_composite
     return biocobra_experiment, initial_composite
 
-
-# plotting
-plot_variables_list = [
-    ('species', 'rna_M'),
-    ('species', 'monomer_betaGal'),
-    ('species', 'protein_betaGal'),
-    ('species', 'protein_Lactose_Permease'),
-    ('species', GLUCOSE_EXTERNAL),
-    ('species', LACTOSE_EXTERNAL),
-    ('flux_bounds', 'EX_glc__D_e'),
-    ('flux_bounds', 'EX_lac__D_e'),
-    ('boundary', 'no_units', 'biomass'),
-]
-
-plot_variables_list_deterministic = [
-    ('rates', 'k_dilution__',)]
-plot_variables_list_deterministic.extend(plot_variables_list)
-
-plot_variables_list_stochastic = []
-plot_variables_list_stochastic.extend(plot_variables_list)
 
 
 # tests
