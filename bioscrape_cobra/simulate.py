@@ -636,11 +636,33 @@ def simulate_bioscrape_cobra(
     return biocobra_experiment, initial_composite
 
 
+# plot topology
+def plot_full_topology(out_dir='out'):
+
+    dirname = os.path.dirname(__file__)
+    sbml_file = os.path.join(dirname, SBML_FILE_STOCHASTIC)
+
+    # get the stochastic bioscrape_cobra composite
+    output, composite = simulate_bioscrape_cobra(
+        stochastic=True,
+        division=True,
+        spatial=True,
+        total_time=0,
+        sbml_file=sbml_file,
+        output_type='unitless')
+
+    plot_topology(
+        composite,
+        settings=config_embedded_bioscrape_cobra_topology,
+        out_dir=out_dir,
+        filename='bioscrape_cobra_stochastic_lattice_topology.pdf')
+
 
 # tests
 def test_deterministic(
         emitter=None,
         sbml_deterministic=None,
+        total_time=200,
         out_dir=None,
 ):
     if not sbml_deterministic:
@@ -651,7 +673,7 @@ def test_deterministic(
         initial_glucose=1e1,
         initial_lactose=2e1,
         external_volume=1e-12,
-        total_time=12000,
+        total_time=total_time,
         emitter=emitter,
         sbml_file=sbml_deterministic,
         output_type='timeseries')
@@ -667,6 +689,7 @@ def test_deterministic(
 def test_stochastic(
         emitter=None,
         sbml_stochastic=None,
+        total_time=200,
         out_dir=None,
 ):
     if not sbml_stochastic:
@@ -688,7 +711,7 @@ def test_stochastic(
         initial_lactose=2e1,
         initial_agent_states=initial_agent_state,
         external_volume=1e-14,
-        total_time=4000,
+        total_time=total_time,
         emitter=emitter,
         sbml_file=sbml_stochastic,
         output_type='timeseries')
@@ -704,6 +727,7 @@ def test_stochastic(
 def test_deterministic_divide(
         emitter=None,
         sbml_deterministic=None,
+        total_time=200,
         out_dir=None,
 ):
     if not sbml_deterministic:
@@ -727,7 +751,7 @@ def test_deterministic_divide(
         initial_glucose=1e1,
         initial_lactose=2e1,
         external_volume=1e-12,
-        total_time=3000,
+        total_time=total_time,
         emitter=emitter,
         sbml_file=sbml_deterministic,
         output_type='unitless')
@@ -744,6 +768,7 @@ def test_deterministic_divide(
 def test_stochastic_divide(
         emitter=None,
         sbml_stochastic=None,
+        total_time=200,
         out_dir=None,
 ):
     if not sbml_stochastic:
@@ -773,7 +798,7 @@ def test_stochastic_divide(
         initial_glucose=1e1,  # mM
         initial_lactose=2e1,  # mM
         initial_agent_states=initial_agent_states,
-        total_time=4000,
+        total_time=total_time,
         external_volume=5e-14,
         emitter=emitter,
         sbml_file=sbml_stochastic,
@@ -791,9 +816,11 @@ def test_stochastic_divide(
             out_dir=os.path.join(out_dir, 'stochastic_divide'),
             filename='division_multigen')
 
+
 def test_deterministic_spatial(
         emitter=None,
         sbml_deterministic=None,
+        total_time=200,
         out_dir=None,
 ):
     if not sbml_deterministic:
@@ -819,7 +846,7 @@ def test_deterministic_spatial(
         bounds=bounds,
         n_bins=n_bins,
         depth=depth,
-        total_time=7200,
+        total_time=total_time,
         emitter=emitter,
         sbml_file=sbml_deterministic,
         output_type='unitless')
@@ -851,6 +878,7 @@ def test_stochastic_spatial(
     emitter=None,
     parallel=False,
     sbml_stochastic=None,
+    total_time=200,
     out_dir=None,
 ):
     if not sbml_stochastic:
@@ -880,7 +908,7 @@ def test_stochastic_spatial(
         bounds=bounds,
         n_bins=n_bins,
         halt_threshold=200,
-        total_time=50400,
+        total_time=total_time,
         emitter=emitter,
         sbml_file=sbml_stochastic,
         parallel=parallel,
@@ -1003,6 +1031,7 @@ def main():
         test_deterministic(
             emitter=emitter,
             sbml_deterministic=sbml_deterministic,
+            total_time=12000,
             out_dir=out_dir
         )
 
@@ -1010,6 +1039,7 @@ def main():
         test_stochastic(
             emitter=emitter,
             sbml_stochastic=sbml_stochastic,
+            total_time=4000,
             out_dir=out_dir,
         )
 
@@ -1017,6 +1047,7 @@ def main():
         test_deterministic_divide(
             emitter=emitter,
             sbml_deterministic=sbml_deterministic,
+            total_time=3000,
             out_dir=out_dir
         )
 
@@ -1024,6 +1055,7 @@ def main():
         test_stochastic_divide(
             emitter=emitter,
             sbml_stochastic=sbml_stochastic,
+            total_time=4000,
             out_dir=out_dir,
         )
 
@@ -1031,6 +1063,7 @@ def main():
         test_deterministic_spatial(
             emitter=emitter,
             sbml_deterministic=sbml_deterministic,
+            total_time=7200,
             out_dir=out_dir,
         )
 
@@ -1039,6 +1072,7 @@ def main():
             emitter=emitter,
             parallel=parallel,
             sbml_stochastic=sbml_stochastic,
+            total_time=50400,
             out_dir=out_dir,
         )
 
@@ -1048,25 +1082,7 @@ def main():
     if args.bioscrape_alone:
         test_bioscrape_alone()
 
-def plot_full_topology(out_dir='out'):
-
-    dirname = os.path.dirname(__file__)
-    sbml_file = os.path.join(dirname, SBML_FILE_STOCHASTIC)
-    output, composite = simulate_bioscrape_cobra(
-        stochastic=True,
-        division=True,
-        spatial=True,
-        total_time=0,
-        sbml_file=sbml_file,
-        output_type='unitless')
-
-    plot_topology(
-        composite,
-        settings=config_embedded_bioscrape_cobra_topology,
-        out_dir=out_dir,
-        filename='bioscrape_cobra_stochastic_lattice_topology.pdf')
 
 if __name__ == '__main__':
     main()
-
 
