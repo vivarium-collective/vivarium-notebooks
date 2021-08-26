@@ -18,7 +18,6 @@ These modules can be installed locally by executing the following command in the
 3. Install Python dependencies
 
    ```console
-   $ pip install numpy
    $ pip install -r requirements.txt
    ```
 
@@ -48,4 +47,15 @@ Saving the simulation output to a mongoDB database requires a running mongoDB in
 It can then be triggered with the `-d` option: 
 
 > python bioscrape_cobra/simulate --simulation_name -d
+
+## Tests
+Tests are performed with pytest. Simply call the following to ensure everything is working properly:
+```
+$ pytest
+```
+
+To run only the fast tests:
+```
+$ pytest -m 'not slow'
+```
 

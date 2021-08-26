@@ -37,6 +37,7 @@ import argparse
 import copy
 import random
 import time as clock
+import pytest
 from tqdm import tqdm
 
 # vivarium imports
@@ -686,10 +687,11 @@ def test_deterministic(
             filename='variables')
 
 
+@pytest.mark.slow
 def test_stochastic(
         emitter=None,
         sbml_stochastic=None,
-        total_time=200,
+        total_time=500,
         out_dir=None,
 ):
     if not sbml_stochastic:
@@ -765,6 +767,7 @@ def test_deterministic_divide(
             filename='division_multigen')
 
 
+@pytest.mark.slow
 def test_stochastic_divide(
         emitter=None,
         sbml_stochastic=None,
@@ -775,21 +778,12 @@ def test_stochastic_divide(
         dirname = os.path.dirname(__file__)
         sbml_stochastic = os.path.join(dirname, SBML_FILE_STOCHASTIC)
 
-    initial_agent_states = [
-        # {'species': {
-        #     'monomer_betaGal': 0,
-        #     'protein_betaGal': 0,
-        #     'protein_Lactose_Permease': 0}},
-        {'rates': {
-            'LacPermease_vmax': 3580.0,  # 35.8
-            'k_leak': 0.5,
-        },
-            # 'species': {
-            #     'monomer_betaGal': 100,
-            #     'protein_betaGal': 100,
-            #     'protein_Lactose_Permease': 100},
-        }
-    ]
+    initial_agent_states = [{
+            'rates': {
+                'LacPermease_vmax': 3580.0,  # 35.8
+                'k_leak': 0.5,
+            },
+        }]
 
     output, comp0 = simulate_bioscrape_cobra(
         n_agents=1,
@@ -874,6 +868,7 @@ def test_deterministic_spatial(
             filename='spatial_tags')
 
 
+@pytest.mark.slow
 def test_stochastic_spatial(
     emitter=None,
     parallel=False,
