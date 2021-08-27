@@ -1,11 +1,28 @@
 # Vivarium notebooks
 
-## Installation
+## Setup
 To run the code used in this work, you will need to install the following modules: `vivarium-core`, `vivarium-cobra`, 
 `vivarium-bioscrape`, and `vivarium-multibody`.
 These modules can be installed locally by executing the following command in the root directory:
 
-> pip install -e ./
+1. Clone the repository.
+
+   ```console
+   $ git clone https://github.com/vivarium-collective/vivarium-notebooks.git
+   ```
+
+   Alternatively, you can simply extract an archive of the source code
+   if you got the code in that format.
+
+2. (recommended but optional) Setup a Python virtual environment.
+3. Install Python dependencies
+
+   ```console
+   $ pip install -r requirements.txt
+   ```
+
+   Note that you have to install numpy first because the `setup.py`
+   script of one of our dependencies requires it.
 
 ## Notebooks
 Notebooks can be found under `notebooks/`. These include `Vivarium_interface_basics.ipynb` and `Multi-Paradigm-Composites.ipynb`.
@@ -30,4 +47,15 @@ Saving the simulation output to a mongoDB database requires a running mongoDB in
 It can then be triggered with the `-d` option: 
 
 > python bioscrape_cobra/simulate --simulation_name -d
+
+## Tests
+Tests are performed with pytest. Simply call the following to ensure everything is working properly:
+```
+$ pytest
+```
+
+To run only the fast tests:
+```
+$ pytest -m 'not slow'
+```
 
