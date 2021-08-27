@@ -4,3 +4,4 @@ vivarium-cobra==0.0.18
 vivarium-multibody==0.0.13
 pytest
 tqdm
+jupyter
