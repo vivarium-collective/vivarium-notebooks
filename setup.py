@@ -8,10 +8,9 @@ with open("README.md", 'r') as readme:
 
 setup(
     name='vivarium-notebooks',
-    version='0.0.2',
+    version='0.0.3',
     packages=[
         'bioscrape_cobra',
-        'notebooks',
     ],
     author='Eran Agmon, William Poole',
     author_email='agmon.eran@gmail.com, wpoole@caltech.edu',

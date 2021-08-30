@@ -78,6 +78,10 @@ from vivarium.plots.simulation_output import _save_fig_to_dir as save_fig_to_dir
 from bioscrape_cobra.plot import (
     plot_multigen, plot_single, plot_fields_tags, plot_fields_snapshots, config_embedded_bioscrape_cobra_topology)
 
+# get the sbml files at the correct path
+dirname = os.path.dirname(__file__)
+sbml_deterministic_file = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
+sbml_stochastic_file = os.path.join(dirname, SBML_FILE_STOCHASTIC)
 
 
 # default environment variables, which can be varied by the function `simulate_bioscrape_cobra`
@@ -177,14 +181,14 @@ def simulate_bioscrape(
     #create configs
     if not stochastic:
         bioscrape_config = {
-            'sbml_file': sbml_file or 'LacOperon_deterministic.xml',
+            'sbml_file': sbml_file or sbml_deterministic_file,
             'stochastic': False,
             'initial_volume': initial_volume,
             'internal_dt': BIOSCRAPE_TIMESTEP/100,
             'time_step': BIOSCRAPE_TIMESTEP}
     else:
         bioscrape_config = {
-            'sbml_file': sbml_file or 'LacOperon_stochastic.xml',
+            'sbml_file': sbml_file or sbml_stochastic_file,
             'stochastic': True,
             'safe_mode': False,
             'initial_volume': initial_volume,
@@ -1017,15 +1021,10 @@ def main():
     emitter = 'database' if args.database else 'timeseries'
     parallel = True if args.parallel else False
 
-    # set sbml file path
-    dirname = os.path.dirname(__file__)
-    sbml_deterministic = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
-    sbml_stochastic = os.path.join(dirname, SBML_FILE_STOCHASTIC)
-
     if args.deterministic:
         test_deterministic(
             emitter=emitter,
-            sbml_deterministic=sbml_deterministic,
+            sbml_deterministic=sbml_deterministic_file,
             total_time=12000,
             out_dir=out_dir
         )
@@ -1033,7 +1032,7 @@ def main():
     if args.stochastic:
         test_stochastic(
             emitter=emitter,
-            sbml_stochastic=sbml_stochastic,
+            sbml_stochastic=sbml_stochastic_file,
             total_time=4000,
             out_dir=out_dir,
         )
@@ -1041,7 +1040,7 @@ def main():
     if args.deterministic_divide:
         test_deterministic_divide(
             emitter=emitter,
-            sbml_deterministic=sbml_deterministic,
+            sbml_deterministic=sbml_deterministic_file,
             total_time=3000,
             out_dir=out_dir
         )
@@ -1049,7 +1048,7 @@ def main():
     if args.stochastic_divide:
         test_stochastic_divide(
             emitter=emitter,
-            sbml_stochastic=sbml_stochastic,
+            sbml_stochastic=sbml_stochastic_file,
             total_time=4000,
             out_dir=out_dir,
         )
@@ -1057,7 +1056,7 @@ def main():
     if args.deterministic_spatial:
         test_deterministic_spatial(
             emitter=emitter,
-            sbml_deterministic=sbml_deterministic,
+            sbml_deterministic=sbml_deterministic_file,
             total_time=7200,
             out_dir=out_dir,
         )
@@ -1066,7 +1065,7 @@ def main():
         test_stochastic_spatial(
             emitter=emitter,
             parallel=parallel,
-            sbml_stochastic=sbml_stochastic,
+            sbml_stochastic=sbml_stochastic_file,
             total_time=50400,
             out_dir=out_dir,
         )
