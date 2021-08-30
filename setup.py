@@ -11,6 +11,7 @@ setup(
     version='0.0.1',
     packages=[
         'bioscrape_cobra',
+        'notebooks',
     ],
     author='Eran Agmon, William Poole',
     author_email='agmon.eran@gmail.com, wpoole@caltech.edu',
