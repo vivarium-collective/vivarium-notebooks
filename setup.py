@@ -8,7 +8,7 @@ with open("README.md", 'r') as readme:
 
 setup(
     name='vivarium-notebooks',
-    version='0.0.1',
+    version='0.0.2',
     packages=[
         'bioscrape_cobra',
         'notebooks',
