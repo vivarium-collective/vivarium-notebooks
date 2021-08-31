@@ -412,7 +412,6 @@ def get_initial_state(initial_states, n=None):
 def simulate_bioscrape_cobra(
         division=False,
         stochastic=False,
-        spatial=False,
         initial_glucose=1e1,
         initial_lactose=1e1,
         initial_agent_states=None,
@@ -422,6 +421,7 @@ def simulate_bioscrape_cobra(
         diffusion_rate=1e-1,
         jitter_force=1e-4,
         divide_threshold=2000 * units.fg,
+        spatial=False,
         external_volume=None,
         n_agents=1,
         halt_threshold=100,
@@ -434,31 +434,36 @@ def simulate_bioscrape_cobra(
     """ Main simulation function for BioscrapeCOBRA
 
     Args:
-        * division:
-        * stochastic:
-        * spatial:
-        * initial_glucose:
-        * initial_lactose:
-        * initial_agent_states:
-        * bounds:
-        * n_bins:
-        * depth:
-        * diffusion_rate:
-        * divide_threshold:
-        * external_volume:
-        * n_agents:
-        * halt_threshold:
-        * total_time:
-        * sbml_file:
-        * emitter:
-        * output_type:
-        * parallel:
+        * division (bool): sets whether the agents divides
+        * stochastic (bool): load the stochastic lac operon model
+        * initial_glucose (float): initial external glucose concentration
+        * initial_lactose: (float): initial external initial_lactose concentration
+        * initial_agent_states (dict): set initial state values
+        * bounds (list): size of the environment [x, y] in microns
+        * n_bins (list): number of bins in the [x, y] dimensions
+        * depth (float): depth of the environment in microns
+        * diffusion_rate (float): diffusion rate constant for all molecules, micron^s/sec.
+        * divide_threshold (float): mass at which cells divide, in fg
+        * spatial (bool): use spatial environment
+        * external_volume (float): volume of external bin, if non-spatial environment
+        * n_agents (int): number of initial agents in environment
+        * halt_threshold (int): number of agents at which simulations will terminate
+        * total_time (float): total simulation time, in seconds
+        * sbml_file (str): the file for the Bioscrape process. Uses default if None.
+        * emitter (str): type of emitter, 'timeseries' or 'database'.
+        * output_type (str): 'timeseries' or 'unitless'. If None, return experiment instance
+        * parallel (bool): run processes in parallel, useful for large compute machines
     """
 
     if n_bins is None:
         n_bins = NBINS
     if bounds is None:
         bounds = BOUNDS
+    if sbml_file is None:
+        if stochastic:
+            sbml_file = sbml_stochastic_file
+        else:
+            sbml_file = sbml_deterministic_file
 
     # get the bin volume based upon the lattice
     bin_volume = (external_volume or get_bin_volume(n_bins, bounds, depth)) * units.L
