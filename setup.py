@@ -8,7 +8,7 @@ with open("README.md", 'r') as readme:
 
 setup(
     name='vivarium-notebooks',
-    version='0.0.3',
+    version='0.0.4',
     packages=[
         'bioscrape_cobra',
     ],
@@ -24,6 +24,10 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     package_data={},
+    # package_data={
+    #     # If any package contains *.xml files, include them:
+    #     "": ["*.xml"],
+    # },
     include_package_data=True,
     install_requires=[
         'vivarium-core>=0.3.5',
