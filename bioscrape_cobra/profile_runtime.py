@@ -6,7 +6,6 @@ remaining vivarium overhead
 import os
 import cProfile
 import pstats
-import argparse
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -301,6 +300,6 @@ scans_library = {
     '0': scan_parallel_processes,
 }
 
-# python bioscrape_cobra/profile.py -n [name]
+# python bioscrape_cobra/profile_runtime.py -n [name]
 if __name__ == '__main__':
     run_library_cli(scans_library)
