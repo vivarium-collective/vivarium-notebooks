@@ -14,13 +14,17 @@ import matplotlib.patches as mpatches
 from vivarium.core.engine import Engine
 from vivarium.core.control import run_library_cli
 
-from bioscrape_cobra.bioscrape_cobra_deterministic import BioscrapeCOBRAdeterministic
-from bioscrape_cobra.bioscrape_cobra_stochastic import BioscrapeCOBRAstochastic
+from bioscrape_cobra.bioscrape_cobra_stochastic import SBML_FILE_STOCHASTIC
+from bioscrape_cobra.bioscrape_cobra_deterministic import SBML_FILE_DETERMINISTIC
+from bioscrape_cobra.simulate import get_bioscrape_cobra_composite
 
+
+# get the sbml files at the correct path
+dirname = os.path.dirname(__file__)
+DETERMINISTIC_FILE = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
+STOCHASTIC_FILE = os.path.join(dirname, SBML_FILE_STOCHASTIC)
 
 DEFAULT_EXPERIMENT_TIME = 100
-
-
 PROCESS_UPDATE_MARKER = 'b.'
 VIVARIUM_OVERHEAD_MARKER = 'r.'
 SIMULATION_TIME_MARKER = 'g.'
@@ -30,57 +34,46 @@ class ModelProfiler:
     """Profile Bioscrape-COBRA composites"""
 
     # model complexity
-    number_of_parallel_processes = 0
     experiment_time = DEFAULT_EXPERIMENT_TIME
 
     # initialize
     composite = None
     experiment = None
 
-    def from_cli(self):
-        parser = argparse.ArgumentParser(
-            description='complex model simulations with runtime profiling'
-        )
-        parser.add_argument(
-            '--profile', '-p', action="store_true",
-            help="run profile of model composition and simulation"
-        )
-        parser.add_argument(
-            '--latency', '-l', action="store_true",
-            help="run profile of communication latency in an experiment"
-        )
-        parser.add_argument(
-            '--scan', '-s', action="store_true",
-            help="run scan of communication latency"
-        )
-        args = parser.parse_args()
-
-        if args.profile:
-            self.run_profile()
-        if args.latency:
-            self.profile_communication_latency()
-        if args.scan:
-            self.run_scan_and_plot()
-
     def set_parameters(
             self,
-            number_of_parallel_processes=None,
             experiment_time=None,
     ):
-        self.number_of_parallel_processes = \
-            number_of_parallel_processes or self.number_of_parallel_processes
         self.experiment_time = \
             experiment_time or self.experiment_time
 
     def _generate_composite(self, **kwargs):
-        number_of_parallel_processes = kwargs.get(
-            'number_of_parallel_processes', self.number_of_parallel_processes)
 
-        composer = ManyVariablesComposite({
-            'number_of_parallel_processes': number_of_parallel_processes,
-        })
+        parallel = True
+        bounds = [30, 30]
+        n_bins = [30, 30]
+        depth = 0.5
+        initial_agent_states = [
+            {'rates': {
+                'k_leak': 0.005  # less leak -> less spontanteous expression
+            }}
+        ]
 
-        self.composite = composer.generate(**kwargs)
+        self.composite, _, _ = get_bioscrape_cobra_composite(
+            initial_agent_states=initial_agent_states,
+            stochastic=True,
+            division=True,
+            spatial=True,
+            initial_glucose=1e1,
+            initial_lactose=5e1,
+            depth=depth,
+            diffusion_rate=2e-2,
+            jitter_force=1e-5,
+            bounds=bounds,
+            n_bins=n_bins,
+            sbml_file=STOCHASTIC_FILE,
+            parallel=parallel
+        )
 
     def _initialize_experiment(self, **kwargs):
         self.experiment = Engine(
@@ -181,7 +174,7 @@ def run_scan(
 
         # set the parameters
         sim.set_parameters(
-            number_of_parallel_processes=n_parallel_processes,
+            # number_of_parallel_processes=n_parallel_processes,
         )
 
         print(
@@ -189,8 +182,7 @@ def run_scan(
         )
 
         # run experiment
-        process_update_time, store_update_time = \
-            sim.profile_communication_latency()
+        process_update_time, store_update_time = sim.profile_communication_latency()
 
         # save data
         stat_dict = {
@@ -297,7 +289,6 @@ def scan_parallel_processes():
 
     sim = ModelProfiler()
     sim.experiment_time = 100
-    sim.process_sleep = 1e-2
     saved_stats = run_scan(sim,
                            scan_values=scan_values)
     plot_scan_results(saved_stats,
@@ -310,6 +301,6 @@ scans_library = {
     '0': scan_parallel_processes,
 }
 
-# python vivarium/experiments/profile_runtime.py -n [name]
+# python bioscrape_cobra/profile.py -n [name]
 if __name__ == '__main__':
     run_library_cli(scans_library)
