@@ -419,7 +419,7 @@ def get_bioscrape_cobra_composite(
         n_bins=None,
         depth=DEPTH,
         diffusion_rate=1e-1,
-        jitter_force=1e-4,
+        jitter_force=1e-5,
         divide_threshold=2000 * units.fg,
         spatial=False,
         external_volume=None,
@@ -592,7 +592,7 @@ def simulate_bioscrape_cobra(
         n_bins=None,
         depth=DEPTH,
         diffusion_rate=1e-1,
-        jitter_force=1e-4,
+        jitter_force=1e-5,
         divide_threshold=2000 * units.fg,
         spatial=False,
         external_volume=None,
@@ -626,6 +626,7 @@ def simulate_bioscrape_cobra(
         * emitter (str): type of emitter, 'timeseries' or 'database'.
         * output_type (str): 'timeseries' or 'unitless'. If None, return experiment instance
         * parallel (bool): run processes in parallel, useful for large compute machines
+        * jitter_force (float): random force applied to cell bodies (in pN)
     """
 
     biocobra_composite, initial_composite, initial_state_full = get_bioscrape_cobra_composite(
@@ -1122,6 +1123,6 @@ def main():
         test_bioscrape_alone()
 
 
+# python bioscrape_cobra/simulate.py [args]
 if __name__ == '__main__':
     main()
-
