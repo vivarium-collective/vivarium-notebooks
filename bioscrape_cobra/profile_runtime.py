@@ -32,9 +32,12 @@ class ModelProfiler:
     """Profile Bioscrape-COBRA composites"""
 
     # model complexity
+    n_agents = 1
     experiment_time = DEFAULT_EXPERIMENT_TIME
     parallel = False
     stochastic = False
+    division = False
+    spatial = False
     emit_step = 1
 
     # initialize
@@ -44,11 +47,16 @@ class ModelProfiler:
 
     def set_parameters(
             self,
+            n_agents=None,
             experiment_time=None,
             parallel=None,
             emit_step=None,
             stochastic=None,
+            division=None,
+            spatial=None,
     ):
+        self.n_agents = \
+            n_agents or self.n_agents
         self.experiment_time = \
             experiment_time or self.experiment_time
         self.parallel = \
@@ -57,6 +65,10 @@ class ModelProfiler:
             emit_step or self.emit_step
         self.stochastic = \
             stochastic or self.stochastic
+        self.division = \
+            division or self.division
+        self.spatial = \
+            spatial or self.spatial
 
     def _generate_composite(self, **kwargs):
         initial_agent_states = [
@@ -66,10 +78,11 @@ class ModelProfiler:
         ]
 
         self.composite, _, self.initial_state = get_bioscrape_cobra_composite(
+            n_agents=self.n_agents,
             initial_agent_states=initial_agent_states,
             stochastic=self.stochastic,
-            division=True,
-            spatial=True,
+            division=self.division,
+            spatial=self.spatial,
             initial_glucose=1e1,
             initial_lactose=5e1,
             depth=0.5,
@@ -259,6 +272,7 @@ def _add_stats_plot(
 def plot_scan_results(
         saved_stats,
         plot_all=True,
+        n_agents_plot=False,
         parallel_plot=False,
         fig=None,
         grid=None,
@@ -267,7 +281,13 @@ def plot_scan_results(
         out_dir='out/experiments',
         filename='profile',
 ):
+    plot_types = [
+        n_agents_plot,
+        parallel_plot,
+    ]
+
     if plot_all:
+        n_agents_plot = True
         parallel_plot = True
 
     # make figure
@@ -275,19 +295,30 @@ def plot_scan_results(
         assert grid, "fig must provide grid for subplots"
     else:
         n_cols = 1
-        n_rows = sum([
-            parallel_plot,
-        ])
-
+        n_rows = sum(plot_types)
         fig = plt.figure(figsize=(n_cols * 6, n_rows * 3))
         grid = plt.GridSpec(n_rows, n_cols)
 
     # initialize axes
-    plot_n = 0
+    if n_agents_plot:
+        patches = _get_patches(experiment=True)
+        ax = _make_axis(
+            fig, grid, axis_number, patches, title,
+            label='initial number of agents')
+
+        _add_stats_plot(
+            ax=ax, saved_stats=saved_stats,
+            variable_name='n_agents',
+            process_update=True,
+            vivarium_overhead=True,
+            # experiment_time=True,
+        )
+        axis_number += 1
+
     if parallel_plot:
         patches = _get_patches(experiment=True)
         ax = _make_axis(
-            fig, grid, axis_number, patches,
+            fig, grid, axis_number, patches, title,
             label='parallel (False/True)')
         _add_stats_plot(
             ax=ax, saved_stats=saved_stats,
@@ -308,6 +339,20 @@ def plot_scan_results(
 # Individual scan functions
 ###########################
 
+def scan_n_agents():
+    n_agents = [n * 2 for n in range(10)]
+    scan_values = [{'n_agents': n} for n in n_agents]
+
+    sim = ModelProfiler()
+    sim.experiment_time = 100
+    saved_stats = run_scan(sim,
+                           scan_values=scan_values)
+    plot_scan_results(saved_stats,
+                      plot_all=False,
+                      n_agents_plot=True,
+                      filename=f'scan_n_agents')
+
+
 def scan_parallel_processes():
     scan_values = [
         {'parallel': False},
@@ -325,7 +370,8 @@ def scan_parallel_processes():
 
 
 scans_library = {
-    '0': scan_parallel_processes,
+    '0': scan_n_agents,
+    '1': scan_parallel_processes,
 }
 
 # python bioscrape_cobra/profile_runtime.py -n [name]
