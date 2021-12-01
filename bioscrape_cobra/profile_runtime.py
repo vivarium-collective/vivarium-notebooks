@@ -17,7 +17,6 @@ from bioscrape_cobra.bioscrape_cobra_stochastic import SBML_FILE_STOCHASTIC
 from bioscrape_cobra.bioscrape_cobra_deterministic import SBML_FILE_DETERMINISTIC
 from bioscrape_cobra.simulate import get_bioscrape_cobra_composite
 
-
 # get the sbml files at the correct path
 dirname = os.path.dirname(__file__)
 DETERMINISTIC_FILE = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
@@ -34,50 +33,59 @@ class ModelProfiler:
 
     # model complexity
     experiment_time = DEFAULT_EXPERIMENT_TIME
+    parallel = False
+    stochastic = False
+    emit_step = 1
 
     # initialize
     composite = None
     experiment = None
+    initial_state = None
 
     def set_parameters(
             self,
             experiment_time=None,
+            parallel=None,
+            emit_step=None,
+            stochastic=None,
     ):
         self.experiment_time = \
             experiment_time or self.experiment_time
+        self.parallel = \
+            parallel or self.parallel
+        self.emit_step = \
+            emit_step or self.emit_step
+        self.stochastic = \
+            stochastic or self.stochastic
 
     def _generate_composite(self, **kwargs):
-
-        parallel = True
-        bounds = [30, 30]
-        n_bins = [30, 30]
-        depth = 0.5
         initial_agent_states = [
             {'rates': {
                 'k_leak': 0.005  # less leak -> less spontanteous expression
             }}
         ]
 
-        self.composite, _, _ = get_bioscrape_cobra_composite(
+        self.composite, _, self.initial_state = get_bioscrape_cobra_composite(
             initial_agent_states=initial_agent_states,
-            stochastic=True,
+            stochastic=self.stochastic,
             division=True,
             spatial=True,
             initial_glucose=1e1,
             initial_lactose=5e1,
-            depth=depth,
+            depth=0.5,
             diffusion_rate=2e-2,
             jitter_force=1e-5,
-            bounds=bounds,
-            n_bins=n_bins,
-            sbml_file=STOCHASTIC_FILE,
-            parallel=parallel
+            bounds=[30, 30],
+            n_bins=[30, 30],
+            sbml_file=STOCHASTIC_FILE if self.stochastic else DETERMINISTIC_FILE,
+            parallel=self.parallel
         )
 
     def _initialize_experiment(self, **kwargs):
         self.experiment = Engine(
             processes=self.composite['processes'],
             topology=self.composite['topology'],
+            initial_state=self.initial_state,
             **kwargs)
 
     def _run_experiment(self, **kwargs):
@@ -108,7 +116,6 @@ class ModelProfiler:
         return stats
 
     def run_profile(self):
-
         print('GENERATE COMPOSITE')
         self._profile_method(
             self._generate_composite)
@@ -126,7 +133,6 @@ class ModelProfiler:
             self._get_emitter_data)
 
     def profile_communication_latency(self):
-
         self._generate_composite()
         self._initialize_experiment(display_info=False)
 
@@ -156,8 +162,8 @@ class ModelProfiler:
 
 
 def run_scan(
-    sim,
-    scan_values=None,
+        sim,
+        scan_values=None,
 ):
     """Run a scan
 
@@ -169,23 +175,18 @@ def run_scan(
 
     saved_stats = []
     for scan_dict in scan_values:
-        n_parallel_processes = scan_dict.get('number_of_parallel_processes', 0)
-
         # set the parameters
-        sim.set_parameters(
-            # number_of_parallel_processes=n_parallel_processes,
-        )
+        sim.set_parameters(**scan_dict)
 
-        print(
-            f'number_of_parallel_processes={n_parallel_processes} '
-        )
+        print(f'{scan_dict}')
 
         # run experiment
-        process_update_time, store_update_time = sim.profile_communication_latency()
+        process_update_time, store_update_time = \
+            sim.profile_communication_latency()
 
         # save data
         stat_dict = {
-            'number_of_parallel_processes': n_parallel_processes,
+            **scan_dict,
             'process_update_time': process_update_time,
             'store_update_time': store_update_time,
         }
@@ -194,18 +195,24 @@ def run_scan(
     return saved_stats
 
 
-def make_axis(fig, grid, plot_n, patches, label=''):
+# Plotting functions
+####################
+
+def _make_axis(fig, grid, plot_n, patches, title='', label=''):
     ax = fig.add_subplot(grid[plot_n, 0])
     ax.set_xlabel(label)
-    ax.set_ylabel('runtime (s)')
+    ax.set_ylabel('wall time (s)')
+    ax.set_title(title)
     ax.legend(
-        loc='upper center',
-        handles=patches, ncol=2,
-        bbox_to_anchor=(0.5, 1.2), )
+        handles=patches,
+        # ncol=2,
+        # bbox_to_anchor=(0.5, 1.2),  # above
+        bbox_to_anchor=(1.45, 0.65),  # to the right
+    )
     return ax
 
 
-def get_patches(
+def _get_patches(
         process=True,
         overhead=True,
         experiment=False
@@ -223,77 +230,98 @@ def get_patches(
     return patches
 
 
+def _add_stats_plot(
+        ax,
+        saved_stats,
+        variable_name,
+        process_update=False,
+        vivarium_overhead=False,
+        experiment_time=False
+):
+    # plot saved states
+    for stat in saved_stats:
+        variable = stat[variable_name]
+        process_update_time = stat['process_update_time']
+        store_update_time = stat['store_update_time']
+
+        if process_update:
+            ax.plot(
+                variable, process_update_time, PROCESS_UPDATE_MARKER)
+        if vivarium_overhead:
+            ax.plot(
+                variable, store_update_time, VIVARIUM_OVERHEAD_MARKER)
+        if experiment_time:
+            experiment_time = process_update_time + store_update_time
+            ax.plot(
+                variable, experiment_time, SIMULATION_TIME_MARKER)
+
+
 def plot_scan_results(
         saved_stats,
         plot_all=True,
         parallel_plot=False,
+        fig=None,
+        grid=None,
+        axis_number=0,
+        title=None,
         out_dir='out/experiments',
         filename='profile',
 ):
     if plot_all:
         parallel_plot = True
 
-    n_cols = 1
-    n_rows = sum([
-        parallel_plot,
-    ])
-
     # make figure
-    fig = plt.figure(figsize=(n_cols * 6, n_rows * 3))
-    grid = plt.GridSpec(n_rows, n_cols)
+    if fig:
+        assert grid, "fig must provide grid for subplots"
+    else:
+        n_cols = 1
+        n_rows = sum([
+            parallel_plot,
+        ])
+
+        fig = plt.figure(figsize=(n_cols * 6, n_rows * 3))
+        grid = plt.GridSpec(n_rows, n_cols)
 
     # initialize axes
     plot_n = 0
     if parallel_plot:
-        patches = get_patches(
-            process=False,
-            overhead=False,
-            experiment=True)
-        ax_depth = make_axis(
-            fig, grid, plot_n, patches,
-            label='number of parallel processes')
-        plot_n += 1
-
-    # plot saved states
-    for stat in saved_stats:
-        n_parallel_processes = stat['number_of_parallel_processes']
-        process_update_time = stat['process_update_time']
-        store_update_time = stat['store_update_time']
-
-        if parallel_plot:
-            experiment_time = process_update_time + store_update_time
-            ax_depth.plot(
-                n_parallel_processes, experiment_time, SIMULATION_TIME_MARKER)
-
-    # adjustments
-    plt.subplots_adjust(hspace=0.5)
-    plt.figtext(0, -0.1, filename, size=8)
+        patches = _get_patches(experiment=True)
+        ax = _make_axis(
+            fig, grid, axis_number, patches,
+            label='parallel (False/True)')
+        _add_stats_plot(
+            ax=ax, saved_stats=saved_stats,
+            variable_name='parallel',
+            experiment_time=True)
+        axis_number += 1
 
     # save
-    os.makedirs(out_dir, exist_ok=True)
-    fig_path = os.path.join(out_dir, filename[0:100])
-    fig.savefig(fig_path, bbox_inches='tight')
+    if filename:
+        plt.subplots_adjust(hspace=0.5)
+        plt.figtext(0, -0.1, filename, size=8)
+        os.makedirs(out_dir, exist_ok=True)
+        fig_path = os.path.join(out_dir, filename[0:100])
+        fig.savefig(fig_path, bbox_inches='tight')
+    return fig
 
 
-# scan functions
+# Individual scan functions
+###########################
+
 def scan_parallel_processes():
-    total_processes = 20
-    n_parallel_processes = [i*2 for i in range(int(total_processes/2))]
     scan_values = [
-        {
-            'number_of_processes': total_processes,
-            'number_of_parallel_processes': n
-        } for n in n_parallel_processes
+        {'parallel': False},
+        {'parallel': True},
     ]
 
     sim = ModelProfiler()
-    sim.experiment_time = 100
+    sim.experiment_time = 20
     saved_stats = run_scan(sim,
                            scan_values=scan_values)
     plot_scan_results(saved_stats,
                       plot_all=False,
                       parallel_plot=True,
-                      filename=f'scan_parallel_processes_{total_processes}')
+                      filename=f'scan_{scan_values}')
 
 
 scans_library = {
