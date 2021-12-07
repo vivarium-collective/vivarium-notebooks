@@ -369,6 +369,7 @@ def get_bioscrape_cobra_config(
         external_volume=None,
         sbml_file=None,
         parallel=False,
+        **kwargs,
 ):
     """ create a generic config dict for bioscrape_cobra composers """
     config = {
@@ -376,6 +377,7 @@ def get_bioscrape_cobra_config(
         **({'local_fields': {'bin_volume': external_volume}}
            if external_volume is not None else {}),
         **({'sbml_file': sbml_file} if sbml_file is not None else {}),
+        **kwargs,
     }
 
     if spatial or division:
@@ -426,6 +428,7 @@ def get_bioscrape_cobra_composite(
         n_agents=1,
         sbml_file=None,
         parallel=False,
+        **kwargs,
 ):
     assert n_agents >= 1, "n_agents requires positive number of agents"
     if n_bins is None:
@@ -463,7 +466,8 @@ def get_bioscrape_cobra_composite(
         divide_threshold=divide_threshold,
         external_volume=bin_volume,
         sbml_file=sbml_file,
-        parallel=parallel)
+        parallel=parallel,
+        **kwargs)
 
     # get the BioscrapeCOBRA composer -- either stochastic or deterministic
     if stochastic:

@@ -36,6 +36,7 @@ class ModelProfiler:
     n_agents = 1
     experiment_time = DEFAULT_EXPERIMENT_TIME
     parallel = False
+    reuse_processes = False
     stochastic = False
     division = False
     spatial = False
@@ -51,6 +52,7 @@ class ModelProfiler:
             n_agents=None,
             experiment_time=None,
             parallel=None,
+            reuse_processes=None,
             emit_step=None,
             stochastic=None,
             division=None,
@@ -62,6 +64,8 @@ class ModelProfiler:
             experiment_time or self.experiment_time
         self.parallel = \
             parallel or self.parallel
+        self.reuse_processes = \
+            reuse_processes or self.reuse_processes
         self.emit_step = \
             emit_step or self.emit_step
         self.stochastic = \
@@ -92,7 +96,8 @@ class ModelProfiler:
             bounds=[30, 30],
             n_bins=[30, 30],
             sbml_file=STOCHASTIC_FILE if self.stochastic else DETERMINISTIC_FILE,
-            parallel=self.parallel
+            parallel=self.parallel,
+            reuse_processes=self.reuse_processes,
         )
 
     def _initialize_experiment(self, **kwargs):
@@ -380,7 +385,7 @@ def scan_parallel_processes():
 
 
 def scan_agents_parallel():
-    n_agents_scan = [n for n in range(1, 20, 3)]
+    n_agents_scan = [n for n in range(1, 4, 1)]
     parallel_scan = [True, False]
 
     n_cols = 1
@@ -394,6 +399,7 @@ def scan_agents_parallel():
             scan_value = {
                 'n_agents': n_agents,
                 'parallel': parallel,
+                'reuse_processes': False,
             }
             scan_values.append(scan_value)
 
