@@ -12,6 +12,7 @@ import matplotlib.patches as mpatches
 
 from vivarium.core.engine import Engine
 from vivarium.core.control import run_library_cli
+from vivarium.core.composition import EXPERIMENT_OUT_DIR
 
 from bioscrape_cobra.bioscrape_cobra_stochastic import SBML_FILE_STOCHASTIC
 from bioscrape_cobra.bioscrape_cobra_deterministic import SBML_FILE_DETERMINISTIC
@@ -23,9 +24,9 @@ DETERMINISTIC_FILE = os.path.join(dirname, SBML_FILE_DETERMINISTIC)
 STOCHASTIC_FILE = os.path.join(dirname, SBML_FILE_STOCHASTIC)
 
 DEFAULT_EXPERIMENT_TIME = 100
-PROCESS_UPDATE_MARKER = 'b.'
-VIVARIUM_OVERHEAD_MARKER = 'r.'
-SIMULATION_TIME_MARKER = 'g.'
+PROCESS_UPDATE_MARKER = 'bD'
+VIVARIUM_OVERHEAD_MARKER = 'rD'
+SIMULATION_TIME_MARKER = 'gD'
 
 
 class ModelProfiler:
@@ -56,7 +57,7 @@ class ModelProfiler:
             spatial=None,
     ):
         self.n_agents = \
-            n_agents or self.n_agents
+            n_agents if n_agents is not None else self.n_agents
         self.experiment_time = \
             experiment_time or self.experiment_time
         self.parallel = \
@@ -233,13 +234,16 @@ def _get_patches(
     patches = []
     if process:
         patches.append(mpatches.Patch(
-            color=PROCESS_UPDATE_MARKER[0], label="process updates"))
+            color=PROCESS_UPDATE_MARKER[0],
+            label="process updates"))
     if overhead:
         patches.append(mpatches.Patch(
-            color=VIVARIUM_OVERHEAD_MARKER[0], label="vivarium overhead"))
+            color=VIVARIUM_OVERHEAD_MARKER[0],
+            label="vivarium overhead"))
     if experiment:
         patches.append(mpatches.Patch(
-            color=SIMULATION_TIME_MARKER[0], label="simulation time"))
+            color=SIMULATION_TIME_MARKER[0],
+            label="simulation time"))
     return patches
 
 
@@ -249,7 +253,8 @@ def _add_stats_plot(
         variable_name,
         process_update=False,
         vivarium_overhead=False,
-        experiment_time=False
+        experiment_time=False,
+        markersize=10,
 ):
     # plot saved states
     for stat in saved_stats:
@@ -259,28 +264,33 @@ def _add_stats_plot(
 
         if process_update:
             ax.plot(
-                variable, process_update_time, PROCESS_UPDATE_MARKER)
+                variable, process_update_time,
+                PROCESS_UPDATE_MARKER, markersize=markersize)
         if vivarium_overhead:
             ax.plot(
-                variable, store_update_time, VIVARIUM_OVERHEAD_MARKER)
+                variable, store_update_time,
+                VIVARIUM_OVERHEAD_MARKER, markersize=markersize)
         if experiment_time:
             experiment_time = process_update_time + store_update_time
             ax.plot(
-                variable, experiment_time, SIMULATION_TIME_MARKER)
+                variable, experiment_time,
+                SIMULATION_TIME_MARKER, markersize=markersize)
 
 
 def plot_scan_results(
         saved_stats,
-        plot_all=True,
+        plot_all=False,
         n_agents_plot=False,
         parallel_plot=False,
         fig=None,
         grid=None,
-        axis_number=0,
+        axis_number=None,
+        row_height=3,
         title=None,
-        out_dir='out/experiments',
+        out_dir=EXPERIMENT_OUT_DIR,
         filename='profile',
 ):
+    axis_number = axis_number or 0
     plot_types = [
         n_agents_plot,
         parallel_plot,
@@ -296,7 +306,7 @@ def plot_scan_results(
     else:
         n_cols = 1
         n_rows = sum(plot_types)
-        fig = plt.figure(figsize=(n_cols * 6, n_rows * 3))
+        fig = plt.figure(figsize=(n_cols * 6, n_rows * row_height))
         grid = plt.GridSpec(n_rows, n_cols)
 
     # initialize axes
@@ -329,7 +339,7 @@ def plot_scan_results(
     # save
     if filename:
         plt.subplots_adjust(hspace=0.5)
-        plt.figtext(0, -0.1, filename, size=8)
+        # plt.figtext(0, -0.1, filename, size=8)
         os.makedirs(out_dir, exist_ok=True)
         fig_path = os.path.join(out_dir, filename[0:100])
         fig.savefig(fig_path, bbox_inches='tight')
@@ -340,17 +350,17 @@ def plot_scan_results(
 ###########################
 
 def scan_n_agents():
-    n_agents = [n * 2 for n in range(10)]
+    n_agents = [n for n in range(1, 20, 3)]
     scan_values = [{'n_agents': n} for n in n_agents]
 
     sim = ModelProfiler()
-    sim.experiment_time = 100
+    sim.experiment_time = 60
     saved_stats = run_scan(sim,
                            scan_values=scan_values)
     plot_scan_results(saved_stats,
                       plot_all=False,
                       n_agents_plot=True,
-                      filename=f'scan_n_agents')
+                      filename=f'scan_n_agents_{max(n_agents)}')
 
 
 def scan_parallel_processes():
@@ -366,12 +376,50 @@ def scan_parallel_processes():
     plot_scan_results(saved_stats,
                       plot_all=False,
                       parallel_plot=True,
-                      filename=f'scan_{scan_values}')
+                      filename=f'scan_parallel')
+
+
+def scan_agents_parallel():
+    n_agents_scan = [n for n in range(1, 20, 3)]
+    parallel_scan = [True, False]
+
+    n_cols = 1
+    n_rows = len(parallel_scan)
+    fig = plt.figure(figsize=(n_cols * 6, n_rows * 3))
+    grid = plt.GridSpec(n_rows, n_cols)
+
+    for axis_idx, parallel in enumerate(parallel_scan):
+        scan_values = []
+        for n_agents in n_agents_scan:
+            scan_value = {
+                'n_agents': n_agents,
+                'parallel': parallel,
+            }
+            scan_values.append(scan_value)
+
+        sim = ModelProfiler()
+        saved_stats = run_scan(sim,
+                               scan_values=scan_values)
+        plot_scan_results(saved_stats,
+                          n_agents_plot=True,
+                          # parallel_plot=False,
+                          row_height=2.5,
+                          fig=fig,
+                          grid=grid,
+                          axis_number=axis_idx,
+                          title=f'Parallel {parallel}',
+                          )
+    plot_scan_results({},
+                      fig=fig,
+                      grid=grid,
+                      filename='scan_agents_parallel'
+                      )
 
 
 scans_library = {
     '0': scan_n_agents,
     '1': scan_parallel_processes,
+    '2': scan_agents_parallel,
 }
 
 # python bioscrape_cobra/profile_runtime.py -n [name]

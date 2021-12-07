@@ -427,7 +427,7 @@ def get_bioscrape_cobra_composite(
         sbml_file=None,
         parallel=False,
 ):
-
+    assert n_agents >= 1, "n_agents requires positive number of agents"
     if n_bins is None:
         n_bins = NBINS
     if bounds is None:
@@ -523,7 +523,7 @@ def get_bioscrape_cobra_composite(
         state = biocobra_composite.initial_state()
         initial_state_full = deep_merge(state, agents_initial)
 
-    elif division:
+    elif division or (n_agents > 1):
         # make n_agents dividing agents, without an explicit environment
 
         # division requires the agent to be embedded in a hierarchy
