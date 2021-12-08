@@ -6,6 +6,7 @@ remaining vivarium overhead
 import os
 import cProfile
 import pstats
+from pstats import SortKey
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -164,18 +165,21 @@ class ModelProfiler:
         # get next_update runtime
         next_update_amount = ("next_update",)
         _, stats_list = stats.get_print_list(next_update_amount)
-        cc, nc, tt, ct, callers = stats.stats[stats_list[0]]
-        _ = cc
-        _ = nc
-        _ = tt
-        _ = callers
-        process_update_time = ct
+
+        ct_all = 0
+        for s in stats_list:
+            cc, nc, tt, ct, callers = stats.stats[s]
+            ct_all += ct
+        process_update_time = ct_all
 
         # get total runtime
         experiment_time = stats.total_tt
 
         # analyze
         store_update_time = experiment_time - process_update_time
+
+        # print_stats = stats.strip_dirs().sort_stats(-1).print_stats()
+        # looping_stats = stats.sort_stats(SortKey.TIME).print_stats(20)
 
         return process_update_time, store_update_time
 
@@ -234,7 +238,7 @@ def _make_axis(fig, grid, plot_n, patches, title='', label=''):
 def _get_patches(
         process=True,
         overhead=True,
-        experiment=False
+        experiment=True,
 ):
     patches = []
     if process:
@@ -286,6 +290,7 @@ def plot_scan_results(
         saved_stats,
         plot_all=False,
         n_agents_plot=False,
+        n_agents_update_only=False,
         parallel_plot=False,
         fig=None,
         grid=None,
@@ -298,11 +303,13 @@ def plot_scan_results(
     axis_number = axis_number or 0
     plot_types = [
         n_agents_plot,
+        n_agents_update_only,
         parallel_plot,
     ]
 
     if plot_all:
         n_agents_plot = True
+        n_agents_update_only = True
         parallel_plot = True
 
     # make figure
@@ -316,7 +323,7 @@ def plot_scan_results(
 
     # initialize axes
     if n_agents_plot:
-        patches = _get_patches(experiment=True)
+        patches = _get_patches()
         ax = _make_axis(
             fig, grid, axis_number, patches, title,
             label='initial number of agents')
@@ -326,12 +333,24 @@ def plot_scan_results(
             variable_name='n_agents',
             process_update=True,
             vivarium_overhead=True,
-            # experiment_time=True,
+        )
+        axis_number += 1
+
+    if n_agents_update_only:
+        patches = _get_patches()
+        ax = _make_axis(
+            fig, grid, axis_number, patches, title,
+            label='initial number of agents')
+
+        _add_stats_plot(
+            ax=ax, saved_stats=saved_stats,
+            variable_name='n_agents',
+            process_update=True,
         )
         axis_number += 1
 
     if parallel_plot:
-        patches = _get_patches(experiment=True)
+        patches = _get_patches()
         ax = _make_axis(
             fig, grid, axis_number, patches, title,
             label='parallel (False/True)')
@@ -355,7 +374,7 @@ def plot_scan_results(
 ###########################
 
 def scan_n_agents():
-    n_agents = [n for n in range(1, 20, 3)]
+    n_agents = [n for n in range(1, 5)]
     scan_values = [{'n_agents': n} for n in n_agents]
 
     sim = ModelProfiler()
@@ -363,8 +382,8 @@ def scan_n_agents():
     saved_stats = run_scan(sim,
                            scan_values=scan_values)
     plot_scan_results(saved_stats,
-                      plot_all=False,
                       n_agents_plot=True,
+                      n_agents_update_only=True,
                       filename=f'scan_n_agents_{max(n_agents)}')
 
 
@@ -379,13 +398,12 @@ def scan_parallel_processes():
     saved_stats = run_scan(sim,
                            scan_values=scan_values)
     plot_scan_results(saved_stats,
-                      plot_all=False,
                       parallel_plot=True,
                       filename=f'scan_parallel')
 
 
 def scan_agents_parallel():
-    n_agents_scan = [n for n in range(1, 4, 1)]
+    n_agents_scan = [n for n in range(1, 6, 1)]
     parallel_scan = [True, False]
 
     n_cols = 1
