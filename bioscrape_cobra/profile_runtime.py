@@ -166,16 +166,12 @@ class ModelProfiler:
         next_update_amount = ("next_update",)
         _, stats_list = stats.get_print_list(next_update_amount)
 
-        ct_all = 0
+        process_update_time = 0
         for s in stats_list:
-            cc, nc, tt, ct, callers = stats.stats[s]
-            ct_all += ct
-        process_update_time = ct_all
+            process_update_time += stats.stats[s][3]
 
         # get total runtime
         experiment_time = stats.total_tt
-
-        # analyze
         store_update_time = experiment_time - process_update_time
 
         # print_stats = stats.strip_dirs().sort_stats(-1).print_stats()
