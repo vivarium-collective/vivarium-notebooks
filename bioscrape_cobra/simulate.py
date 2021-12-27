@@ -369,6 +369,7 @@ def get_bioscrape_cobra_config(
         external_volume=None,
         sbml_file=None,
         parallel=False,
+        **kwargs,
 ):
     """ create a generic config dict for bioscrape_cobra composers """
     config = {
@@ -376,6 +377,7 @@ def get_bioscrape_cobra_config(
         **({'local_fields': {'bin_volume': external_volume}}
            if external_volume is not None else {}),
         **({'sbml_file': sbml_file} if sbml_file is not None else {}),
+        **kwargs,
     }
 
     if spatial or division:
@@ -409,7 +411,7 @@ def get_initial_state(initial_states, n=None):
         return {}
 
 
-def simulate_bioscrape_cobra(
+def get_bioscrape_cobra_composite(
         division=False,
         stochastic=False,
         initial_glucose=1e1,
@@ -419,42 +421,16 @@ def simulate_bioscrape_cobra(
         n_bins=None,
         depth=DEPTH,
         diffusion_rate=1e-1,
-        jitter_force=1e-4,
+        jitter_force=1e-5,
         divide_threshold=2000 * units.fg,
         spatial=False,
         external_volume=None,
         n_agents=1,
-        halt_threshold=100,
-        total_time=100,
         sbml_file=None,
-        emitter='timeseries',
-        output_type=None,
         parallel=False,
+        **kwargs,
 ):
-    """ Main simulation function for BioscrapeCOBRA
-
-    Args:
-        * division (bool): sets whether the agents divides
-        * stochastic (bool): load the stochastic lac operon model
-        * initial_glucose (float): initial external glucose concentration
-        * initial_lactose: (float): initial external initial_lactose concentration
-        * initial_agent_states (dict): set initial state values
-        * bounds (list): size of the environment [x, y] in microns
-        * n_bins (list): number of bins in the [x, y] dimensions
-        * depth (float): depth of the environment in microns
-        * diffusion_rate (float): diffusion rate constant for all molecules, micron^s/sec.
-        * divide_threshold (float): mass at which cells divide, in fg
-        * spatial (bool): use spatial environment
-        * external_volume (float): volume of external bin, if non-spatial environment
-        * n_agents (int): number of initial agents in environment
-        * halt_threshold (int): number of agents at which simulations will terminate
-        * total_time (float): total simulation time, in seconds
-        * sbml_file (str): the file for the Bioscrape process. Uses default if None.
-        * emitter (str): type of emitter, 'timeseries' or 'database'.
-        * output_type (str): 'timeseries' or 'unitless'. If None, return experiment instance
-        * parallel (bool): run processes in parallel, useful for large compute machines
-    """
-
+    assert n_agents >= 1, "n_agents requires positive number of agents"
     if n_bins is None:
         n_bins = NBINS
     if bounds is None:
@@ -490,7 +466,8 @@ def simulate_bioscrape_cobra(
         divide_threshold=divide_threshold,
         external_volume=bin_volume,
         sbml_file=sbml_file,
-        parallel=parallel)
+        parallel=parallel,
+        **kwargs)
 
     # get the BioscrapeCOBRA composer -- either stochastic or deterministic
     if stochastic:
@@ -550,7 +527,7 @@ def simulate_bioscrape_cobra(
         state = biocobra_composite.initial_state()
         initial_state_full = deep_merge(state, agents_initial)
 
-    elif division:
+    elif division or (n_agents > 1):
         # make n_agents dividing agents, without an explicit environment
 
         # division requires the agent to be embedded in a hierarchy
@@ -605,6 +582,74 @@ def simulate_bioscrape_cobra(
         initial_state_full['fields'] = {
                 GLUCOSE_EXTERNAL: initial_glucose,
                 LACTOSE_EXTERNAL: initial_lactose}
+
+    return biocobra_composite, initial_composite, initial_state_full
+
+
+def simulate_bioscrape_cobra(
+        division=False,
+        stochastic=False,
+        initial_glucose=1e1,
+        initial_lactose=1e1,
+        initial_agent_states=None,
+        bounds=None,
+        n_bins=None,
+        depth=DEPTH,
+        diffusion_rate=1e-1,
+        jitter_force=1e-5,
+        divide_threshold=2000 * units.fg,
+        spatial=False,
+        external_volume=None,
+        n_agents=1,
+        halt_threshold=100,
+        total_time=100,
+        sbml_file=None,
+        emitter='timeseries',
+        output_type=None,
+        parallel=False,
+):
+    """ Main simulation function for BioscrapeCOBRA
+
+    Args:
+        * division (bool): sets whether the agents divides
+        * stochastic (bool): load the stochastic lac operon model
+        * initial_glucose (float): initial external glucose concentration
+        * initial_lactose: (float): initial external initial_lactose concentration
+        * initial_agent_states (dict): set initial state values
+        * bounds (list): size of the environment [x, y] in microns
+        * n_bins (list): number of bins in the [x, y] dimensions
+        * depth (float): depth of the environment in microns
+        * diffusion_rate (float): diffusion rate constant for all molecules, micron^s/sec.
+        * divide_threshold (float): mass at which cells divide, in fg
+        * spatial (bool): use spatial environment
+        * external_volume (float): volume of external bin, if non-spatial environment
+        * n_agents (int): number of initial agents in environment
+        * halt_threshold (int): number of agents at which simulations will terminate
+        * total_time (float): total simulation time, in seconds
+        * sbml_file (str): the file for the Bioscrape process. Uses default if None.
+        * emitter (str): type of emitter, 'timeseries' or 'database'.
+        * output_type (str): 'timeseries' or 'unitless'. If None, return experiment instance
+        * parallel (bool): run processes in parallel, useful for large compute machines
+        * jitter_force (float): random force applied to cell bodies (in pN)
+    """
+
+    biocobra_composite, initial_composite, initial_state_full = get_bioscrape_cobra_composite(
+        division=division,
+        stochastic=stochastic,
+        initial_glucose=initial_glucose,
+        initial_lactose=initial_lactose,
+        initial_agent_states=initial_agent_states,
+        bounds=bounds,
+        n_bins=n_bins,
+        depth=depth,
+        diffusion_rate=diffusion_rate,
+        jitter_force=jitter_force,
+        divide_threshold=divide_threshold,
+        spatial=spatial,
+        external_volume=external_volume,
+        n_agents=n_agents,
+        sbml_file=sbml_file,
+        parallel=parallel)
 
     # make the experiment
     experiment_id = (f"{'stochastic' if stochastic else 'deterministic'}"
@@ -1082,6 +1127,6 @@ def main():
         test_bioscrape_alone()
 
 
+# python bioscrape_cobra/simulate.py [args]
 if __name__ == '__main__':
     main()
-

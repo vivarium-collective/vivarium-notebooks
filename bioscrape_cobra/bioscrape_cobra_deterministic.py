@@ -120,7 +120,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         'divide_on': False,  # is division turned on?
         'fields_on': False,  # are spatial dynamics used?
         '_parallel': False,  # Are multiple cores used?
-        'reuse_processes': True,  # reuse the same processes for all agents?
+        'reuse_processes': False,  # reuse the same processes for all agents?
         'sbml_file': SBML_FILE_DETERMINISTIC,
 
         # process configs
@@ -161,6 +161,7 @@ class BioscrapeCOBRAdeterministic(Composer):
         self.config['bioscrape']['sbml_file'] = self.config['sbml_file']
 
         # configure parallelization
+        self.config['bioscrape']['_parallel'] = self.config.get('_parallel', False)
         self.config['cobra']['_parallel'] = self.config.get('_parallel', False)
 
         # configure local fields

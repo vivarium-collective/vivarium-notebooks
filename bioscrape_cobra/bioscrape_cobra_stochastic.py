@@ -116,7 +116,7 @@ class BioscrapeCOBRAstochastic(Composer):
         'cobra_timestep': COBRA_TIMESTEP,
         'divide_on': False,  # is division turned on?
         'fields_on': False,  # are spatial dynamics used?
-        'reuse_processes': True,  # reuse the same processes for all agents?
+        'reuse_processes': False,  # reuse the same processes for all agents?
         'sbml_file': SBML_FILE_STOCHASTIC,
 
         # process configs
@@ -153,6 +153,7 @@ class BioscrapeCOBRAstochastic(Composer):
             self.config['cobra_timestep'], self.config['bioscrape_timestep'])
 
         # configure parallelization
+        self.config['bioscrape']['_parallel'] = self.config.get('_parallel', False)
         self.config['cobra']['_parallel'] = self.config.get('_parallel', False)
 
         # sbml file
