@@ -47,7 +47,7 @@ Parallelization can be triggered with the `-p` option:
 > python bioscrape_cobra/simulate --simulation_name -p
 
 Saving the simulation output to a mongoDB database requires a running mongoDB instance, as described in the
-[Vivarium docuentation](https://vivarium-core.readthedocs.io/en/latest/getting_started_dev.html). 
+[Vivarium documentation](https://vivarium-core.readthedocs.io/en/latest/getting_started_dev.html). 
 It can then be triggered with the `-d` option: 
 
 > python bioscrape_cobra/simulate --simulation_name -d
