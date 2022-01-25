@@ -1,5 +1,12 @@
 # Vivarium notebooks
 
+## Notebooks
+Notebooks can be found under `notebooks/`. These include:
+
+ * [Lac Operon CRN](https://nbviewer.org/github/vivarium-collective/vivarium-notebooks/blob/main/notebooks/Lac_Operon_CRN.ipynb)
+ * [Multi-Paradigm Composites](https://nbviewer.org/github/vivarium-collective/vivarium-notebooks/blob/main/notebooks/Multi-Paradigm-Composites.ipynb)
+ * [Vivarium Interface Basics](https://nbviewer.org/github/vivarium-collective/vivarium-core/blob/master/notebooks/Vivarium_interface_basics.ipynb)
+
 ## Setup
 To run the code used in this work, you will need to install the following modules: `vivarium-core`, `vivarium-cobra`, 
 `vivarium-bioscrape`, and `vivarium-multibody`.
@@ -23,9 +30,6 @@ These modules can be installed locally by executing the following command in the
 
    Note that you have to install numpy first because the `setup.py`
    script of one of our dependencies requires it.
-
-## Notebooks
-Notebooks can be found under `notebooks/`. These include `Vivarium_interface_basics.ipynb` and `Multi-Paradigm-Composites.ipynb`.
 
 ## Python files
 All Python files can be found under `bioscrape_cobra/`.
