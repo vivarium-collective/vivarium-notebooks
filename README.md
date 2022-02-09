@@ -1,5 +1,15 @@
 # Vivarium notebooks
 
+This repository contains the simulations described in: 
+[Agmon, E., Spangler, R.K., Skalnik, C.J., Poole, W., Morrison, J.H., Peirce, S.M., and Covert, M.W. (2021). 
+Vivarium: an interface and engine for integrative multi-scale modeling in computational biology. *Bioinformatics*.](
+https://academic.oup.com/bioinformatics/advance-article-abstract/doi/10.1093/bioinformatics/btac049/6522109)
+
+[Vivarium Core](https://github.com/vivarium-collective/vivarium-core) is required to start your own Vivarium project. 
+See the [documentation](https://vivarium-core.readthedocs.io/en/latest/getting_started.html) for more details,
+and the [Vivarium Collective](https://vivarium-collective.github.io) for available modules.
+
+
 ## Notebooks
 Notebooks can be found under `notebooks/`. These include:
 
