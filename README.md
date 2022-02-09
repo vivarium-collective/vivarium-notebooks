@@ -1,7 +1,7 @@
 # Vivarium notebooks
 
 This repository contains the simulations described in: 
-[Agmon, E., Spangler, R.K., Skalnik, C.J., Poole, W., Morrison, J.H., Peirce, S.M., and Covert, M.W. (2021). 
+[Agmon, E., Spangler, R.K., Skalnik, C.J., Poole, W., Morrison, J.H., Peirce, S.M., and Covert, M.W. (2022). 
 Vivarium: an interface and engine for integrative multi-scale modeling in computational biology. *Bioinformatics*.](
 https://academic.oup.com/bioinformatics/advance-article-abstract/doi/10.1093/bioinformatics/btac049/6522109)
 
